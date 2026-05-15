@@ -11,8 +11,8 @@ import type {
 
 export const projects: Project[] = [
   {
-    id: "herzliya",
-    name: "בית הרצליה",
+    id: "2253",
+    name: "פרויקט 2253",
     client: "משפחת לוי",
     icon: "🏡",
     status: "active",
@@ -25,8 +25,8 @@ export const projects: Project[] = [
     accentColor: "blue",
   },
   {
-    id: "raanana",
-    name: "דופלקס רעננה",
+    id: "2288",
+    name: "פרויקט 2288",
     client: "משפחת כהן",
     icon: "🏢",
     status: "active",
@@ -39,8 +39,8 @@ export const projects: Project[] = [
     accentColor: "purple",
   },
   {
-    id: "kfar-saba",
-    name: "שיפוץ כפר סבא",
+    id: "2306",
+    name: "פרויקט 2306",
     client: "משפחת אברהם",
     icon: "🔨",
     status: "almost-done",
@@ -57,7 +57,7 @@ export const projects: Project[] = [
 export const contractors: Contractor[] = [
   {
     id: "c1",
-    projectId: "herzliya",
+    projectId: "2253",
     name: "אלי שלד בע\"מ",
     specialty: "שלד בטון",
     contractTotal: 380_000,
@@ -66,7 +66,7 @@ export const contractors: Contractor[] = [
   },
   {
     id: "c2",
-    projectId: "herzliya",
+    projectId: "2253",
     name: "חשמלי הצפון",
     specialty: "חשמל ותקשורת",
     contractTotal: 95_000,
@@ -75,7 +75,7 @@ export const contractors: Contractor[] = [
   },
   {
     id: "c3",
-    projectId: "herzliya",
+    projectId: "2253",
     name: "אינסטלציית כהן",
     specialty: "אינסטלציה",
     contractTotal: 65_000,
@@ -84,7 +84,7 @@ export const contractors: Contractor[] = [
   },
   {
     id: "c4",
-    projectId: "herzliya",
+    projectId: "2253",
     name: "קרמיקה עד הבית",
     specialty: "חיפויים",
     contractTotal: 48_000,
@@ -96,7 +96,7 @@ export const contractors: Contractor[] = [
 export const tasks: Task[] = [
   {
     id: "t1",
-    projectId: "herzliya",
+    projectId: "2253",
     title: "פגישת תיאום עם חשמלאי",
     dueDate: "היום · 15:00",
     urgency: "today",
@@ -105,7 +105,7 @@ export const tasks: Task[] = [
   },
   {
     id: "t2",
-    projectId: "raanana",
+    projectId: "2288",
     title: "בחירת אריחי גמר - פגישה עם לקוח",
     dueDate: "מחר",
     urgency: "tomorrow",
@@ -113,7 +113,7 @@ export const tasks: Task[] = [
   },
   {
     id: "t3",
-    projectId: "herzliya",
+    projectId: "2253",
     title: "אישור הזמנת אריחי קרמיקה",
     dueDate: "מחר · עד 12:00",
     urgency: "tomorrow",
@@ -121,7 +121,7 @@ export const tasks: Task[] = [
   },
   {
     id: "t4",
-    projectId: "herzliya",
+    projectId: "2253",
     title: "בדיקת איכות בטון בתקרה",
     dueDate: "18/05 · עם מפקח",
     urgency: "this-week",
@@ -129,7 +129,7 @@ export const tasks: Task[] = [
   },
   {
     id: "t5",
-    projectId: "kfar-saba",
+    projectId: "2306",
     title: "קבלת מפתחות וסיום עבודות",
     dueDate: "18/05",
     urgency: "this-week",
@@ -137,7 +137,7 @@ export const tasks: Task[] = [
   },
   {
     id: "t6",
-    projectId: "herzliya",
+    projectId: "2253",
     title: "סקירת חוזה גמרים",
     dueDate: "22/05 · משרד עו\"ד",
     urgency: "later",
@@ -145,7 +145,7 @@ export const tasks: Task[] = [
   },
   {
     id: "t7",
-    projectId: "herzliya",
+    projectId: "2253",
     title: "תשלום למהנדס קונסטרוקציה",
     dueDate: "הושלם ב-12/05",
     urgency: "later",
@@ -156,7 +156,7 @@ export const tasks: Task[] = [
 export const transactions: Transaction[] = [
   {
     id: "tr1",
-    projectId: "herzliya",
+    projectId: "2253",
     date: "13/05/26",
     description: "תשלום: אלי שלד",
     source: "העברה בנקאית",
@@ -164,7 +164,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: "tr2",
-    projectId: "herzliya",
+    projectId: "2253",
     date: "10/05/26",
     description: "קבלת תשלום מבנק",
     source: "משכנתא",
@@ -172,7 +172,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: "tr3",
-    projectId: "herzliya",
+    projectId: "2253",
     date: "08/05/26",
     description: "קניית אריחים",
     source: "קרמיקה עד הבית",
@@ -180,53 +180,53 @@ export const transactions: Transaction[] = [
   },
   {
     id: "tr4",
-    projectId: "herzliya",
+    projectId: "2253",
     date: "05/05/26",
     description: "אגרת בנייה",
-    source: "עיריית הרצליה",
+    source: "עיריה",
     amount: -12_500,
   },
 ];
 
 export const inventory: InventoryItem[] = [
-  { id: "i1", projectId: "herzliya", name: "בלוקים", unit: "קוב", current: 85, required: 120 },
-  { id: "i2", projectId: "herzliya", name: "ברזל", unit: "טון", current: 12, required: 30 },
-  { id: "i3", projectId: "herzliya", name: "צמנט", unit: "שקים", current: 35, required: 200 },
-  { id: "i4", projectId: "herzliya", name: "אריחי קרמיקה", unit: "מ\"ר", current: 180, required: 240 },
+  { id: "i1", projectId: "2253", name: "בלוקים", unit: "קוב", current: 85, required: 120 },
+  { id: "i2", projectId: "2253", name: "ברזל", unit: "טון", current: 12, required: 30 },
+  { id: "i3", projectId: "2253", name: "צמנט", unit: "שקים", current: 35, required: 200 },
+  { id: "i4", projectId: "2253", name: "אריחי קרמיקה", unit: "מ\"ר", current: 180, required: 240 },
 ];
 
 export const alerts: Alert[] = [
   {
     id: "a1",
-    projectId: "herzliya",
+    projectId: "2253",
     type: "critical",
     icon: "🚨",
     title: "תשלום מאחר - אלי שלד",
-    detail: "בית הרצליה · ₪45,000",
+    detail: "פרויקט 2253 · ₪45,000",
   },
   {
     id: "a2",
-    projectId: "herzliya",
+    projectId: "2253",
     type: "critical",
     icon: "⚠️",
-    title: "חריגה: חשמל הרצליה",
+    title: "חריגה: חשמל פרויקט 2253",
     detail: "+12% מתקציב",
   },
   {
     id: "a3",
-    projectId: "herzliya",
+    projectId: "2253",
     type: "warning",
     icon: "⏰",
     title: "פגישה היום 15:00",
-    detail: "חשמלאי - בית הרצליה",
+    detail: "חשמלאי - פרויקט 2253",
   },
   {
     id: "a4",
-    projectId: "raanana",
+    projectId: "2288",
     type: "warning",
     icon: "📄",
     title: "חוזה לחתימה",
-    detail: "דופלקס רעננה - גמרים",
+    detail: "פרויקט 2288 - גמרים",
   },
   {
     id: "a5",
@@ -245,7 +245,7 @@ export const alerts: Alert[] = [
 ];
 
 export const expenseCategoriesByProject: Record<string, ExpenseCategory[]> = {
-  herzliya: [
+  "2253": [
     { label: "שלד ובטון", amount: 385_000 },
     { label: "גמרים", amount: 280_000 },
     { label: "חשמל", amount: 195_000 },
@@ -253,13 +253,13 @@ export const expenseCategoriesByProject: Record<string, ExpenseCategory[]> = {
     { label: "מטבח", amount: 145_000 },
     { label: "אחר", amount: 217_200 },
   ],
-  raanana: [
+  "2288": [
     { label: "תכנון", amount: 95_000 },
     { label: "חפירות ועפר", amount: 145_000 },
     { label: "תשתיות", amount: 85_000 },
     { label: "אחר", amount: 55_000 },
   ],
-  "kfar-saba": [
+  "2306": [
     { label: "הריסה ושינוי קונסטרוקציה", amount: 290_000 },
     { label: "חשמל ואינסטלציה", amount: 245_000 },
     { label: "ריצוף וקירות", amount: 218_000 },
@@ -269,9 +269,9 @@ export const expenseCategoriesByProject: Record<string, ExpenseCategory[]> = {
 };
 
 export const monthlyCashflowByProject: Record<string, number[]> = {
-  herzliya: [120_000, 145_000, 168_000, 152_000, 175_000],
-  raanana: [0, 85_000, 120_000, 95_000, 145_000],
-  "kfar-saba": [180_000, 145_000, 110_000, 92_000, 92_000],
+  "2253": [120_000, 145_000, 168_000, 152_000, 175_000],
+  "2288": [0, 85_000, 120_000, 95_000, 145_000],
+  "2306": [180_000, 145_000, 110_000, 92_000, 92_000],
 };
 
 export const months = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי"];
