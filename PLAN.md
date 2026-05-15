@@ -3,7 +3,7 @@
 > מסמך זה הוא הספק (Specification) המנחה לבניית האפליקציה בסשנים הבאים.
 > כל שינוי בדרישות צריך לעדכן את המסמך הזה לפני בניית קוד.
 >
-> **גרסה**: 3.0 (אחרי החלטה על ארכיטקטורה אישית עם Firebase)
+> **גרסה**: 3.1 (הוספת מודול ניהול חוזים + צ'אט AI מבוסס RAG פר-פרויקט)
 > **תאריך עדכון**: 2026-05-15
 
 ---
@@ -76,13 +76,14 @@
 2. הוצאות והכנסות
 3. תשלומים לקבלנים וספקים
 4. כתבי כמויות + לוח זמנים + משימות
+5. **ניהול חוזים ומסמכי פרויקט** - תיקייה ייעודית לחוזי כל פרויקט
+6. **צ'אט AI מבוסס חוזים (RAG)** - שואלים שאלות על תוכן החוזים בעברית
 
 ### מודולים עתידיים
 - אינטגרציה עם Outlook Mail
-- ניהול חוזים ואישורי תשלום
-- ניהול מסמכי בטיחות
+- ניהול מסמכי בטיחות (מעבר לחוזים)
 - דוחות PDF להפקה
-- OCR אוטומטי לחשבוניות (עתידי - דורש שירות AI חיצוני)
+- OCR אוטומטי לחשבוניות (יכול להשתלב עם תשתית ה-AI שכבר תהיה)
 
 ---
 
@@ -580,6 +581,164 @@ service cloud.firestore {
 - Function שמאזינה לתיקייה ב-OneDrive האישי
 - כשמעדכנים קובץ → קוראת ומסנכרנת אוטומטית
 - **לא ל-MVP** - תוספת אחרי שהבסיס יציב
+
+---
+
+## 9.5 ניהול חוזים + צ'אט AI לפר-פרויקט (RAG)
+
+> כל פרויקט מקבל תיקייה ייעודית למסמכי חוזים, וצ'אט AI שיודע לענות על שאלות מבוססות תוכן החוזים של אותו פרויקט בלבד.
+
+### דרישה משתמש
+- כל פרויקט יציג tab "חוזים" עם רשימת מסמכים (PDF/Word)
+- צ'אט בעמוד הפרויקט. שואלים שאלות כמו:
+  - "כמה התשלום השלישי לקבלן השלד?"
+  - "מתי תאריך מסירת הגמרים?"
+  - "האם יש סעיף קנס על איחור?"
+  - "מי חתום על חוזה החשמל ומה תאריך החתימה?"
+- התשובה מצביעה על המסמך והעמוד שממנו נשלפה (Citations)
+- הצ'אט מוגבל אך ורק לחוזים של אותו פרויקט - לא דולף מידע בין פרויקטים
+
+### ארכיטקטורת RAG (Retrieval Augmented Generation)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  1. INGESTION - העלאת חוזה                                    │
+│  אתה גורר PDF לתיקיית "חוזים" של פרויקט 2253                  │
+│  (מתוך האפליקציה, או דרך Drive/OneDrive מסונכרן)              │
+└────────────────────┬─────────────────────────────────────────┘
+                     ▼
+┌──────────────────────────────────────────────────────────────┐
+│  2. PROCESSING - Cloud Function אוטומטית                      │
+│  ─ חילוץ טקסט (pdf-parse לטקסט, Vision API אם סרוק)          │
+│  ─ Chunking - חיתוך ל-קטעים של ~500 מילים עם חפיפה            │
+│  ─ Embeddings - יצירת וקטור 1536-מימדי לכל chunk              │
+│  ─ אחסון: Firestore + Vector DB עם tag projectId="2253"      │
+└────────────────────┬─────────────────────────────────────────┘
+                     ▼
+┌──────────────────────────────────────────────────────────────┐
+│  3. QUERY - אתה שואל בצ'אט בעמוד פרויקט 2253                  │
+│  "מתי הקבלן צריך לסיים את השלד?"                              │
+└────────────────────┬─────────────────────────────────────────┘
+                     ▼
+┌──────────────────────────────────────────────────────────────┐
+│  4. RETRIEVAL                                                 │
+│  ─ embedding לשאלה                                           │
+│  ─ vector similarity search - מסונן רק ל-projectId="2253"    │
+│  ─ TOP-5 chunks הכי רלוונטיים                                │
+└────────────────────┬─────────────────────────────────────────┘
+                     ▼
+┌──────────────────────────────────────────────────────────────┐
+│  5. GENERATION - LLM (Claude/Gemini/GPT)                     │
+│  ─ פרומפט מובנה: "ענה בעברית רק על-פי הקטעים. אם אין מידע    │
+│     מספיק - אמור 'לא מצאתי בחוזים'. צטט את המקור."           │
+│  ─ הצגת התשובה + רשימת מקורות (מסמך + עמוד)                  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### אבטחה - הפרדה בין פרויקטים
+- כל chunk ב-Vector DB מתויג ב-`projectId`
+- שאילתה תמיד מסננת לפי `projectId` של הפרויקט הפעיל
+- Firestore Rules: רק `ownerId == request.auth.uid` רואה גם את המסמכים וגם את ה-chunks
+- הצ'אט לא יכול "לדלוף" מידע בין פרויקטים גם אם הניסוח של השאלה מבולבל
+
+### בחירת ספקים (להחלטה לפני בנייה)
+
+| רכיב | אופציה A (חינמית) | אופציה B (איכותית) | אופציה C (מאוזנת) |
+|------|-------------------|--------------------|-------------------|
+| **Embeddings** | Voyage AI (200M tokens free) | OpenAI text-embedding-3-small | Cohere Embed Multilingual |
+| **Vector DB** | Pinecone Free (100K vectors) | Qdrant Cloud Free | Firestore Vector Search (beta) |
+| **LLM** | Gemini 2.0 Flash (חינמי במכסה) | Claude Haiku (~$0.25/1M tokens) | GPT-4o-mini (~$0.15/1M tokens) |
+| **עלות חודשית בשימוש אישי** | **0 ש"ח** | ~$3-5 | ~$2-3 |
+| **איכות בעברית** | טובה | מצוינת | טובה מאוד |
+
+**המלצה ראשונית**: התחלה עם **אופציה A** (חינמית, גם זה עובד טוב לעברית) - אם האיכות לא מספקת, מעבר ל-C או B במחיר זניח. בכל מקרה - לא lock-in, פשוט להחליף ספק LLM.
+
+### מודל נתונים (תוספת ל-Firestore)
+
+```typescript
+// אוסף חדש: documents - מסמכים שהועלו
+documents/{documentId} {
+  ownerId: string,
+  projectId: string,
+  fileName: string,          // "חוזה_קבלן_שלד.pdf"
+  category: "contract" | "invoice" | "permit" | "other",
+  storageURL: string,        // Firebase Storage path
+  fileSize: number,          // bytes
+  uploadedAt: timestamp,
+  processingStatus: "pending" | "extracting" | "embedding" | "ready" | "failed",
+  pagesCount: number,
+  totalChunks: number,
+  totalCost: number,         // לעקוב אחרי עלות ה-embedding
+}
+
+// אוסף חדש: document_chunks - קטעי טקסט עם embeddings
+document_chunks/{chunkId} {
+  ownerId: string,
+  projectId: string,         // לסינון מהיר!
+  documentId: string,
+  documentName: string,      // duplicate לתצוגת מקור
+  pageNumber: number,
+  chunkIndex: number,        // סדר בתוך המסמך
+  text: string,              // הטקסט עצמו
+  embedding: number[],       // vector של 1536 מספרים (או 1024)
+}
+
+// אוסף חדש: chat_messages - היסטוריית צ'אטים
+chat_messages/{messageId} {
+  ownerId: string,
+  projectId: string,         // צ'אט נפרד לכל פרויקט
+  role: "user" | "assistant",
+  content: string,
+  citations: Array<{
+    documentId: string,
+    documentName: string,
+    pageNumber: number,
+    snippet: string,
+  }>,
+  createdAt: timestamp,
+}
+```
+
+### Cloud Functions חדשות
+
+```typescript
+// Function 8: processUploadedDocument
+// Triggered: כשמועלה מסמך חדש ל-Storage תחת documents/{userId}/{projectId}/
+// פעולה: חילוץ טקסט → chunking → embeddings → שמירה
+async function processUploadedDocument(file: StorageFile) { ... }
+
+// Function 9: ragChatQuery
+// Triggered: HTTP callable מה-frontend כשהמשתמש שואל שאלה
+// פעולה: embedding לשאלה → vector search → LLM prompt → תשובה + citations
+async function ragChatQuery(req: { projectId, question, history }) { ... }
+```
+
+### עלויות חזויות (אופציה A - חינמית)
+
+| תרחיש | חישוב | עלות |
+|-------|------|------|
+| 50 חוזים, 30 עמ' כל אחד = 1500 עמ' | ~750K tokens × Voyage free | ₪0 |
+| 100 שאלות בחודש | ~30K input tokens × Gemini free quota | ₪0 |
+| אחסון Vector DB | ~15K vectors << 100K free | ₪0 |
+| **סה"כ לחודש** | | **₪0** |
+
+הגבלות המסלול החינמי לא יחרגו עד שתהיה לך כמות פרויקטים פי 10 מהיום.
+
+### UI - איפה החוזים והצ'אט יישבו
+
+**בעמוד פרויקט פר-פרויקטי, יתווספו 2 רכיבים:**
+1. **Tab "חוזים"** (לצד "סקירה", "פיננסי" וכו') - גריד של PDFs עם תאריך, גודל, וסטטוס עיבוד
+2. **כפתור צ'אט קבוע** (פינה ימנית למטה) - פותח Drawer עם:
+   - היסטוריית שיחות עם הפרויקט הזה
+   - שדה שאלה
+   - תשובה + רשימת ציטוטים (לחיצה פותחת את המסמך באותו עמוד)
+
+### שלבי פיתוח
+
+זה לא נכלל ב-MVP הראשון. הוספה בפאזה 5:
+1. **Phase 5A**: העלאה ואחסון מסמכים (Storage + UI להעלאה) - שבוע
+2. **Phase 5B**: pipeline עיבוד (Cloud Function + chunking + embeddings) - שבוע
+3. **Phase 5C**: צ'אט UI + RAG query - שבוע
 
 ---
 

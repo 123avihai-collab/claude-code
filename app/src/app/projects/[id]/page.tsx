@@ -244,6 +244,93 @@ export default async function ProjectPage({
           </div>
         </div>
 
+        {/* Contracts folder + AI Chat (future) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div className="card-hover bg-white rounded-2xl p-5">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-slate-800">📁 חוזים ומסמכים</h3>
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                בקרוב
+              </span>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg opacity-60">
+                <span className="text-xl">📄</span>
+                <div className="flex-1">
+                  <p className="font-medium">חוזה_קבלן_שלד.pdf</p>
+                  <p className="text-xs text-slate-500">28 עמ׳ · הועלה 12/05</p>
+                </div>
+                <span className="text-xs text-green-600">✓ נסרק</span>
+              </div>
+              <div className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg opacity-60">
+                <span className="text-xl">📄</span>
+                <div className="flex-1">
+                  <p className="font-medium">חוזה_חשמלאי.pdf</p>
+                  <p className="text-xs text-slate-500">15 עמ׳ · הועלה 03/05</p>
+                </div>
+                <span className="text-xs text-green-600">✓ נסרק</span>
+              </div>
+              <div className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg opacity-60">
+                <span className="text-xl">📄</span>
+                <div className="flex-1">
+                  <p className="font-medium">היתר_בנייה.pdf</p>
+                  <p className="text-xs text-slate-500">4 עמ׳ · הועלה 28/04</p>
+                </div>
+                <span className="text-xs text-green-600">✓ נסרק</span>
+              </div>
+              <button className="w-full mt-2 border border-dashed border-slate-300 rounded-lg p-3 text-sm text-slate-500 hover:bg-slate-50">
+                + העלה חוזה חדש
+              </button>
+            </div>
+          </div>
+
+          <div className="card-hover bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 lg:col-span-2 border-2 border-dashed border-indigo-200">
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🤖</span>
+                <h3 className="font-bold text-slate-800">שאל את החוזים (AI)</h3>
+              </div>
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                בפיתוח · פאזה 5
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 mb-3">
+              צ&apos;אט שעונה על שאלות מתוך החוזים של פרויקט {project.name} בלבד. דוגמאות:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+              <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
+                💭 &quot;מתי תאריך מסירת השלד?&quot;
+              </div>
+              <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
+                💭 &quot;כמה התשלום הבא לקבלן החשמל?&quot;
+              </div>
+              <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
+                💭 &quot;האם יש סעיף קנס על איחור?&quot;
+              </div>
+              <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
+                💭 &quot;מי חתום על חוזה האינסטלציה?&quot;
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                disabled
+                placeholder="שאל שאלה על החוזים של הפרויקט..."
+                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white/60 text-sm cursor-not-allowed"
+              />
+              <button
+                disabled
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm cursor-not-allowed opacity-50"
+              >
+                שלח
+              </button>
+            </div>
+            <p className="text-xs text-slate-400 mt-2 text-center">
+              ⓘ התשובות יבואו עם ציטוטים למסמך ועמוד · מבודד לפר-פרויקט
+            </p>
+          </div>
+        </div>
+
         {/* Transactions + Inventory + Alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           <div className="card-hover bg-white rounded-2xl p-5">
