@@ -623,8 +623,8 @@
       </div>
       <div class="arch-box bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-xl p-4 text-center">
         <div class="text-3xl mb-2">☁️</div>
-        <p class="font-bold text-slate-800">Google Drive</p>
-        <p class="text-xs text-slate-600 mt-1">תיקיית סנכרון</p>
+        <p class="font-bold text-slate-800">Drive / OneDrive</p>
+        <p class="text-xs text-slate-600 mt-1">Google או Microsoft (לבחירה)</p>
       </div>
       <div class="arch-box bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 rounded-xl p-4 text-center">
         <div class="text-3xl mb-2">📅</div>
@@ -767,9 +767,18 @@
       <div class="flex gap-4 items-start">
         <div class="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">2</div>
         <div class="flex-1 bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <h3 class="font-bold text-slate-800">Drive Desktop מסנכרן לענן</h3>
-          <p class="text-sm text-slate-600 mt-1">תיקיית הרשת בה Priority שמר את הקובץ מסונכרנת ל-Google Drive האישי שלך. הקובץ עולה אוטומטית - אתה לא נוגע.</p>
-          <p class="text-xs text-slate-500 mt-2">⚙️ דרוש: Google Drive Desktop מותקן ומחובר לחשבון אישי</p>
+          <h3 class="font-bold text-slate-800">Drive Desktop / OneDrive מסנכרן לענן</h3>
+          <p class="text-sm text-slate-600 mt-1">תיקיית הרשת בה Priority שמר את הקובץ מסונכרנת לענן האישי שלך - <strong>Google Drive או OneDrive</strong>, לבחירתך. הקובץ עולה אוטומטית - אתה לא נוגע.</p>
+          <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+            <div class="bg-white border border-blue-300 rounded-lg p-2">
+              <p class="font-bold text-slate-700">📂 אופציה A - Google Drive</p>
+              <p class="text-slate-500 mt-1">דרוש: Google Drive Desktop מותקן ומחובר לחשבון אישי</p>
+            </div>
+            <div class="bg-white border border-blue-300 rounded-lg p-2">
+              <p class="font-bold text-slate-700">☁️ אופציה B - OneDrive (אישי)</p>
+              <p class="text-slate-500 mt-1">דרוש: OneDrive client מותקן ומחובר לחשבון Microsoft אישי</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -778,8 +787,8 @@
         <div class="flex-shrink-0 w-12 h-12 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold text-lg">3</div>
         <div class="flex-1 bg-orange-50 border border-orange-200 rounded-xl p-4">
           <h3 class="font-bold text-slate-800">Cloud Function זיהתה קובץ חדש</h3>
-          <p class="text-sm text-slate-600 mt-1">פונקציה ב-Firebase מאזינה ל-Drive Webhook. ברגע שהקובץ עולה - היא ניגשת אליו, מפרסרת את ה-Excel ומכניסה את השורות ל-Firestore.</p>
-          <p class="text-xs text-slate-500 mt-2">⚙️ Cloud Function + Drive API webhook · ~50 שורות קוד</p>
+          <p class="text-sm text-slate-600 mt-1">פונקציה ב-Firebase מאזינה ל-webhook של הענן שבחרת (Google Drive API או Microsoft Graph API). ברגע שהקובץ עולה - היא ניגשת אליו, מפרסרת את ה-Excel ומכניסה את השורות ל-Firestore.</p>
+          <p class="text-xs text-slate-500 mt-2">⚙️ Cloud Function + Drive/Graph webhook · ~50 שורות קוד לכל ספק</p>
         </div>
       </div>
 
