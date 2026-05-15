@@ -1,619 +1,726 @@
-# מסמך תכנון - דשבורד ניהול פרויקטים
+# מסמך תכנון - דשבורד ניהול פרויקטים אישי
 
 > מסמך זה הוא הספק (Specification) המנחה לבניית האפליקציה בסשנים הבאים.
 > כל שינוי בדרישות צריך לעדכן את המסמך הזה לפני בניית קוד.
+>
+> **גרסה**: 3.0 (אחרי החלטה על ארכיטקטורה אישית עם Firebase)
+> **תאריך עדכון**: 2026-05-15
 
 ---
 
 ## 1. תקציר מנהלים
 
-**מה בונים**: אפליקציית ניהול פרויקטים אישית לדשבורד אחד שמרכז:
+**מה בונים**: אפליקציית web אישית (PWA) לניהול פרויקטים. דשבורד מרכזי שמרכז:
 - נתונים פיננסיים מקובצי Excel (הוצאות, הכנסות, תשלומים לקבלנים/ספקים, כתבי כמויות)
-- נתוני ERP מ-Priority
-- מיילים רלוונטיים מ-Outlook
+- נתונים שיובאו מ-Priority (ייצוא Excel ידני, כי אין הרשאת API)
+- מיילים רלוונטיים מ-Outlook (לעתיד)
 - משימות ולוח זמנים פר-פרויקט
 - אירועי לוח שנה (Outlook + Google Calendar)
 
-**עבור מי**: משתמש יחיד (בעל המסמך).
+**עבור מי**: משתמש יחיד (בעל המסמך) - **על חשבונות פרטיים, לא ארגוניים**.
 
-**איפה זה רץ**: מחשב נייח, מחשב נייד, טאבלט, נייד - דרך אפליקציית Power Apps (ילידית) או דפדפן.
+**איפה זה רץ**: מחשב נייח, מחשב נייד, טאבלט, נייד - דרך הדפדפן (PWA, ניתן להתקין למסך הבית).
 
-**טכנולוגיה**: Microsoft Power Platform (Power Apps + Power Automate + SharePoint/Dataverse).
+**טכנולוגיה**: Next.js (Frontend) + Firebase (Backend) + Vercel (Hosting).
 
-**עלות נוספת**: 0 ש"ח. הכל בתוך רישיון M365 הקיים בחברה.
+**עלות**: **0 ש"ח** - הכל ב-Tiers חינמיים.
+
+**פרטיות**: מוחלטת. לא ארגונית. החשבונות הם אישיים. המעסיק לא יכול לראות שום דבר.
 
 ---
 
-## 2. דרישות שנאספו עד כה
+## 2. מה הוביל להחלטות האלה (היסטוריה קצרה)
+
+נשקלו 4 ארכיטקטורות עיקריות לפני ההכרעה הנוכחית:
+
+1. ~~**Microsoft Power Platform** (M365 ארגוני)~~ - נדחה בגלל פרטיות. החברה הייתה רואה את כל הנתונים, אובדן בעלות בעת עזיבת עבודה
+2. ~~**AppSheet** (Google Cloud)~~ - נדחה בגלל עלות ~$10/חודש
+3. ~~**Notion** (חשבון אישי)~~ - נדחה בגלל מגבלות התאמה אישית והעדר סנכרון Excel
+4. **Next.js + Firebase** (חשבון אישי) ← **נבחר**
+
+**הסיבות לבחירה**:
+- חינם לחלוטין
+- פרטיות מלאה (חשבון Google אישי)
+- בעלות מלאה (הקוד והנתונים שלי)
+- גמישות אינסופית
+- שימוש בחשבון Firebase שכבר קיים
+
+---
+
+## 3. דרישות שנאספו
 
 ### דרישות פונקציונליות
-- [ ] רב-מכשיריות: מחשב, נייד, טאבלט - אותם נתונים, אותו ממשק
-- [ ] סנכרון בזמן אמת: עדכון במכשיר אחד מופיע מיד בכולם
-- [ ] קליטת קובצי Excel מתיקיית OneDrive באופן אוטומטי
-- [ ] חיבור ל-Outlook: קריאת מיילים והוצאת נתונים רלוונטיים
-- [ ] חיבור ל-Priority API: שליפת נתונים מה-ERP
-- [ ] שילוב Outlook Calendar
-- [ ] שילוב Google Calendar
+- [ ] רב-מכשיריות (מחשב, נייד, טאבלט) - דפדפן/PWA
+- [ ] סנכרון בזמן אמת בין מכשירים (Firestore Listeners)
+- [ ] קליטת Excel - העלאה ידנית דרך האפליקציה (וגם סנכרון מ-OneDrive אישי בעתיד)
+- [ ] שילוב Outlook Calendar (חשבון אישי)
+- [ ] שילוב Google Calendar (חשבון אישי)
 - [ ] ניהול משימות מובנה לכל פרויקט
-- [ ] תמיכה בריבוי פרויקטים בו-זמנית
+- [ ] תמיכה בריבוי פרויקטים
 - [ ] ממשק עברית RTL
+- [ ] ניהול מסמכים (PDF/Excel/תמונות)
 
 ### דרישות לא-פונקציונליות
-- אפס עלות נוספת מעבר ל-M365 הקיים
-- בלי תלות באישורים חיצוניים מה-IT (להשאר בתוך הסביבה המאושרת)
-- תחזוקה פשוטה (drag-and-drop > קוד)
+- אפס עלות נוספת
+- פרטיות מלאה מהמעסיק
+- בעלות מלאה על הקוד והנתונים
+- נגישות מכל מכשיר ללא התקנת אפליקציה ייעודית
+- אבטחה (אימות, הצפנה במעבר, גיבוי אוטומטי)
 
-### מודולים מינימליים (MVP)
+### מודולים ל-MVP
 1. סקירת פרויקט - דשבורד עם KPIs
 2. הוצאות והכנסות
 3. תשלומים לקבלנים וספקים
 4. כתבי כמויות + לוח זמנים + משימות
 
 ### מודולים עתידיים
-- ניהול חוזים
-- ניהול אישורי תשלום
+- אינטגרציה עם Outlook Mail
+- ניהול חוזים ואישורי תשלום
 - ניהול מסמכי בטיחות
 - דוחות PDF להפקה
+- OCR אוטומטי לחשבוניות (עתידי - דורש שירות AI חיצוני)
 
 ---
 
-## 3. ארכיטקטורה כללית
+## 4. ארכיטקטורה כללית
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  שכבת ממשק - Power Apps Canvas App (Standard)                     │
+│  ממשק - Next.js 15 + TypeScript + Tailwind + shadcn/ui            │
+│  PWA (Progressive Web App) - ניתן להתקין על נייד וטאבלט           │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐  │
 │  │ דשבורד  │  │הוצאות/  │  │קבלנים/  │  │ משימות+ │  │הגדרות │  │
 │  │ראשי     │  │הכנסות   │  │ספקים    │  │לוז      │  │       │  │
 │  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └────────┘  │
+│  שפה: עברית RTL בלבד (בשלב ראשון)                                  │
 └──────────────────────────┬───────────────────────────────────────┘
-                           │
+                           │ HTTPS + Firebase SDK
                            ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│  שכבת נתונים - SharePoint Lists (אתר ייעודי בארגון)               │
-│  רשימות: Projects, Expenses, Income, Contractors, Suppliers,     │
-│  Payments, BoQ_Items, Tasks, Schedule_Items, Documents, ...      │
-└──────────────────────────┬───────────────────────────────────────┘
+│  Backend - Firebase (Google Cloud)                                │
+│  ┌────────────────────┐ ┌────────────────────┐ ┌──────────────┐  │
+│  │ Firestore          │ │ Authentication     │ │ Storage      │  │
+│  │ (מסד נתונים NoSQL) │ │ (Google Sign-In)   │ │ (PDF/Excel)  │  │
+│  └────────────────────┘ └────────────────────┘ └──────────────┘  │
+│  ┌────────────────────┐ ┌────────────────────┐                    │
+│  │ Cloud Functions    │ │ Hosting (אופציונלי │                    │
+│  │ (פרסור Excel,       │ │  - נשתמש ב-Vercel) │                    │
+│  │  webhooks, סנכרון) │ │                    │                    │
+│  └────────────────────┘ └────────────────────┘                    │
+└──────────────────────────────────────────────────────────────────┘
                            ▲
                            │
 ┌──────────────────────────┴───────────────────────────────────────┐
-│  שכבת אינטגרציות - Power Automate                                 │
+│  אינטגרציות חיצוניות (OAuth - חשבונות אישיים)                     │
 │  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐  │
-│  │ Excel-to-DB      │ │ Outlook Mail     │ │ Priority REST    │  │
-│  │ (OneDrive trigger│ │ (סינון מיילים   │ │ (API calls       │  │
-│  │  → parse → save) │ │  לפי תגיות)     │ │  מתוזמנים)       │  │
+│  │ Google Calendar  │ │ Microsoft Graph  │ │ Personal OneDrive│  │
+│  │ (Calendar API)   │ │ (Outlook Cal+Mail│ │ (Excel files)    │  │
+│  │                  │ │  - חשבון אישי)   │ │                  │  │
 │  └──────────────────┘ └──────────────────┘ └──────────────────┘  │
-│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐  │
-│  │ Outlook Calendar │ │ Google Calendar  │ │ התראות (Teams/   │  │
-│  │ (סנכרון דו-כיווני│ │ (סנכרון דו-כיווני│ │  Outlook/Push)   │  │
-│  └──────────────────┘ └──────────────────┘ └──────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│  פריסה (Deployment)                                              │
+│  - GitHub (קוד מקור, חשבון אישי שלך)                              │
+│  - Vercel (Hosting הממשק - חינמי, מתחבר ל-GitHub)                 │
+│  - Firebase Project אישי (Backend)                                │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. רישיון הרישוי - תוצאת בדיקה (סופית)
+## 5. פרטיות, אבטחה ובעלות
 
-> **בדיקה הושלמה ב-2026-05-15**. הרישיון המרכזי: **Microsoft 365 Business Premium**.
+זה לב הסיבה שבחרנו במסלול הזה. נכנס לפרטים:
 
-### הרישיונות הרלוונטיים שזוהו
+### הבעלות שלך - מה זה אומר בפועל
+- **הקוד**: מאוחסן ב-GitHub שלך, על שמך. גם אם אני "אעלם" - הקוד שייך לך
+- **הנתונים**: יושבים ב-Firestore תחת **פרויקט Firebase שיש לך גישת admin אליו**. רק לך
+- **חשבון Vercel**: על שמך. אתה היחיד שיכול להפיל את האפליקציה
+- **דומיין** (אם תוסיף): נרשם על שמך הפרטי, לא על שם החברה
 
-| מוצר | סטטוס | משמעות לפרויקט |
-|---|---|---|
-| Microsoft 365 Business Premium | ✅ | רישיון בסיס מלא לעסקים קטנים |
-| Power Apps for Office 365 | ✅ Standard | אפשר לבנות, רק Standard Connectors |
-| Power Automate for Office 365 | ✅ Standard | זרימות עם Standard Connectors |
-| SharePoint (Plan 1) | ✅ | **כאן יושב מסד הנתונים** |
-| OneDrive for Business | ✅ | אחסון קבצים + Excel |
-| Exchange Online (Plan 1) | ✅ | Outlook (מיילים + לוח שנה) |
-| Microsoft Teams | ✅ | להתראות |
-| Microsoft Planner | ✅ | אופציה לשילוב משימות מובנה |
-| Microsoft To-Do (Plan 1) | ✅ | משימות אישיות |
-| Power BI | ⚠️ Free בלבד | בלי Pro - גרפים בתוך Power Apps |
-| Common Data Service | ⚠️ for Teams בלבד | **אין Dataverse מלא** |
-| HTTP / Custom Connectors | ❌ | לא רלוונטי - ויתרנו על Priority API |
+### אבטחה מובנית
+- **HTTPS** בכל מקום (אכיפה ע"י Firebase ו-Vercel)
+- **Firebase Auth** - כניסה עם Google אישי, מוגן ב-2FA אם תפעיל
+- **Firestore Rules** - חוקים שמבטיחים שרק אתה (UID שלך) יכול לקרוא את הנתונים שלך
+- **גיבוי אוטומטי** - Firebase עושה replication. בנוסף, נגדיר Export ל-Google Drive פעם בשבוע
 
-### ההכרעה הסופית
+### מה המעסיק יכול לראות
+- ❌ **לא יכול לראות**: את הנתונים, את הקוד, מה אתה עושה באפליקציה
+- ❌ **לא יכול לחסום גישה**: אתה ניגש מהדפדפן הפרטי שלך
+- ⚠️ **יכול לראות**: אם **מהמחשב הארגוני** אתה ניגש ל-vercel.app - הם רואים את הדומיין בלוגי רשת. **המלצה**: גישה רק מהנייד/טאבלט הפרטי
 
-**SharePoint Lists + Power Apps Canvas + Power Automate Standard**
+### מה לעשות אם תיסיים עבודה
+- ✅ ממשיך לעבוד בלי שינוי - הכל על חשבונות אישיים
+- ✅ אין סיכון אובדן גישה - אין תלות בחשבון העבודה
 
-זאת ארכיטקטורה שעובדת ב-100% עם הרישיונות הקיימים, בלי תשלום נוסף, בלי IT approval נוסף.
-
-### מגבלות שצריך לדעת מראש
-
-| מגבלה | השפעה ממשית | אסטרטגיית מיתון |
-|---|---|---|
-| SharePoint List: 5,000 פריטים בתצוגה | רק אם פרויקט יחיד יחזיק עשרות אלפי שורות | סינון בעמודות אינדקס, חלוקה לפי שנה |
-| SharePoint List: 30 מיליון פריטים בכל רשימה | אקדמי - לא נגיע לזה | - |
-| Power Automate Standard: ~2,000 ריצות בחודש | בעיה רק אם זרימות פעולות שמגיבות לכל שינוי קטן | אגירה (batching), טריגרים פחות תכופים |
-| בלי Dataverse | חסר Schema rigor, חסר Relationships אמיתיים | SharePoint Lookup Columns מפצים סבירות |
-| בלי Custom Connectors | אין REST API חופשי | לא רלוונטי בארכיטקטורה הזו |
-| בלי AI Builder | אין OCR אוטומטי על חשבוניות | (יכול להוסיף ידנית פר הוצאה) |
-
-### דברים שכן אפשר לעשות בזכות הרישיון
-
-- אינטגרציה מלאה עם Outlook (מייל + לוח שנה)
-- אינטגרציה עם Google Calendar (Standard connector, חינם)
-- אינטגרציה עם Teams (התראות)
-- שימוש ב-Microsoft Planner ככלי עזר למשימות (אופציונלי)
-- Power BI Free יכול לצרוך נתונים מ-SharePoint - אם בעתיד רוצים דשבורד נפרד
+### מה לעשות אם תרצה לעבור פלטפורמה אחרת בעתיד
+- **Firebase → אחר**: Export שכבר מוגדר → ייבוא לכל מסד אחר (Postgres, MongoDB, וכו')
+- אין vendor lock-in קשה
 
 ---
 
-## 5. סכמת נתונים מלאה
+## 6. מודל נתונים (Firestore)
 
-### טבלה: Projects (פרויקטים)
-| שדה | סוג | תיאור |
-|---|---|---|
-| ProjectID | מזהה ייחודי (Auto) | מפתח ראשי |
-| ProjectName | טקסט | שם הפרויקט |
-| ClientName | טקסט | לקוח |
-| Status | רשימה | פעיל / מושהה / הושלם / מבוטל |
-| StartDate | תאריך | תאריך התחלה |
-| EndDate | תאריך | תאריך סיום מתוכנן |
-| Budget | מספר | תקציב כולל |
-| ActualSpent | מספר (מחושב) | סכום הוצאות בפועל |
-| ProgressPercent | מספר | אחוז התקדמות (0-100) |
-| OneDriveFolder | טקסט (URL) | קישור לתיקיית הפרויקט ב-OneDrive |
-| PriorityProjectCode | טקסט | קוד הפרויקט במערכת Priority |
-| Notes | טקסט ארוך | הערות |
+Firestore הוא **NoSQL** (לא טבלאות עם JOIN). הקרטוגרפיה דומה לטבלאות SQL אבל עם מספר הבדלים. כאן כל "אוסף" (collection) הוא כמו טבלה, וכל מסמך (document) הוא כמו שורה.
 
-### טבלה: Expenses (הוצאות)
-| שדה | סוג | תיאור |
-|---|---|---|
-| ExpenseID | מזהה ייחודי | מפתח |
-| ProjectID | קישור → Projects | פרויקט אליו שייך |
-| Date | תאריך | תאריך ההוצאה |
-| Category | רשימה | חומרים / שכר / קבלן משנה / ציוד / אחר |
-| Description | טקסט | תיאור |
-| Amount | מספר | סכום (₪) |
-| VAT | מספר | מע"מ |
-| AmountWithVAT | מספר (מחושב) | סה"כ כולל מע"מ |
-| InvoiceNumber | טקסט | מספר חשבונית |
-| InvoiceDate | תאריך | תאריך חשבונית |
-| SupplierID | קישור → Suppliers | ספק |
-| PaymentStatus | רשימה | ממתין / שולם חלקית / שולם / מבוטל |
-| PaidDate | תאריך | תאריך תשלום בפועל |
-| SourceFile | טקסט | שם קובץ Excel המקור (לאודיט) |
-| SourceRow | מספר | שורה בקובץ המקור |
+### אסטרטגיית מבנה - אוספים ברמת השורש (לא תת-אוספים)
 
-### טבלה: Income (הכנסות)
-| שדה | סוג | תיאור |
-|---|---|---|
-| IncomeID | מזהה ייחודי | מפתח |
-| ProjectID | קישור → Projects | פרויקט |
-| Date | תאריך | |
-| ClientName | טקסט | |
-| Description | טקסט | |
-| Amount | מספר | |
-| VAT | מספר | |
-| InvoiceNumber | טקסט | |
-| Status | רשימה | חשבונית הוצאה / שולם חלקית / שולם במלואו |
-| PaidDate | תאריך | |
-| SourceFile | טקסט | |
+```
+firestore/
+├── users/{userId}                          ← משתמש יחיד = אתה
+│   └── {displayName, email, settings, ...}
+│
+├── projects/{projectId}
+│   └── {ownerId, name, client, status, budget, progress, ...}
+│
+├── expenses/{expenseId}
+│   └── {ownerId, projectId, date, category, amount, ...}
+│
+├── income/{incomeId}
+│   └── {ownerId, projectId, date, amount, ...}
+│
+├── contractors/{contractorId}
+│   └── {ownerId, name, phone, contractTotal, ...}
+│
+├── suppliers/{supplierId}
+│   └── {ownerId, name, phone, category, ...}
+│
+├── payments/{paymentId}
+│   └── {ownerId, projectId, payeeType, payeeId, amount, ...}
+│
+├── boq_items/{itemId}
+│   └── {ownerId, projectId, section, itemNumber, qty, ...}
+│
+├── tasks/{taskId}
+│   └── {ownerId, projectId, title, status, dueDate, ...}
+│
+├── schedule_items/{itemId}
+│   └── {ownerId, projectId, name, startDate, endDate, ...}
+│
+└── documents/{documentId}
+    └── {ownerId, projectId, fileName, storageURL, type, ...}
+```
 
-### טבלה: Contractors (קבלני משנה)
-| שדה | סוג | תיאור |
-|---|---|---|
-| ContractorID | מזהה ייחודי | |
-| Name | טקסט | שם הקבלן |
-| ContactPerson | טקסט | איש קשר |
-| Phone | טקסט | |
-| Email | טקסט | |
-| Specialty | רשימה | חשמל / אינסטלציה / שלד / גמר / וכו' |
-| ContractTotal | מספר | סך החוזה |
-| TotalPaid | מספר (מחושב) | סך ששולם |
-| Balance | מספר (מחושב) | יתרה |
-| Notes | טקסט ארוך | |
+> **למה ברמת השורש ולא תת-אוספים תחת projects**? קל יותר לעשות שאילתות חוצות פרויקטים (לדוגמה "כל המשימות הקרובות בכל הפרויקטים"). מצד שני נצטרך לסנן ידנית לפי projectId, אבל זה זול.
 
-### טבלה: Suppliers (ספקים)
-| שדה | סוג | תיאור |
-|---|---|---|
-| SupplierID | מזהה ייחודי | |
-| Name | טקסט | |
-| ContactPerson | טקסט | |
-| Phone | טקסט | |
-| Email | טקסט | |
-| Category | רשימה | חומרי בנייה / כלים / שירותים / אחר |
-| PaymentTerms | טקסט | תנאי תשלום |
-| TotalPaid | מספר (מחושב) | |
-| OpenBalance | מספר (מחושב) | יתרה פתוחה |
+### שדה `ownerId` בכל מסמך
+חוקי האבטחה (Firestore Rules) יבדקו ש-`ownerId == request.auth.uid` בכל קריאה. ככה אם בעתיד יצטרף משתמש - הוא לא יראה את הנתונים שלך.
 
-### טבלה: Payments (תשלומים)
-| שדה | סוג | תיאור |
-|---|---|---|
-| PaymentID | מזהה ייחודי | |
-| ProjectID | קישור → Projects | |
-| PayeeType | רשימה | קבלן / ספק |
-| PayeeID | קישור → Contractors/Suppliers | |
-| InvoiceID | קישור → Expenses | חשבונית קשורה |
-| Amount | מספר | |
-| PaymentMethod | רשימה | העברה / שיק / מזומן / כרטיס |
-| PaymentDate | תאריך | |
-| ChequeNumber | טקסט | אם רלוונטי |
-| ConfirmationNumber | טקסט | אסמכתא |
-| Notes | טקסט |  |
+### פירוט שדות פר אוסף
 
-### טבלה: BoQ_Items (כתב כמויות)
-| שדה | סוג | תיאור |
-|---|---|---|
-| BoQItemID | מזהה ייחודי | |
-| ProjectID | קישור → Projects | |
-| Section | טקסט | פרק (לדוגמה: "5. שלד ובטון") |
-| ItemNumber | טקסט | מספר סעיף (5.1.3) |
-| Description | טקסט | תיאור הסעיף |
-| Unit | טקסט | יחידת מידה (מ"ר, מ"ק, יח') |
-| Quantity | מספר | כמות מתוכננת |
-| UnitPrice | מספר | מחיר ליחידה |
-| TotalPrice | מספר (מחושב) | |
-| ActualQuantity | מספר | כמות בפועל |
-| CompletionPercent | מספר | אחוז ביצוע |
-| ContractorID | קישור → Contractors | קבלן מבצע |
+#### `projects/{projectId}`
+```typescript
+{
+  ownerId: string,            // uid שלך
+  name: string,               // שם הפרויקט
+  client: string,             // שם הלקוח
+  status: 'active' | 'paused' | 'completed' | 'cancelled',
+  startDate: timestamp,
+  endDate: timestamp | null,
+  budget: number,             // תקציב בש"ח
+  actualSpent: number,        // מחושב מ-expenses (אגרגציה ב-Cloud Function)
+  progressPercent: number,    // 0-100
+  oneDriveFolderURL: string?, // קישור לתיקייה ב-OneDrive
+  priorityCode: string?,      // קוד הפרויקט בפריוריטי (אם רלוונטי)
+  notes: string,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
 
-### טבלה: Tasks (משימות)
-| שדה | סוג | תיאור |
-|---|---|---|
-| TaskID | מזהה ייחודי | |
-| ProjectID | קישור → Projects | |
-| Title | טקסט | כותרת |
-| Description | טקסט ארוך | |
-| Status | רשימה | חדש / בעבודה / חסום / הושלם / בוטל |
-| Priority | רשימה | נמוכה / בינונית / גבוהה / קריטית |
-| AssignedTo | טקסט | למי משויכת (אם רלוונטי) |
-| DueDate | תאריך | תאריך יעד |
-| CompletedDate | תאריך | |
-| LinkedTaskID | קישור → Tasks | תלות (משימת קודמת) |
-| LinkedBoQItemID | קישור → BoQ_Items | אם המשימה קשורה לסעיף בכתב כמויות |
-| CalendarEventID | טקסט | מזהה אירוע ביומן (לסנכרון) |
+#### `expenses/{expenseId}`
+```typescript
+{
+  ownerId: string,
+  projectId: string,          // הפרויקט אליו שייכת
+  date: timestamp,            // תאריך ההוצאה
+  category: 'materials' | 'labor' | 'subcontractor' | 'equipment' | 'other',
+  description: string,
+  amount: number,             // לפני מע"מ
+  vat: number,                // מע"מ
+  amountWithVat: number,      // מחושב
+  invoiceNumber: string?,
+  invoiceDate: timestamp?,
+  supplierId: string?,        // קישור לאוסף suppliers
+  paymentStatus: 'pending' | 'partial' | 'paid' | 'cancelled',
+  paidDate: timestamp?,
+  sourceFile: string?,        // אם בא מ-Excel
+  sourceRow: number?,         // השורה ב-Excel המקורי (לזיהוי שינויים)
+  attachments: string[],      // URLs ל-Firebase Storage
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
 
-### טבלה: Schedule_Items (לוח זמנים - גאנט)
-| שדה | סוג | תיאור |
-|---|---|---|
-| ScheduleItemID | מזהה ייחודי | |
-| ProjectID | קישור → Projects | |
-| ParentItemID | קישור → Schedule_Items | היררכיה |
-| Name | טקסט | שם הפעילות |
-| StartDate | תאריך | |
-| EndDate | תאריך | |
-| Duration | מספר (מחושב) | ימי עבודה |
-| ProgressPercent | מספר | אחוז ביצוע |
-| Predecessors | טקסט | תלויות (פסיקים: "3,5,7") |
-| ContractorID | קישור → Contractors | |
+#### `income/{incomeId}`
+```typescript
+{
+  ownerId: string,
+  projectId: string,
+  date: timestamp,
+  client: string,
+  description: string,
+  amount: number,
+  vat: number,
+  invoiceNumber: string,
+  status: 'invoiced' | 'partial' | 'paid',
+  paidDate: timestamp?,
+  sourceFile: string?,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
 
-### טבלה: Documents (מסמכים)
-| שדה | סוג | תיאור |
-|---|---|---|
-| DocumentID | מזהה ייחודי | |
-| ProjectID | קישור → Projects | |
-| FileName | טקסט | |
-| OneDriveURL | טקסט | קישור ישיר לקובץ |
-| Type | רשימה | חוזה / חשבונית / אישור / תוכנית / אחר |
-| UploadedDate | תאריך | |
-| Tags | טקסט | תגיות מופרדות בפסיקים |
+#### `contractors/{contractorId}`
+```typescript
+{
+  ownerId: string,
+  name: string,
+  contactPerson: string?,
+  phone: string?,
+  email: string?,
+  specialty: string,          // חשמל / אינסטלציה / שלד / גמר / ...
+  contractTotal: number,      // סך החוזה
+  totalPaid: number,          // מחושב (Cloud Function)
+  balance: number,            // מחושב = contractTotal - totalPaid
+  notes: string,
+  linkedProjects: string[],   // מערך של projectIds
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
 
-### טבלה: Settings (הגדרות)
-| שדה | סוג | תיאור |
-|---|---|---|
-| SettingKey | טקסט | מפתח |
-| SettingValue | טקסט | ערך |
+#### `suppliers/{supplierId}`
+```typescript
+{
+  ownerId: string,
+  name: string,
+  contactPerson: string?,
+  phone: string?,
+  email: string?,
+  category: 'building_materials' | 'tools' | 'services' | 'other',
+  paymentTerms: string,       // לדוגמה "שוטף + 30"
+  totalPaid: number,          // מחושב
+  openBalance: number,        // מחושב
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
 
-דוגמאות לערכים: `OneDriveExpensesFolder`, `OneDriveIncomeFolder`, `PriorityAPIBaseURL`, `PriorityUsername`, `OutlookLabelToWatch`, `DefaultCalendar`...
+#### `payments/{paymentId}`
+```typescript
+{
+  ownerId: string,
+  projectId: string,
+  payeeType: 'contractor' | 'supplier',
+  payeeId: string,
+  invoiceId: string?,
+  amount: number,
+  paymentMethod: 'transfer' | 'cheque' | 'cash' | 'card',
+  paymentDate: timestamp,
+  chequeNumber: string?,
+  confirmationNumber: string?,
+  notes: string,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+#### `boq_items/{itemId}`
+```typescript
+{
+  ownerId: string,
+  projectId: string,
+  section: string,            // "5. שלד ובטון"
+  itemNumber: string,         // "5.1.3"
+  description: string,
+  unit: string,               // מ"ר, מ"ק, יח'
+  plannedQuantity: number,
+  unitPrice: number,
+  plannedTotal: number,       // מחושב = qty * unitPrice
+  actualQuantity: number,
+  completionPercent: number,
+  contractorId: string?,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+#### `tasks/{taskId}`
+```typescript
+{
+  ownerId: string,
+  projectId: string,
+  title: string,
+  description: string,
+  status: 'new' | 'in_progress' | 'blocked' | 'completed' | 'cancelled',
+  priority: 'low' | 'medium' | 'high' | 'critical',
+  assignedTo: string?,
+  dueDate: timestamp?,
+  completedDate: timestamp?,
+  dependsOnTaskId: string?,
+  linkedBoqItemId: string?,
+  googleCalendarEventId: string?,  // לסנכרון Google Calendar
+  outlookCalendarEventId: string?, // לסנכרון Outlook Calendar
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+#### `schedule_items/{itemId}`
+```typescript
+{
+  ownerId: string,
+  projectId: string,
+  parentItemId: string?,      // היררכיה
+  name: string,
+  startDate: timestamp,
+  endDate: timestamp,
+  durationDays: number,       // מחושב
+  progressPercent: number,
+  predecessors: string[],     // מערך של scheduleItemIds תלויים
+  contractorId: string?,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+#### `documents/{documentId}`
+```typescript
+{
+  ownerId: string,
+  projectId: string,
+  fileName: string,
+  storageURL: string,         // ב-Firebase Storage
+  fileSize: number,
+  mimeType: string,
+  type: 'contract' | 'invoice' | 'approval' | 'plan' | 'other',
+  tags: string[],
+  uploadedAt: timestamp
+}
+```
+
+### חוקי Firestore (אבטחה) - דוגמת בסיס
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ברירת מחדל - הכל חסום
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // משתמש יכול לקרוא/לכתוב רק נתונים שלו
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null
+                        && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null
+                  && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // אותו דבר לכל האוספים האחרים
+    match /expenses/{id} {
+      allow read, write: if request.auth != null
+                        && request.auth.uid == resource.data.ownerId;
+      allow create: if request.auth != null
+                  && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // ... וכן הלאה לכל האוספים
+  }
+}
+```
 
 ---
 
-## 6. רשימת מסכים באפליקציה
+## 7. מסכי האפליקציה
 
-### מסך 1 - דשבורד ראשי (Home)
+### מסך 1 - דשבורד ראשי (`/`)
 **אלמנטים**:
-- כרטיסי KPI עליונים: מספר פרויקטים פעילים, סה"כ תקציב, סה"כ הוצאות, רווח/הפסד, משימות פתוחות
-- גרף: התקדמות תקציב מול ביצוע (לכל פרויקט)
-- רשימה: 5 משימות בעדיפות הגבוהה ביותר
-- רשימה: 5 תשלומים הקרובים בתאריך פירעון
-- רשימה: 5 מיילים רלוונטיים מהיומיים האחרונים
-- אירועי יומן להיום ומחר
+- 4 כרטיסי KPI: פרויקטים פעילים, סה"כ תקציב, סה"כ הוצאות, רווח/הפסד
+- גרף קו: התקדמות הוצאות מול תקציב (אגרגציה לפי חודש)
+- רשימה: 5 משימות בעדיפות גבוהה ביותר (בכל הפרויקטים)
+- רשימה: 5 תשלומים בקרבה לתאריך פירעון
+- אירועי יומן להיום ומחר (מסונכרן עם Outlook + Google)
 
-### מסך 2 - רשימת פרויקטים
-- גריד עם כל הפרויקטים: שם, סטטוס, תקציב, ביצוע, אחוז התקדמות
-- כפתורים: הוסף פרויקט / ערוך / שכפל
-- חיפוש וסינון
+### מסך 2 - רשימת פרויקטים (`/projects`)
+- גריד / כרטיסי פרויקט
+- סינון: סטטוס, לקוח, תאריך
+- כפתורים: הוסף, ערוך, שכפל, ארכוב
 
-### מסך 3 - פירוט פרויקט (כשנכנסים לפרויקט)
-- טאבים: סקירה / הוצאות / הכנסות / קבלנים / ספקים / כתב כמויות / לוח זמנים / משימות / מסמכים / מיילים
-- כל טאב מסונן אוטומטית לפרויקט הנוכחי
+### מסך 3 - פירוט פרויקט (`/projects/[id]`)
+- טאבים: סקירה / הוצאות / הכנסות / קבלנים / ספקים / כתב כמויות / לוח זמנים / משימות / מסמכים
+- כל טאב מסונן אוטומטית ל-projectId הנוכחי
 
-### מסך 4 - הוצאות והכנסות
-- שתי תצוגות: רשימה / גרפים
-- סינון: לפי תאריך, קטגוריה, סטטוס תשלום
-- ייצוא ל-Excel/PDF
+### מסך 4 - הוצאות והכנסות (`/finance`)
+- 2 לשוניות: הוצאות / הכנסות
+- תצוגות: רשימה / גרפים / לוח זמני (timeline)
+- העלאת Excel ידנית
 
-### מסך 5 - תשלומים לקבלנים וספקים
-- תצוגה לוח: כרטיסיית קבלן/ספק עם יתרה פתוחה
-- כפתור "צור תשלום" (יוצר רשומת Payments חדשה)
+### מסך 5 - קבלנים וספקים (`/parties`)
+- 2 לשוניות: קבלנים / ספקים
+- כרטיסיה לכל אחד עם יתרה פתוחה
+- כפתור "צור תשלום"
 
-### מסך 6 - כתב כמויות
-- טבלה היררכית (Tree-Grid) - פרקים ופריטים
-- עמודות: כמות מתוכנן/בפועל, מחיר, ביצוע %, קבלן
+### מסך 6 - כתב כמויות (`/boq`)
+- בחירת פרויקט בראש
+- טבלה היררכית (פרק → סעיף)
+- עמודות: מתוכנן/בפועל, אחוז ביצוע, עלות
 
-### מסך 7 - לוח זמנים (גאנט)
-- תצוגת גאנט אופקית
-- בריג'ים בין משימות תלויות
-- שינוי תאריכים בגרירה (אם אפשר ב-Power Apps; אחרת - טופס)
+### מסך 7 - לוח זמנים (`/schedule`)
+- תצוגת גאנט (ספריית JS - נחליט בסשן הבא בין `frappe-gantt`, `dhtmlx-gantt` או built-from-scratch)
+- אפשרות גרירה לשינוי תאריכים
 
-### מסך 8 - משימות
-- 3 תצוגות: רשימה / לוח קנבן / לוח שנה
-- סינון לפי פרויקט, סטטוס, עדיפות
+### מסך 8 - משימות (`/tasks`)
+- 3 תצוגות: רשימה / קנבן / לוח שנה
+- סינון לפי פרויקט/סטטוס/עדיפות
+- כל משימה עם DueDate יוצרת אוטומטית אירוע יומן
 
-### מסך 9 - הגדרות
-- חיבורי OneDrive, Priority, Calendars
-- מיפוי קובצי Excel לטבלאות (איזה גליון לאיזה טבלה)
-- ניהול משתמשים (לעתיד)
-
----
-
-## 7. זרימות Power Automate (Workflows)
-
-### זרימה 1: Excel-to-Database (קליטת אקסלים)
-**טריגר**: כשקובץ Excel חדש/מעודכן בתיקיית OneDrive `/Projects/{ProjectName}/Reports/`
-
-**שלבים**:
-1. זיהוי סוג הדוח לפי שם הקובץ או גליון (expenses.xlsx, income.xlsx, ...)
-2. קריאת תוכן עם **List rows present in a table** (דורש טבלאות אקסל מובנות, לא טווחים חופשיים)
-3. לכל שורה:
-   - בדוק אם קיים רשומה זהה לפי `SourceFile + SourceRow` (UPSERT)
-   - אם חדש - הוסף; אם השתנה - עדכן
-4. שלח התראה ב-Teams/Outlook אם נקלטו רשומות חדשות
-
-**הערה חשובה**: הקובץ חייב להכיל **טבלת Excel מוגדרת** (Insert → Table). זרימות Power Automate לא יודעות לקרוא טווחי תאים חופשיים בצורה אמינה.
-
-### זרימה 2: Priority Excel Sync (סנכרון מייצוא ידני)
-**טריגר**: כשקובץ חדש מופיע בתיקייה `/Projects/_Priority_Exports/`
-
-**שלבים**:
-1. זיהוי סוג הדוח לפי שם הקובץ (`customers_*.xlsx`, `invoices_*.xlsx`, וכו')
-2. קריאת הטבלה מהאקסל
-3. UPSERT לטבלת יעד לפי המיפוי בהגדרות (Clients/Suppliers/Expenses/Income/Payments)
-4. הזזת הקובץ הישן לתיקייה `_archive/` (כדי לא לעבד שוב)
-5. רישום זמן סנכרון אחרון בטבלת Settings
-6. שליחת התראה ב-Outlook: "סנכרון פריוריטי הושלם - X רשומות חדשות, Y עודכנו"
-
-**הערה**: כל קובץ ייצוא חייב להיות מבנה Excel Table (Ctrl+T) או שנשתמש ב-Office Script לפרסור טווח.
-
-### זרימה 3: Outlook Mail Filter (סינון מיילים)
-**טריגר**: מייל חדש מגיע לתיקייה ספציפית או עם תגית מסוימת (לדוגמה "פרויקטים")
-
-**שלבים**:
-1. ניתוח גוף המייל - חיפוש מילות מפתח (שם פרויקט, סכום, מספר חשבונית)
-2. אם נמצאה התאמה - יצירת משימה / רשומת הוצאה זמנית עם סטטוס "ממתין לאישור"
-3. שמירת המייל ב-OneDrive תחת תיקיית הפרויקט
-4. הוספת רשומה לטבלה Documents
-
-### זרימה 4: Outlook Calendar Sync (סנכרון יומן Outlook)
-**טריגר**: כפול - בעת יצירת משימה חדשה, וכן מתוזמן (כל 15 דק')
-
-**שלבים**:
-1. יצירת אירוע: כשמשימה חדשה נוצרת עם DueDate → צור אירוע ב-Outlook Calendar עם קישור חזרה
-2. סנכרון נכנס: שליפת אירועים מהיומן → אם יש אירוע עם תגית "Project" → צור משימה תואמת
-
-### זרימה 5: Google Calendar Sync (סנכרון יומן Google)
-דומה ל-4, עם Google Calendar Connector.
-**הערה**: דורש לאשר את החיבור ב-Power Automate (פעם אחת).
-
-### זרימה 6: Daily Digest (סיכום יומי)
-**טריגר**: כל בוקר ב-08:00
-
-**שלבים**:
-1. שליפת משימות בעדיפות גבוהה
-2. שליפת תשלומים שמועד פירעונם בתוך 7 ימים
-3. שליפת אירועי יומן להיום
-4. בניית מייל מסוכם
-5. שליחה לאימייל שלך
-
-### זרימה 7: Threshold Alerts (התראות חריגות)
-**טריגר**: בעת הוספת הוצאה חדשה
-
-**שלבים**:
-1. חישוב סך הוצאות הפרויקט
-2. השוואה לתקציב
-3. אם חריגה > 90% → שלח Push דרך אפליקציית Power Apps Mobile + מייל
-
-### זרימה 8: Priority Export Reminder (תזכורת ייצוא פריוריטי)
-**טריגר**: מתוזמן - כל בוקר ב-08:00 (ימים א'-ה')
-
-**שלבים**:
-1. בדיקה: מתי בוצע הסנכרון האחרון מתיקיית `_Priority_Exports/`?
-2. אם עברו יותר מ-24 שעות:
-   - שלח התראת Push לאפליקציית Power Apps במובייל
-   - שלח מייל עם רשימת הדוחות המומלצים לייצוא:
-     - לקוחות + יתרות חוב
-     - ספקים + יתרות לתשלום
-     - חשבוניות פתוחות
-     - תקבולים ותשלומים אחרונים
-   - הוסף קישור ישיר לתיקיית OneDrive
-3. אם הסנכרון בוצע היום - לא לשלוח כלום
+### מסך 9 - הגדרות (`/settings`)
+- ניהול חיבורים: Google Calendar, Outlook (אישי), OneDrive (אישי)
+- ייבוא ראשוני (העלאת קובץ Excel גדול)
+- ייצוא נתונים (Backup ל-Drive)
 
 ---
 
-## 8. אינטגרציה עם Excel - אסטרטגיה
+## 8. Cloud Functions (לוגיקה אוטומטית בענן)
 
-### חוקי זהב לקליטת Excel
-1. **חייבים טבלאות Excel** (Ctrl+T על הטווח). זרימות Power Automate לא קוראות טווחים חופשיים.
-2. **שמות עמודות באנגלית** או באותיות אחידות - בלי רווחים מיותרים.
-3. **תיקייה אחת לכל סוג דוח**: `/Projects/{ProjectName}/Reports/Expenses/`, `/Income/`, `/BoQ/` וכו'.
-4. **גרסאות**: Power Automate יכול לעקוב אחרי גרסאות הקובץ - אם יש שינוי → סנכרון.
+### Function 1: parseExcelOnUpload
+**טריגר**: כשקובץ Excel חדש נטען ל-Firebase Storage תחת `/uploads/{ownerId}/{type}/`
+**פעולה**:
+1. קריאת הקובץ עם ספריית `xlsx` או `exceljs`
+2. זיהוי סוג הדוח לפי שם הקובץ (expenses, income, payments, boq, ...)
+3. עיבוד כל שורה: UPSERT לאוסף המתאים
+4. רישום של תוצאות הפעולה לאוסף `imports/` (כמה רשומות נוספו/עודכנו)
+5. שליחת התראה לאפליקציה (דרך Firestore document)
 
-### תבניות אקסל שיווצרו לך (כקבצי seed)
-- `template_expenses.xlsx` - טבלת הוצאות
-- `template_income.xlsx` - טבלת הכנסות
-- `template_payments.xlsx` - טבלת תשלומים
-- `template_boq.xlsx` - כתב כמויות
-- `template_schedule.xlsx` - לוח זמנים
+### Function 2: syncCalendarsScheduled
+**טריגר**: Schedule (כל 15 דקות)
+**פעולה**:
+- שליפת אירועים מ-Google Calendar עם תג "Project"
+- שליפת אירועים מ-Outlook Calendar עם תג "Project"
+- יצירת/עדכון משימות תואמות באוסף `tasks/`
 
-הבסיס לתבניות נמצא כבר ב-`build_budget.py` - נתאים אותו ליצור את התבניות הספציפיות.
+### Function 3: pushTaskToCalendars
+**טריגר**: כשנוצרת/מתעדכנת משימה עם `dueDate`
+**פעולה**:
+- יצירת/עדכון אירוע ב-Google Calendar
+- יצירת/עדכון אירוע ב-Outlook Calendar
+- שמירת ה-eventIds במשימה
 
-### מה שאין במידע שלי כרגע
-- [ ] **דוגמאות מהעבודה הנוכחית שלך**: צריך שתעלה (או תיצור) קובץ אקסל אחד אמיתי שאתה משתמש בו, כדי שנבנה את הפרסר במדויק.
+### Function 4: aggregateProjectStats
+**טריגר**: כשנוסף/משתנה expense, payment, או task
+**פעולה**:
+- חישוב מחדש של `actualSpent` בפרויקט
+- חישוב מחדש של `progressPercent`
+- חישוב מחדש של `totalPaid` ו-`balance` בקבלן/ספק
 
----
+### Function 5: dailyDigestEmail
+**טריגר**: Schedule (כל בוקר ב-08:00)
+**פעולה**:
+- בניית מייל יומי: משימות דחופות + תשלומים קרובים + KPIs
+- שליחה דרך SendGrid Free / Firebase Extensions
 
-## 9. אינטגרציה עם Priority
+### Function 6: priorityExportReminder
+**טריגר**: Schedule (08:00 ימים א'-ה')
+**פעולה**:
+- בדיקה: מתי הסנכרון האחרון של נתוני פריוריטי?
+- אם > 24 שעות → שליחת התראה (Push Notification דרך FCM + מייל)
 
-> **עדכון חשוב**: ה-IT לא נותן הרשאת API לפריוריטי. אנחנו עובדים בגישה עוקפת - ייצוא Excel ידני/חצי-אוטומטי לתיקיית OneDrive, ומשם הזרימות שלנו קוראות.
-
-### גישה נבחרת: ייצוא Excel מפריוריטי → OneDrive
-
-**שיטה ידנית פשוטה**:
-1. בפריוריטי, נווט לדוח/מסך הרלוונטי (לדוגמה: דוח לקוחות, דוח הזמנות, דוח חשבוניות)
-2. קליק ימני בטבלה → **"שלח ל-Excel"** / **"Export to Excel"**
-3. שמירה בתיקייה: `OneDrive/Projects/_Priority_Exports/{report_name}_{YYYY-MM-DD}.xlsx`
-4. Power Automate מזהה קובץ חדש בתיקייה ומבצע סנכרון אוטומטי
-
-**תזכורת אוטומטית** (זרימה 8 - ראה למטה):
-- Power Automate ישלח לך כל בוקר ב-08:00 התראה: "ייצא דוחות פריוריטי לתיקייה X"
-- מקטין סיכוי לשכוח
-
-### חלופה משופרת (אם מנהל הפריוריטי בחברה מסכים)
-בקש ממנו להגדיר **דוחות מתוזמנים** בפריוריטי שנשלחים למייל שלך כקובץ Excel מצורף - כל בוקר אוטומטית. זרימה 3 (Outlook Mail) תקלוט את הקובץ ותשמור ב-OneDrive.
-
-### דוחות פריוריטי שכדאי לייצא (מותאם לפי הצורך)
-- **לקוחות** (CUSTOMERS) - שמות, חובות, יתרות
-- **ספקים** (SUPPLIERS) - חובות, יתרות לתשלום
-- **הזמנות** (ORDERS) - סטטוס הזמנות פתוחות
-- **חשבוניות** (INVOICES) - חשבוניות הוצאה והכנסה
-- **תקבולים/תשלומים** (PAYMENTS) - תזרים מזומנים
-- **פרויקטים** (PROJECTS) - אם יש מודול פרויקטים בפריוריטי שלכם
-
-### מיפוי לטבלאות המקומיות
-לכל דוח שמייצאים מפריוריטי, נגדיר מיפוי בקובץ הגדרות:
-
-| דוח פריוריטי | טבלה מקומית | מפתח התאמה |
-|---|---|---|
-| לקוחות | (טבלה חדשה) Clients | מספר לקוח |
-| ספקים | Suppliers | מספר ספק |
-| חשבוניות הוצאה | Expenses | מספר חשבונית |
-| חשבוניות הכנסה | Income | מספר חשבונית |
-| תקבולים | (חלק מ-Income) | מס' אסמכתא |
-| תשלומים | Payments | מס' אסמכתא |
-
-### להוסיף לסכמת Settings (סעיף 5)
-```
-PriorityExportFolder = /Projects/_Priority_Exports/
-PriorityExportReminderTime = 08:00
-PriorityReportMappings = JSON עם מיפוי שם קובץ → טבלת יעד
-```
-
-### עתידי: שדרוג ל-API (אם פעם תקבל אישור)
-המעבר חלק - מחליפים את הקלט מקובץ Excel ל-HTTP Call ישיר, אבל סכמת הנתונים והממשק נשארים זהים. לכן הגישה הזו לא "מבוזבזת" - היא בסיס יציב.
+### Function 7: weeklyBackup
+**טריגר**: Schedule (כל ראשון ב-02:00)
+**פעולה**:
+- Export של כל ה-Firestore לקובץ JSON
+- שמירה ב-Firebase Storage תחת `/backups/`
+- שמירה גם ב-Google Drive האישי (דרך Google Drive API)
 
 ---
 
-## 10. אינטגרציה עם Outlook + Google Calendar
+## 9. אינטגרציה עם Excel
 
-### חיבורים נדרשים (פעם אחת)
-1. **Office 365 Outlook** - אוטומטי, עם החשבון הארגוני
-2. **Google Calendar** - לחיצה על "Add connection" → התחברות עם חשבון Google הפרטי שלך
+### זרימת העלאה
+1. המשתמש פותח את המסך הרלוונטי (לדוגמה "הוצאות")
+2. לוחץ "ייבא מ-Excel"
+3. בוחר קובץ → התקבל ב-Firebase Storage
+4. Cloud Function `parseExcelOnUpload` מתבצעת אוטומטית
+5. עדכון Firestore → האפליקציה מקבלת עדכון בזמן אמת ומציגה את הרשומות החדשות
 
-### מודל סנכרון
-- **משימה ב-App → אירוע ב-Outlook**: אוטומטי (זרימה 4)
-- **משימה ב-App → אירוע ב-Google**: אוטומטי (זרימה 5)
-- **אירוע ב-Outlook עם תג "Project" → משימה ב-App**: אוטומטי
-- **אירוע ב-Google עם תג "Project" → משימה ב-App**: אוטומטי
+### מבנה Excel נדרש
+לכל סוג דוח תהיה תבנית. הקובץ חייב להיות **טבלת Excel מוגדרת** (Ctrl+T):
 
-### טיפול בכפילויות
-- שמירת `OutlookEventID` ו-`GoogleEventID` ברשומת המשימה.
-- לפני יצירת אירוע - בדיקה אם ID כבר קיים.
+**expenses.xlsx**
+| date | category | description | amount | vat | invoice_number | invoice_date | supplier_name | payment_status |
+|---|---|---|---|---|---|---|---|---|
 
----
+**income.xlsx**
+| date | client | description | amount | vat | invoice_number | status |
+|---|---|---|---|---|---|---|
 
-## 11. שלבי פיתוח מומלצים
+**payments.xlsx**
+| project_name | payee_type | payee_name | invoice_number | amount | payment_method | payment_date |
+|---|---|---|---|---|---|---|
 
-### Phase 0 - הכנות (משימות שלך, לא שלי)
-- [x] בדיקת רישיון Power Apps - **הושלם, ראה סעיף 4**
-- [ ] יצירת אתר SharePoint ייעודי לפרויקט (לדוגמה `https://lesico.sharepoint.com/sites/ProjectDashboard`)
-- [ ] יצירת תיקיית `Projects/` ב-OneDrive עם תת-תיקיות לכל פרויקט פעיל
-- [ ] יצירת תיקיית `Projects/_Priority_Exports/` ב-OneDrive
-- [ ] בדיקה האם מנהל הפריוריטי יכול להגדיר דוחות מתוזמנים שנשלחים למייל (אופציונלי - מקל בעתיד)
-- [ ] ייצוא דוגמא של 1-2 דוחות מפריוריטי ל-Excel ושמירה בתיקייה - להבנת המבנה
-- [ ] העלאת דוגמת קובץ אקסל אחד אמיתי שאתה משתמש בו (מטושטש אם יש סודות) - לסשן הבא
+**boq.xlsx**
+| section | item_number | description | unit | quantity | unit_price |
+|---|---|---|---|---|---|
 
-### Phase 1 - תשתית מסד נתונים (סשן הבא, אחרי שתאשר)
-- [ ] הקמת אתר SharePoint ייעודי
-- [ ] יצירת כל הרשימות לפי הסכמה בסעיף 5 - אספק לך סקריפט PowerShell PnP מוכן
-- [ ] יצירת קישורים (Lookup Columns) בין רשימות
-- [ ] הגדרת אינדקסים בעמודות חיפוש (חשוב לביצועים בגלל מגבלת 5,000)
-- [ ] טעינת נתוני seed (פרויקט דמו, קבלן דמו, ספק דמו)
+תבניות פעמיות יופקו ב-Phase 1.
 
-### Phase 2 - אפליקציית קנבס בסיסית
-- [ ] בניית Canvas App עם 3 מסכים: דשבורד, פרויקטים, פרויקט בודד
-- [ ] תמיכה ב-RTL ועברית
-- [ ] חיבור לטבלאות
-
-### Phase 3 - מודולי MVP
-- [ ] מסך הוצאות/הכנסות
-- [ ] מסך קבלנים/ספקים/תשלומים
-- [ ] מסך כתב כמויות
-- [ ] מסך משימות
-
-### Phase 4 - אינטגרציות
-- [ ] זרימת Excel-to-DB
-- [ ] זרימת Priority API
-- [ ] זרימת Outlook Mail
-- [ ] זרימות Calendar (Outlook + Google)
-
-### Phase 5 - דשבורד KPI ולוח זמנים
-- [ ] גרפים בדשבורד
-- [ ] תצוגת גאנט (אם אפשר ב-Canvas; אחרת - דרך Power BI Embedded)
-
-### Phase 6 - ליטוש וייצור
-- [ ] התראות
-- [ ] גיבוי אוטומטי
-- [ ] התקנה כ-PWA במכשירים
+### סנכרון אוטומטי מ-OneDrive אישי (לעתיד)
+- חיבור OAuth עם חשבון Microsoft אישי
+- Function שמאזינה לתיקייה ב-OneDrive האישי
+- כשמעדכנים קובץ → קוראת ומסנכרנת אוטומטית
+- **לא ל-MVP** - תוספת אחרי שהבסיס יציב
 
 ---
 
-## 12. שאלות פתוחות (לדיון בסשן הבא)
+## 10. אינטגרציה עם Priority
 
-1. ~~**רישיון Power Apps** - מה הרישיון בפועל (אחרי שתבדוק)?~~ ✅ Standard, M365 Business Premium
-2. **מבנה הקבצים הקיים** - איך נראים האקסלים שלך היום? (תעלה דוגמה)
-3. **דוחות פריוריטי** - איזה דוחות אתה משתמש בהם בפועל? כדאי לייצא דוגמה אחת לפחות מכל דוח חשוב
-4. **שמות פרויקטים** - יש קונבנציית מיספור (P-2026-001) או חופשי?
-5. **התראות** - איך אתה מעדיף לקבל? (Push לנייד / מייל / Teams / שילוב)
-6. **שפה ראשית** - עברית בלבד, או גם אנגלית בממשק?
-7. **גישה משותפת בעתיד** - האם בעתיד יצטרפו עוד משתמשים (שותף, רואה חשבון)?
-8. **דוחות מתוזמנים בפריוריטי** - האם מנהל הפריוריטי בחברה יכול להגדיר שליחת דוחות אוטומטית למייל? (חיסכון משמעותי בעבודה ידנית)
+> ה-IT לא נותן הרשאת API. הפתרון: ייצוא ידני מפריוריטי ל-Excel → העלאה לאפליקציה.
+
+### הליך עבודה
+1. בפריוריטי, בכל מסך רלוונטי - קליק ימני → "שלח ל-Excel"
+2. שמירה במחשב
+3. ב-אפליקציה: מסך "ייבוא" → "מפריוריטי" → בחירת סוג הדוח → העלאת הקובץ
+4. Cloud Function מבצעת המרה ו-UPSERT לאוסף המתאים
+
+### דוחות שכדאי לייצא
+- לקוחות + יתרות
+- ספקים + יתרות
+- חשבוניות הוצאה והכנסה
+- תקבולים ותשלומים
+
+### תזכורת אוטומטית
+Cloud Function שולחת התראה כל בוקר אם לא בוצע ייבוא ב-24 השעות האחרונות.
+
+### תוספת אופציונלית - דוחות מתוזמנים מפריוריטי
+אם מנהל הפריוריטי בארגון מסכים להגדיר דוחות מתוזמנים שנשלחים למייל - אפשר להוסיף Function שמאזינה למייל ה-**אישי** שלך (לא הארגוני!) ומסנכרנת אוטומטית. דורש שהדוחות יישלחו לכתובת הפרטית שלך.
+
+---
+
+## 11. אינטגרציה עם לוחות שנה
+
+### Google Calendar (חשבון אישי)
+- OAuth דרך Firebase Authentication (Google Sign-In)
+- אותו אסימון משמש גם לקריאת/כתיבת אירועים
+- שילוב חלק, אין מסובך
+
+### Outlook Calendar (חשבון אישי, לא ארגוני!)
+- OAuth דרך Microsoft Identity Platform
+- **חשוב**: רישום אפליקציה ב-Azure תחת חשבון Microsoft **אישי** שלך (לא של החברה)
+- שימוש ב-Microsoft Graph API לקריאת/כתיבת אירועים
+
+### דגלי סנכרון
+- כל משימה עם `dueDate` תיצור אירוע ב-**שני** הלוחות (אם שניהם מחוברים)
+- אירוע ביומן עם תג "Project" → ייצור משימה תואמת
+- מניעת כפילות: שדות `googleCalendarEventId` ו-`outlookCalendarEventId` במשימה
+
+---
+
+## 12. שלבי פיתוח
+
+### Phase 0 - הכנות (משימות שלך) ⏳
+- [x] בחירת ארכיטקטורה - **הושלם**
+- [ ] פתיחת/וידוא חשבונות אישיים:
+  - [ ] GitHub (אם אין - לפתוח על מייל פרטי)
+  - [ ] Vercel (לפתוח על מייל פרטי, להתחבר ל-GitHub)
+  - [ ] Firebase (יש - לוודא שבחשבון Google **פרטי**)
+  - [ ] חשבון Microsoft אישי (להמשך - לסנכרון Outlook)
+- [ ] יצירת Firebase Project חדש בקונסולה (`firebase-project-mgmt` או דומה)
+
+### Phase 1 - תשתית (סשן הבא) 🛠️
+- [ ] יצירת מבנה פרויקט Next.js 15 + TypeScript + Tailwind + shadcn/ui
+- [ ] קונפיגורציית RTL וטיפוגרפיה עברית (Heebo / Rubik)
+- [ ] חיבור Firebase Auth (Google Sign-In)
+- [ ] הגדרת Firestore + העלאת חוקי האבטחה
+- [ ] בניית מודלי TypeScript תואמים לסכמה
+- [ ] עמוד לוגין + דשבורד ריק
+- [ ] פריסה ל-Vercel + Firebase Hosting (Backend)
+
+### Phase 2 - מודולים בסיסיים
+- [ ] CRUD לפרויקטים (יצירה, עריכה, מחיקה, צפייה)
+- [ ] CRUD להוצאות + הכנסות
+- [ ] CRUD לקבלנים + ספקים
+- [ ] CRUD לתשלומים
+
+### Phase 3 - העלאת Excel
+- [ ] Cloud Function `parseExcelOnUpload`
+- [ ] UI להעלאה ולחיווי התקדמות
+- [ ] תבניות Excel לדוגמה (פיתוח על בסיס `build_budget.py` הקיים)
+
+### Phase 4 - כתב כמויות + לוח זמנים + משימות
+- [ ] מסך BoQ עם תצוגה היררכית
+- [ ] מסך משימות עם 3 תצוגות (רשימה / קנבן / יומן)
+- [ ] מסך לוח זמנים עם גאנט
+
+### Phase 5 - אינטגרציות יומן
+- [ ] חיבור Google Calendar
+- [ ] חיבור Outlook (חשבון אישי)
+- [ ] Functions לסנכרון דו-כיווני
+
+### Phase 6 - דשבורד KPI + Polish
+- [ ] גרפים ב-Recharts
+- [ ] PWA Manifest + Service Worker (להתקנה כאפליקציה)
+- [ ] התראות Push
+- [ ] תיעוד שימוש
+
+### Phase 7 - הרחבות (אופציונליות)
+- [ ] סנכרון אוטומטי מ-OneDrive אישי
+- [ ] OCR לחשבוניות (דרך Google Vision API - בתשלום, אופציונלי)
+- [ ] ייצוא דוחות PDF
+- [ ] Mobile app ילידית (React Native) - רק אם PWA לא מספיק
 
 ---
 
 ## 13. מה אני יכול ומה אני לא יכול לעשות
 
 ### מה אני יכול לעשות בסשנים הבאים
-- ✅ לכתוב סכמות JSON/XML לייבוא ל-Dataverse
-- ✅ לכתוב נוסחאות Power Fx מוכנות להדבקה
-- ✅ לכתוב Office Scripts (TypeScript) לאקסל
-- ✅ לכתוב סקריפטי PowerShell להקמת הסביבה
-- ✅ לבנות תבניות Excel מוכנות (כמו `build_budget.py` שכבר קיים)
-- ✅ לכתוב הוראות צעד-צעד מפורטות עם צילומי מסך מילוליים
-- ✅ לדבג בעיות אם תעלה לוגים/הודעות שגיאה
+- ✅ לכתוב את כל הקוד של ה-Frontend (React/Next.js, TypeScript)
+- ✅ לכתוב את כל ה-Cloud Functions (Node.js/TypeScript)
+- ✅ לכתוב חוקי Firestore Security
+- ✅ לכתוב סקריפטי הגדרה ופריסה
+- ✅ לכתוב תבניות Excel מותאמות
+- ✅ לכתוב מדריכי step-by-step לפרסום
+- ✅ לדבג בעיות אם תעלה לוגים
 
 ### מה אני לא יכול לעשות
-- ❌ להיכנס לחשבון ה-M365 שלך ולבנות במקומך (אין לי גישה)
-- ❌ לקבל הרשאות Anthropic/Claude API בתוך מערכות החברה שלך
-- ❌ לבדוק במקומך מה זה הרישיון שלך
-- ❌ לשמור סשנים בין הפעלות - תזכור לעדכן את הקובץ הזה כשמשהו משתנה
+- ❌ להיכנס לחשבון Firebase שלך ולהקים את הפרויקט במקומך
+- ❌ לחבר את GitHub שלך ל-Vercel - אתה תעשה (5 דקות)
+- ❌ להזין סודות API ב-Vercel - אתה תעשה
+- ❌ לבנות אפליקציית מובייל ילידית (אבל PWA מספיק עבור 99% מהצרכים)
+
+### מה אתה צריך לדעת על מה שתעשה
+- כל סשן בונה משהו → אתה מבצע commit + push → אתה לוחץ "Deploy" ב-Vercel
+- אם משהו לא עובד → תשלח לי screenshot/error log → אני אתקן בסשן הבא
+- שאלות לאורך הדרך → שאל, אני כאן
 
 ---
 
-## 14. נספח: רשימת הקבצים בריפו
+## 14. שאלות פתוחות
 
-| קובץ | תיאור |
-|---|---|
-| `PLAN.md` | המסמך הזה - הספק הראשי |
-| `build_budget.py` | סקריפט Python ליצירת קובץ תקציב בית פרטי (מסשן קודם) |
-| `תקציב_בניית_בית_פרטי.xlsx` | קובץ האקסל שנוצר מהסקריפט |
+1. **שם הפרויקט** באפליקציה (לדוגמה "Aviproject", "Atuan PM", "מנהל הפרויקטים")?
+2. **דומיין** - תרצה לקנות דומיין אישי (לדוגמה `mypm.dev` ב-$10/שנה) או להתחיל עם תת-דומיין של Vercel חינמי?
+3. **שמות פרויקטים** - יש קונבנציית מיספור (P-2026-001) או שמות חופשיים?
+4. **מטבעות** - רק ש"ח, או צריך גם דולר/יורו?
+5. **גישה משותפת בעתיד** - האם בעתיד יצטרפו עוד משתמשים? אם כן, כמה?
+6. **דוגמת Excel** - תוכל להעלות דוגמא של קובץ אקסל אחד שאתה משתמש בו היום (אפילו מטושטש)?
+
+---
+
+## 15. רשימת הקבצים בריפו
+
+| קובץ | תיאור | סטטוס |
+|---|---|---|
+| `PLAN.md` | המסמך הזה - הספק הראשי | קיים, מתעדכן |
+| `build_budget.py` | סקריפט Python ליצירת תבנית תקציב | קיים (מסשן קודם) |
+| `תקציב_בניית_בית_פרטי.xlsx` | קובץ תקציב לדוגמה | קיים |
 
 קבצים שיתווספו בסשנים הבאים:
-- `schemas/dataverse_tables.json` - הגדרות טבלאות לייבוא
-- `schemas/sharepoint_lists.json` - חלופה ל-SharePoint
-- `power_fx/` - נוסחאות Power Apps
-- `office_scripts/` - סקריפטים לאקסל
-- `excel_templates/` - תבניות אקסל לכל סוג דוח
-- `power_automate/` - תיעוד זרימות (לא ניתן לייצא ישירות, אבל אפשר לתעד)
+- `app/` - קוד Next.js
+- `functions/` - קוד Cloud Functions
+- `firestore.rules` - חוקי אבטחה
+- `firestore.indexes.json` - אינדקסים של Firestore
+- `excel_templates/` - תבניות Excel
+- `scripts/` - סקריפטי הגדרה ופריסה
+- `docs/` - מדריכי שימוש
