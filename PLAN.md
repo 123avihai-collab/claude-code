@@ -1,34 +1,54 @@
-# מסמך תכנון - דשבורד ניהול פרויקטים אישי
+# מסמך תכנון - PM ATUAN (דשבורד ניהול פרויקטים אישי)
 
 > מסמך זה הוא הספק (Specification) המנחה לבניית האפליקציה בסשנים הבאים.
 > כל שינוי בדרישות צריך לעדכן את המסמך הזה לפני בניית קוד.
 >
-> **גרסה**: 3.3 (התאמה למשתמש - מהנדס מכונות, מנהל פרויקטים בתעשייה הכבדה / אנרגיה)
+> **גרסה**: 3.4 (סבב מיפוי דומיין מלא - תשתיות אנרגיה / לסיכו)
 > **תאריך עדכון**: 2026-05-15
 >
-> **שינויים בגרסה 3.3** (אינקרמנטלי - על בסיס מידע שניתן ע"י המשתמש; השלמת הדומיין תתבצע בסבב הבא):
-> - הוסף סעיף 1.5 - על המשתמש והדומיין
-> - נענו שאלות 3 ו-5 בסעיף 14
-> - הוסף Phase 8 בסעיף 12 - 3 מודולים נוספים שזוהו: מכרזים והצעות מחיר, הזמנות רכש, ניהול שעות עבודה
-> - הוספו שאלות 7-12 בסעיף 14 לסבב הבא של איסוף דרישות
-> - **לא עודכן עדיין**: הדוגמאות בסעיפים 6/9.5 (משפחת לוי / אלי שלד / אריחי קרמיקה) - יעודכנו אחרי סבב מיפוי הדומיין
+> **שינויים בגרסה 3.4**:
+> - שם האפליקציה: **PM ATUAN** (היה ללא שם רשמי)
+> - דומיין יעד: **pm-atuan.web.app** (ייתוסף כ-Hosting site שני; הפריסה הנוכחית `pm-dashboard-avichai.web.app` זמנית)
+> - הוסף תיאור מפורט של חברת לסיכו ושני התפקידים האפשריים (קבלן ראשי / קבלן משנה) — סעיף 1.5
+> - מיקוד MVP חודד: ניהול קבצים + AI על חוזים + דשבורד פיננסי + תזכורות — סעיף 3
+> - **3 מטבעות נתמכים**: ש"ח (default), דולר, יורו — שדות `currency`, `exchangeRateToILS`, `amountInILS` בכל אוסף פיננסי
+> - אוסף חדש: `clients/` עם `clientType` (end_client / main_contractor / both)
+> - אוסף חדש: `boq_revisions/` — snapshot של כל חשבון חלקי
+> - אוסף חדש: `project_documents/` — מאחד מסמכי מכרז + הצעה + חוזה + שינויים
+> - אוסף חדש: `tenders/` ו-`purchase_orders/` ו-`timesheets/` (Phase 8) — סכמה מפורטת
+> - שינוי מהותי ב-`projects`: `endClientId`, `mainContractorId?`, `ourRole`, `projectNumber`, `site`, `projectType`, `contractAmount`, `warrantyPeriodMonths`
+> - שינוי מהותי ב-`boq_items`: היררכיית ספרור 4 רמות (`itemCode` "XX.YY.ZZ.NNN"), 15 עמודות עפ"י תקן ישראלי, `rowType` (item/note/section_header)
+> - הוסף `contractMetadata` ל-`documents` עם שדות לחילוץ אוטומטי (תאריך מסירה, ערבות, צמדות מדד, סנקציות)
+> - **כל הדוגמאות הוחלפו**: משפחת לוי / אלי שלד / אריחי קרמיקה → תע"א / י.ר.ן / לסיכו / צנרת דס"ל
+> - נענו כל השאלות הפתוחות (Q1, Q2, Q4 + Q7-Q12 מהסבב הקודם)
+> - הוספו שאלות מינוריות שעוד פתוחות (יומן יומי / הפקת PDF של חשבון חלקי)
 
 ---
 
 ## 1. תקציר מנהלים
 
-**מה בונים**: אפליקציית web אישית (PWA) לניהול פרויקטים. דשבורד מרכזי שמרכז:
-- נתונים פיננסיים מקובצי Excel (הוצאות, הכנסות, תשלומים לקבלנים/ספקים, כתבי כמויות)
-- נתונים שיובאו מ-Priority (ייצוא Excel ידני, כי אין הרשאת API)
-- מיילים רלוונטיים מ-Outlook (לעתיד)
+**שם האפליקציה**: **PM ATUAN**
+
+**מה בונים**: אפליקציית web אישית (PWA) לניהול פרויקטי תשתיות אנרגיה. מוקד הליבה — לפי סדר חשיבות:
+1. **ניהול קבצים** (חוזים, מסמכי מכרז, חשבונות חלקיים, חשבוניות, תכניות AutoCAD)
+2. **חיפוש AI על תוכן** — בעיקר חוזים (RAG)
+3. **דשבורד פיננסי** — תקציב מול בפועל, תזרים, יתרות לקבלנים/ספקים, חשבונות חלקיים
+4. **תזכורות** — תאריכי מסירה, חוזים מסתיימים, חשבונות לתשלום, עיכובי אספקה ב-long lead items
+
+תוספות שניבנו כצורך:
+- נתונים שיובאו מ-Priority (ייצוא Excel ידני, אין הרשאת API)
 - משימות ולוח זמנים פר-פרויקט
 - אירועי לוח שנה (Outlook + Google Calendar)
+- מיילים רלוונטיים (לעתיד)
 
-**עבור מי**: משתמש יחיד (בעל המסמך) - **על חשבונות פרטיים, לא ארגוניים**.
+**עבור מי**: משתמש יחיד (אביחי) - **על חשבונות פרטיים, לא ארגוניים**.
 
 **איפה זה רץ**: מחשב נייח, מחשב נייד, טאבלט, נייד - דרך הדפדפן (PWA, ניתן להתקין למסך הבית).
 
 **טכנולוגיה**: Next.js (Frontend) + Firebase (Backend + Hosting).
+
+**דומיין יעד**: `pm-atuan.web.app` (ייתוסף כ-Hosting site שני בפרויקט הקיים).
+**דומיין נוכחי**: `pm-dashboard-avichai.web.app` (זמני - הפריסה הנוכחית עד שמוסיפים את ה-site השני).
 
 **עלות**: **0 ש"ח לתמיד** - Firebase Spark Plan (חינמי, ללא כרטיס אשראי).
 
@@ -36,49 +56,171 @@
 
 **שדרוג עתידי** (רק אם נצטרך): אם יום אחד נראה שהמכסות לוחצות בפועל - אז נשקול מעבר ל-Blaze עם תקרת תקציב. עד אז - לא נוגעים בכרטיס אשראי.
 
+**מטבעות נתמכים**: ש"ח (default), דולר, יורו. תצוגת ברירת מחדל ש"ח; toggle בהגדרות; שערים מתעדכנים יומית מ-API חינמי (בנק ישראל / ECB).
+
 **פרטיות**: מוחלטת. לא ארגונית. החשבונות הם אישיים. המעסיק לא יכול לראות שום דבר.
 
 ---
 
 ## 1.5 על המשתמש והדומיין
 
-**מי המשתמש**: אביחי, מהנדס מכונות בתפקיד מנהל פרויקטים.
+### המשתמש
+**אביחי**, מהנדס מכונות, מנהל פרויקטים בחברת **לסיכו** (Lasiko).
 
-**תחום**: תעשייה כבדה / תשתיות אנרגיה בישראל. סוגי פרויקטים טיפוסיים:
-- תחנות כוח (טורבינות גז וקיטור, מחזור משולב)
-- תשתיות דלק - בעיקר דס"ל (Diesel)
+### החברה והתפקיד
+לסיכו פועלת בתחום **תשתיות אנרגיה**:
+- מערכות דלק / דס"ל
+- תחנות כוח (טורבינות גז וקיטור במחזור משולב)
 - שיפוצי טורבינה ותחזוקה גדולה
 - מתקני התפלה
 - תשתיות מים
 - תשתיות תת-קרקעיות ועיליות
-- לעתים נוגעים גם בבנייה
 
-**מזמיני עבודה**: גופים ממשלתיים וגם פרטיים.
+### שתי תצורות תפקיד — קריטי למודל הנתונים
+ברוב הפרויקטים: **לסיכו = קבלן ראשי** מול המזמין הסופי (גוף ממשלתי / חברה פרטית גדולה).
 
-**קבלנים**: בעיקר ישראלים, לעתים רחוקות מחו"ל.
+במקרים חריגים: **לסיכו = קבלן משנה** של קבלן ראשי גדול יותר. דוגמה: פרויקט 2253 — לסיכו עובדת תחת **י.ר.ן בנייה ופיתוח** שזכה במכרז של תע"א.
 
-**מצב עבודה**: עבודה בו-זמנית על מספר פרויקטים.
+**המודל חייב לתמוך בשתי התצורות** דרך שדה `ourRole` באוסף `projects`.
 
-**תחומי אחריות יומיומיים**:
-- כתבי כמויות
+### מזמיני עבודה טיפוסיים
+- תעשייה אווירית (תע"א)
+- חברת חשמל לישראל
+- מקורות
+- תש"ן (תשתיות נפט ואנרגיה)
+- חברות פרטיות גדולות
+
+### קבלני משנה טיפוסיים שלסיכו עובדת איתם
+- חברות עבודות עפר
+- חברות ריתוכים והנחת צנרת
+- חברות חשמל ובקרה
+- חברות הגנה קתודית
+- חברות בקרה (טסטים)
+
+### עבודה בו-זמנית
+מספר פרויקטים פעילים במקביל בשלבים שונים.
+
+### תחומי אחריות יומיומיים
+- כתבי כמויות וחשבונות חלקיים
 - תשלומים לקבלנים
 - חוזים מול מזמיני עבודה ומול קבלנים
-- חישובים
+- חישובים הנדסיים
 - ניהול תקציב הוצאות והכנסות
 - מכרזים והצעות מחיר
 - דוחות ומצגות
 - קבצי Excel להצעות מחיר
 - קבצי Word ומיילים
 - תזכורות
-- בניית דשבורדים חכמים ואינטגרציות לניתוח משימות ושיטות עבודה
+- בניית דשבורדים חכמים ואינטגרציות
 - תכניות הנדסיות ב-AutoCAD
 - ניהול כוח אדם ושעות עבודה
-- הזמנות רכש גדולות (חומרים, ציוד, כלי עבודה)
+- הזמנות רכש גדולות — **long lead items** קריטיים (ציוד מורכב עם זמני אספקה ארוכים)
 
-**השלכות לארכיטקטורה**:
-- הליבה ב-PLAN (פרויקטים / הוצאות / קבלנים / ספקים / תשלומים / כתבי כמויות / משימות / מסמכים) תואמת לחלוטין לדומיין.
-- ההבדל מבנייה פרטית הוא בעיקר במונחים, קטגוריות, ודוגמאות (לא במבנה ה-DB).
-- 3 מודולים נוספים נדרשים בעתיד (לא ל-MVP): מכרזים והצעות מחיר, הזמנות רכש (POs), ניהול שעות עבודה. ראה Phase 8 בסעיף 12.
+### עקרון מנחה — גמישות מעל הכל
+**אי-אפשר לבנות תבנית קשיחה**. כל פרויקט שונה. מודל הנתונים חייב:
+- שדות `category` / `specialty` להיות **free text** (לא enum קשיח)
+- אפשרות להוספת **custom fields** פר פרויקט
+- קטגוריות מסמכים שניתן להוסיף בזמן ריצה
+
+### השלכות לארכיטקטורה
+- הליבה ב-PLAN (פרויקטים / הוצאות / קבלנים / ספקים / תשלומים / כתבי כמויות / משימות / מסמכים) תואמת לדומיין — עם התאמות.
+- הוספת אוסף `clients/` נפרד עם `clientType` (end_client / main_contractor / both).
+- הוספת `boq_revisions/` — כל חשבון חלקי הוא snapshot של כתב הכמויות בנקודת זמן.
+- אוסף `project_documents/` מאחד מסמכי מכרז + הצעה + חוזה + שינויים תחת `type` ו-`isPrimaryContract`.
+- 3 מודולים נוספים ל-Phase 8: מכרזים, הזמנות רכש, ניהול שעות עבודה — סכמה מפורטת בסעיף 12.
+
+---
+
+## 1.6 מחזור חיים של פרויקט (אמיתי, מאומת ע"י המשתמש)
+
+```
+1.  פרסום מכרז ע"י המזמין
+2.  קבלת מסמכי מכרז
+3.  הכנת הצעת מחיר
+4.  הגשה
+5.  (אם זכינו) חתימת חוזה
+6.  תכנון הנדסי מפורט
+7.  סגירת חוזים עם קבלני משנה
+8.  הזמנת ציוד וחומרים
+9.  המתנה לאספקה  ← קריטי. long lead items - חודשים של המתנה לטורבינות / מערכות בקרה
+10. ביצוע באתר
+11. טסטים למערכת (קומישנינג)
+12. מסירה
+13. תקופת בדק (warranty)
+```
+
+### השלכות למודל ול-UI
+
+- **שלב 9 (המתנה לאספקה)** עומד בפני עצמו — חייב להיות בולט בדשבורד עם מעקב `expectedDeliveryDate` ב-`purchase_orders/{poId}`. דגל `isLongLeadItem` להבלטה.
+- **שלב 1-4 (מכרז → הגשה)** — לפני שיש פרויקט פעיל. אוסף `tenders/` נפרד; אם זוכים, נוצר פרויקט ב-`projects/` ומוצמד `linkedProjectId` ל-tender.
+- **שלב 6-8 (תכנון → רכש)** — מקור ל-`boq_items` ראשונים, חוזי קבלני משנה ב-`contractors/`, הזמנות רכש ב-`purchase_orders/`.
+- **שלב 10-12 (ביצוע → מסירה)** — מקור לחשבונות חלקיים (`boq_revisions/`).
+- **שלב 13 (תקופת בדק)** — שדה `warrantyPeriodMonths` ב-`projects/`; פרויקט במצב warranty עדיין במעקב אבל אינו פעיל.
+
+---
+
+## 1.7 דוגמאות אמיתיות לדומיין (להחלפה ב-mock + UI + AI prompts)
+
+### מזמינים סופיים (`endClientId`)
+- "תעשייה אווירית" (תע"א)
+- "חברת חשמל לישראל"
+- "מקורות"
+- "תש"ן" (תשתיות נפט ואנרגיה)
+
+### קבלנים ראשיים (כשלסיכו = משנה) (`mainContractorId`)
+- "י.ר.ן בנייה ופיתוח"
+- "אלקטרה תשתיות"
+- "אורד הנדסה"
+
+### אנחנו
+- **לסיכו צמ"א** (Lasiko)
+
+### קבלני משנה טיפוסיים (`contractors/`)
+- "מ.צ. ריתוכים" — ריתוכים והנחת צנרת
+- "ש.ב. עבודות עפר"
+- "אלקטרו-דלק שירותים" — חשמל ובקרה למתקני דלק
+- "הגנה קתודית הצפון"
+- "טסטים והפעלה נ.ב." — קומישנינג
+
+### פריטי כתב כמויות (description ב-`boq_items/`)
+- "צנרת פלדה ASTM A 106 Grade B SCH 40"
+- "מונה דלק LC M-5"
+- "אקדח תדלוק אוטומטי NFPA 407"
+- "מגוף כדורי 2\""
+- "מד הפרשי לחץ מפלדת אל-חלד FM/UL"
+- "גלגלון צינור גמיש 1\" באורך 30 מטר"
+- "מיכל התפשטות 2.5 גלון, 275 PSI"
+
+### פרקים בכתב כמויות (chapter / sub-chapter codes)
+- `01.38.00.000` — מתקני דלק
+- `02.01.00.000` — עבודות עפר ופיתוח - קו צנרת
+- `02.38.01.000` — עבודות להתקנת קו צנרת
+- `02.38.02.000` — עבודות ניתוק קו, ניקיון והחזרה לעבודה
+- `02.38.03.000` — עבודות צנרת בשוחות
+- `02.38.05.000` — הגנה קתודית
+- `02.38.06.000` — רכש ואספקת חומרים
+- `02.38.07.000` — עבודות רג'י
+
+### יחידות מידה (`unit` ב-`boq_items/`)
+`מטר` | `מ"ק` | `יח'` | `קומפ'` (קומפלט) | `מ"א` (מטר אורך) | `טון` | `ש"ע` (שעות עבודה) | `הערה`
+
+### שמות פרויקטים מלאים (לתצוגה)
+- "פרויקט 2253 — מערכת דס"ל למתחם תחזוקה, תע"א, באר שבע"
+- "פרויקט 2288 — שדרוג מערכת דלק תחנת כוח"
+- "פרויקט 2306 — הקמת מתקן אחסון דלק"
+
+### קטגוריות הוצאה (`category` ב-`expenses/`) — חופשי, דוגמאות
+- "צנרת ואביזרים"
+- "ציוד דלק"
+- "ציוד טורבינה"
+- "קבלן משנה — ריתוכים"
+- "קבלן משנה — עבודות עפר"
+- "קבלן משנה — חשמל ובקרה"
+- "חומרי גלם"
+- "כלי עבודה"
+- "תכנון הנדסי"
+- "בדיקות ואישורים"
+- "אחר"
 
 ---
 
@@ -111,7 +253,10 @@
 - [ ] ניהול משימות מובנה לכל פרויקט
 - [ ] תמיכה בריבוי פרויקטים
 - [ ] ממשק עברית RTL
-- [ ] ניהול מסמכים (PDF/Excel/תמונות)
+- [ ] ניהול מסמכים (PDF/Excel/תמונות/AutoCAD)
+- [ ] תמיכה ב-3 מטבעות (ש"ח / דולר / יורו) עם המרה אוטומטית
+- [ ] תמיכה בשתי תצורות תפקיד (קבלן ראשי / קבלן משנה) דרך `ourRole`
+- [ ] מעקב אחר long lead items בהזמנות רכש
 
 ### דרישות לא-פונקציונליות
 - אפס עלות נוספת
@@ -119,20 +264,32 @@
 - בעלות מלאה על הקוד והנתונים
 - נגישות מכל מכשיר ללא התקנת אפליקציה ייעודית
 - אבטחה (אימות, הצפנה במעבר, גיבוי אוטומטי)
+- **גמישות מעל תבניות קשיחות** — קטגוריות, התמחויות, וסוגי מסמכים = free text
 
-### מודולים ל-MVP
-1. סקירת פרויקט - דשבורד עם KPIs
-2. הוצאות והכנסות
-3. תשלומים לקבלנים וספקים
-4. כתבי כמויות + לוח זמנים + משימות
-5. **ניהול חוזים ומסמכי פרויקט** - תיקייה ייעודית לחוזי כל פרויקט
-6. **צ'אט AI מבוסס חוזים (RAG)** - שואלים שאלות על תוכן החוזים בעברית
+### מוקד הליבה של ה-MVP (לפי סדר חשיבות)
+
+המשתמש הגדיר את 4 הצרכים הקריטיים. כל השאר תוספות.
+
+1. **📁 ניהול קבצים** — חוזים, מסמכי מכרז, חשבונות חלקיים, חשבוניות, תכניות AutoCAD. אסטרטגיה היברידית: קבצים קטנים (חוזים, חשבוניות) באפליקציה, תכניות גדולות (DWG, PDF גדולים) ב-Drive עם קישור.
+2. **🤖 חיפוש AI על תוכן** — בעיקר חוזים. שאלות כמו "מתי תאריך המסירה?", "מה גובה הערבות?", "מה תקופת הבדק?". סעיף 9.5 בפירוט.
+3. **📊 דשבורד פיננסי** — תקציב מול בפועל, תזרים, יתרות לקבלנים וספקים, סטטוס חשבונות חלקיים, ש"ח/$/€.
+4. **🔔 תזכורות** — תאריכי מסירה מתקרבים, חוזים מסתיימים, חשבונות לתשלום, **עיכובי אספקה ב-long lead items**, חוזים בתקופת בדק.
+
+### מודולים ל-MVP (מטרגטים את 4 הצרכים למעלה)
+1. **ניהול פרויקטים** — CRUD, פרטים, סטטוס לפי 13 שלבי מחזור החיים.
+2. **ניהול מסמכים** — `project_documents/` + `documents/` + viewer מובנה ל-PDF (PDF.js).
+3. **דשבורד פיננסי** — KPIs פר פרויקט + cross-project, גרפים, יתרות.
+4. **חשבונות חלקיים (כתבי כמויות)** — מבנה היררכי 4 רמות, 15 עמודות, snapshots ב-`boq_revisions/`.
+5. **צ'אט AI מבוסס חוזים (RAG)** — שאלות בעברית על תוכן מסמכים.
+6. **תזכורות בסיסיות** — בדשבורד, מבוסס תאריכים שב-Firestore.
 
 ### מודולים עתידיים
 - אינטגרציה עם Outlook Mail
 - ניהול מסמכי בטיחות (מעבר לחוזים)
-- דוחות PDF להפקה
+- **הפקת PDF של חשבון חלקי** מ-Firestore להגשה למזמין (סבב מאוחר)
+- **יומן פרויקט** (notes יומי) — אם יוחלט שצריך כמודול בסיסי
 - OCR אוטומטי לחשבוניות (יכול להשתלב עם תשתית ה-AI שכבר תהיה)
+- ניהול גרסאות של תכניות AutoCAD (כרגע: ידני ע"י המשתמש, האפליקציה רק קישור)
 
 ---
 
@@ -227,28 +384,43 @@ Firestore הוא **NoSQL** (לא טבלאות עם JOIN). הקרטוגרפיה �
 ```
 firestore/
 ├── users/{userId}                          ← משתמש יחיד = אתה
-│   └── {displayName, email, settings, ...}
+│   └── {displayName, email, settings, defaultCurrency, ...}
+│
+├── clients/{clientId}                       ← חדש (3.4)
+│   └── {ownerId, name, clientType, companyId, ...}
+│        clientType = 'end_client' | 'main_contractor' | 'both'
 │
 ├── projects/{projectId}
-│   └── {ownerId, name, client, status, budget, progress, ...}
+│   └── {ownerId, projectNumber, endClientId, mainContractorId?,
+│        ourRole, site, projectType, contractAmount,
+│        warrantyPeriodMonths, deliveryDate, currency, ...}
 │
 ├── expenses/{expenseId}
-│   └── {ownerId, projectId, date, category, amount, ...}
+│   └── {ownerId, projectId, date, category, amount, currency,
+│        exchangeRateToILS, amountInILS, ...}
 │
 ├── income/{incomeId}
-│   └── {ownerId, projectId, date, amount, ...}
+│   └── {ownerId, projectId, date, amount, currency, ...}
 │
 ├── contractors/{contractorId}
-│   └── {ownerId, name, phone, contractTotal, ...}
+│   └── {ownerId, name, specialty (free text), phone, ...}
 │
 ├── suppliers/{supplierId}
-│   └── {ownerId, name, phone, category, ...}
+│   └── {ownerId, name, category (free text), phone, ...}
 │
 ├── payments/{paymentId}
-│   └── {ownerId, projectId, payeeType, payeeId, amount, ...}
+│   └── {ownerId, projectId, payeeType, payeeId, amount,
+│        currency, exchangeRateToILS, amountInILS, ...}
 │
 ├── boq_items/{itemId}
-│   └── {ownerId, projectId, section, itemNumber, qty, ...}
+│   └── {ownerId, projectId, itemCode, chapterCode,
+│        subChapterCode, groupCode, itemNumber, rowType,
+│        15 עמודות עפ"י תקן ישראלי, ...}
+│
+├── boq_revisions/{revisionId}              ← חדש (3.4)
+│   └── {ownerId, projectId, revisionNumber, billDate,
+│        status, totalAmount, cumulativePercent, ...}
+│        snapshot של כתב הכמויות בנקודת זמן = חשבון חלקי
 │
 ├── tasks/{taskId}
 │   └── {ownerId, projectId, title, status, dueDate, ...}
@@ -256,8 +428,19 @@ firestore/
 ├── schedule_items/{itemId}
 │   └── {ownerId, projectId, name, startDate, endDate, ...}
 │
-└── documents/{documentId}
-    └── {ownerId, projectId, fileName, storageURL, type, ...}
+├── documents/{documentId}
+│   └── {ownerId, projectId, fileName, storage,
+│        contractMetadata? (extracted), ...}
+│
+├── project_documents/{docId}                ← חדש (3.4)
+│   └── {ownerId, projectId?, tenderId?, type,
+│        isPrimaryContract, fileURL, extractedMetadata?, ...}
+│        מאחד מסמכי מכרז + הצעה + חוזה + שינויים
+│
+└── (Phase 8 - יוסיפו אחרי MVP)
+    ├── tenders/{tenderId}
+    ├── purchase_orders/{poId}
+    └── timesheets/{timesheetId}
 ```
 
 > **למה ברמת השורש ולא תת-אוספים תחת projects**? קל יותר לעשות שאילתות חוצות פרויקטים (לדוגמה "כל המשימות הקרובות בכל הפרויקטים"). מצד שני נצטרך לסנן ידנית לפי projectId, אבל זה זול.
@@ -267,20 +450,50 @@ firestore/
 
 ### פירוט שדות פר אוסף
 
+#### `clients/{clientId}` (חדש בגרסה 3.4)
+```typescript
+{
+  ownerId: string,
+  name: string,                    // "תעשייה אווירית" / "י.ר.ן בנייה ופיתוח"
+  companyId: string?,              // ח.פ.
+  clientType: 'end_client' | 'main_contractor' | 'both',
+  contactPerson: string?,
+  phone: string?,
+  email: string?,
+  address: string?,
+  notes: string,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+> **למה צריך**: מזמין סופי (תע"א) ≠ קבלן ראשי (י.ר.ן). בפרויקטים שבהם לסיכו = קבלן משנה, יש שני "לקוחות" — המזמין הסופי שמשלם בסוף השרשרת, והקבלן הראשי שלסיכו מדווחת אליו.
+
 #### `projects/{projectId}`
 ```typescript
 {
-  ownerId: string,            // uid שלך
-  name: string,               // שם הפרויקט
-  client: string,             // שם הלקוח
-  status: 'active' | 'paused' | 'completed' | 'cancelled',
+  ownerId: string,
+  projectNumber: string,           // "2253" / "2288" / "2306"
+  name: string,                    // "מערכת דס"ל למתחם תחזוקה, תע"א, באר שבע"
+  endClientId: string,             // ref ל-clients/ (המזמין הסופי - תע"א)
+  mainContractorId: string?,       // ref ל-clients/ (אם אנחנו קבלן משנה)
+  ourRole: 'main_contractor' | 'subcontractor',
+  site: string,                    // "באר שבע - מתחם תחזוקה"
+  projectType: string,             // free text: "מערכת דס"ל" / "תחנת כוח" / ...
+  tenderId: string?,               // אם נולד ממכרז (Phase 8)
+  status: 'tender_phase' | 'planning' | 'procurement' | 'execution'
+        | 'commissioning' | 'delivered' | 'warranty' | 'closed' | 'cancelled',
   startDate: timestamp,
-  endDate: timestamp | null,
-  budget: number,             // תקציב בש"ח
-  actualSpent: number,        // מחושב מ-expenses (אגרגציה ב-Cloud Function)
-  progressPercent: number,    // 0-100
-  oneDriveFolderURL: string?, // קישור לתיקייה ב-OneDrive
-  priorityCode: string?,      // קוד הפרויקט בפריוריטי (אם רלוונטי)
+  deliveryDate: timestamp?,        // יעד מסירה לפי חוזה
+  actualDeliveryDate: timestamp?,
+  warrantyPeriodMonths: number?,   // 12 / 24 / 36 / ...
+  contractAmount: number,          // סכום החוזה (לסיכו מקבלת)
+  currency: 'ILS' | 'USD' | 'EUR',
+  exchangeRateToILS: number,
+  amountInILS: number,             // מחושב
+  actualSpent: number,             // מחושב מ-expenses (אגרגציה)
+  progressPercent: number,         // 0-100
+  oneDriveFolderURL: string?,
+  priorityCode: string?,
   notes: string,
   createdAt: timestamp,
   updatedAt: timestamp
@@ -291,21 +504,27 @@ firestore/
 ```typescript
 {
   ownerId: string,
-  projectId: string,          // הפרויקט אליו שייכת
-  date: timestamp,            // תאריך ההוצאה
-  category: 'materials' | 'labor' | 'subcontractor' | 'equipment' | 'other',
+  projectId: string,
+  date: timestamp,
+  category: string,                // free text - לא enum (3.4)
+                                   // דוגמאות: "צנרת", "ציוד טורבינה",
+                                   // "קבלן משנה - ריתוכים", "חומרי גלם"
   description: string,
-  amount: number,             // לפני מע"מ
-  vat: number,                // מע"מ
-  amountWithVat: number,      // מחושב
+  amount: number,                  // לפני מע"מ, במטבע מקור
+  vat: number,
+  amountWithVat: number,
+  currency: 'ILS' | 'USD' | 'EUR', // default ILS (3.4)
+  exchangeRateToILS: number,       // snapshot בעת היצירה
+  amountInILS: number,             // מחושב = amountWithVat * exchangeRateToILS
   invoiceNumber: string?,
   invoiceDate: timestamp?,
-  supplierId: string?,        // קישור לאוסף suppliers
+  supplierId: string?,
   paymentStatus: 'pending' | 'partial' | 'paid' | 'cancelled',
   paidDate: timestamp?,
-  sourceFile: string?,        // אם בא מ-Excel
-  sourceRow: number?,         // השורה ב-Excel המקורי (לזיהוי שינויים)
-  attachments: string[],      // URLs ל-Firebase Storage
+  linkedPurchaseOrderId: string?,  // ref ל-purchase_orders (Phase 8)
+  sourceFile: string?,
+  sourceRow: number?,
+  attachments: string[],
   createdAt: timestamp,
   updatedAt: timestamp
 }
@@ -317,13 +536,17 @@ firestore/
   ownerId: string,
   projectId: string,
   date: timestamp,
-  client: string,
+  clientId: string,                // ref ל-clients/ במקום string חופשי (3.4)
   description: string,
   amount: number,
   vat: number,
+  currency: 'ILS' | 'USD' | 'EUR',
+  exchangeRateToILS: number,
+  amountInILS: number,
   invoiceNumber: string,
   status: 'invoiced' | 'partial' | 'paid',
   paidDate: timestamp?,
+  linkedBoqRevisionId: string?,    // אם בא מחשבון חלקי (3.4)
   sourceFile: string?,
   createdAt: timestamp,
   updatedAt: timestamp
@@ -334,16 +557,22 @@ firestore/
 ```typescript
 {
   ownerId: string,
-  name: string,
+  name: string,                    // "מ.צ. ריתוכים" / "אלקטרו-דלק שירותים"
   contactPerson: string?,
   phone: string?,
   email: string?,
-  specialty: string,          // חשמל / אינסטלציה / שלד / גמר / ...
-  contractTotal: number,      // סך החוזה
-  totalPaid: number,          // מחושב (Cloud Function)
-  balance: number,            // מחושב = contractTotal - totalPaid
+  specialty: string,               // free text (3.4) - לא enum
+                                   // דוגמאות: "ריתוכים", "עבודות עפר",
+                                   // "חשמל ובקרה", "הגנה קתודית",
+                                   // "טסטים וקומישנינג"
+  contractTotal: number,
+  currency: 'ILS' | 'USD' | 'EUR',
+  exchangeRateToILS: number,
+  contractTotalInILS: number,
+  totalPaid: number,               // ב-ש"ח (מחושב)
+  balance: number,                 // contractTotalInILS - totalPaid
   notes: string,
-  linkedProjects: string[],   // מערך של projectIds
+  linkedProjects: string[],
   createdAt: timestamp,
   updatedAt: timestamp
 }
@@ -357,10 +586,13 @@ firestore/
   contactPerson: string?,
   phone: string?,
   email: string?,
-  category: 'building_materials' | 'tools' | 'services' | 'other',
-  paymentTerms: string,       // לדוגמה "שוטף + 30"
-  totalPaid: number,          // מחושב
-  openBalance: number,        // מחושב
+  category: string,                // free text (3.4) - לא enum
+                                   // דוגמאות: "ספק צנרת", "ספק ציוד דלק",
+                                   // "ספק טורבינות", "כלי עבודה"
+  paymentTerms: string,            // "שוטף + 30" / "שוטף + 45"
+  isForeign: bool,                 // ספק חוץ-לארץ? (3.4)
+  totalPaid: number,               // ב-ש"ח (מחושב)
+  openBalance: number,             // ב-ש"ח
   createdAt: timestamp,
   updatedAt: timestamp
 }
@@ -374,7 +606,10 @@ firestore/
   payeeType: 'contractor' | 'supplier',
   payeeId: string,
   invoiceId: string?,
-  amount: number,
+  amount: number,                  // במטבע מקור
+  currency: 'ILS' | 'USD' | 'EUR', // (3.4)
+  exchangeRateToILS: number,
+  amountInILS: number,
   paymentMethod: 'transfer' | 'cheque' | 'cash' | 'card',
   paymentDate: timestamp,
   chequeNumber: string?,
@@ -385,25 +620,79 @@ firestore/
 }
 ```
 
-#### `boq_items/{itemId}`
+#### `boq_items/{itemId}` (עודכן 3.4 — תקן ישראלי 15 עמודות)
+
+> **תגלית מסבב המיפוי**: "כתב כמויות" ו"חשבון חלקי" הם **אותו קובץ עם 15 עמודות**. כל חשבון חלקי הוא snapshot של כתב הכמויות בנקודת זמן — ראה `boq_revisions/` למטה.
+
+**היררכיית ספרור (תקן ישראלי - 4 רמות)**:
+```
+XX.00.00.000  = פרק            (לדוגמה: 02.00.00.000 - תשתיות)
+XX.YY.00.000  = תת-פרק          (02.38.00.000 - מתקני דלק)
+XX.YY.ZZ.000  = קבוצת סעיפים    (02.38.01.000 - עבודות צנרת)
+XX.YY.ZZ.NNN  = סעיף בודד       (02.38.01.040 - מגוף כדורי 2")
+```
+
 ```typescript
 {
   ownerId: string,
   projectId: string,
-  section: string,            // "5. שלד ובטון"
-  itemNumber: string,         // "5.1.3"
-  description: string,
-  unit: string,               // מ"ר, מ"ק, יח'
-  plannedQuantity: number,
-  unitPrice: number,
-  plannedTotal: number,       // מחושב = qty * unitPrice
-  actualQuantity: number,
-  completionPercent: number,
-  contractorId: string?,
+
+  // היררכיית קוד
+  itemCode: string,           // "02.38.01.040" - הקוד המלא
+  chapterCode: string,        // "02"
+  subChapterCode: string,     // "38"
+  groupCode: string,          // "01"
+  itemNumber: string,         // "040"
+  rowType: 'item' | 'note' | 'section_header',
+                              // 'note' = תנאי חוזה, לא סעיף תשלום
+
+  description: string,        // טקסט טכני: "מגוף כדורי 2" לפי תקן..."
+  unit: string,               // free text: מטר | מ"ק | יח' | קומפ' |
+                              //   מ"א | טון | ש"ע | "הערה"
+
+  // 15 עמודות עפ"י תקן ישראלי לחשבון חלקי:
+  contractUnitPrice: number,            // (4) מחיר יחידה
+  contractQuantity: number,             // (5) כמות חוזה
+  previousQuantity: number,             // (6) כמות קודמת
+  previousPercentPaid: number,          // (7) % תשלום קודם
+  measuredQuantity: number,             // (8) כמות נמדדת
+  cumulativeQuantityForPayment: number, // (9) כמות מצטברת לתשלום
+  percentToPay: number,                 // (10) אחוז לתשלום
+  cumulativeAmount: number,             // (11) סכום מצטבר
+  percentCumulativeFromContract: number,// (12) % מצטבר מחוזה
+  currentBillAmount: number,            // (13) סכום לחשבון זה
+  percentCurrentBillFromContract: number,// (14) % חשבון זה מחוזה
+  percentCurrentFromPrevious: number,   // (15) % חשבון זה מחשבון קודם
+
+  contractorId: string?,      // קבלן משנה שמבצע את הסעיף
   createdAt: timestamp,
   updatedAt: timestamp
 }
 ```
+
+> **רוחב מספרים**: כל הסכומים ב-ש"ח (מטבע הפרויקט). המרה למטבעות אחרים — דרך תקציב הפרויקט.
+
+#### `boq_revisions/{revisionId}` (חדש בגרסה 3.4)
+```typescript
+{
+  ownerId: string,
+  projectId: string,
+  revisionNumber: number,          // 1, 2, 3, ... (מספר חשבון חלקי)
+  billDate: timestamp,             // תאריך החשבון
+  submittedDate: timestamp?,       // תאריך הגשה למזמין
+  approvedDate: timestamp?,        // תאריך אישור המזמין
+  paidDate: timestamp?,
+  status: 'draft' | 'submitted' | 'approved' | 'paid' | 'rejected',
+  totalAmount: number,             // סכום כולל לתשלום בחשבון הזה
+  cumulativePercent: number,       // % מצטבר מתחילת הפרויקט
+  notes: string?,
+  snapshotItemsRef: string,        // הפניה ל-snapshot של כל ה-boq_items
+                                   // באותה נקודת זמן (תת-אוסף או storage)
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+> **למה צריך**: כשנשלח חשבון חלקי למזמין, צריך לזכור **בדיוק** מה היה המצב באותה נקודה. אם 3 חודשים אחרי המזמין שואל "מה היה הסכום ב-חשבון 4?" — אנחנו רוצים תשובה מדויקת, גם אם בינתיים עדכנו כמויות.
 
 #### `tasks/{taskId}`
 ```typescript
@@ -444,20 +733,136 @@ firestore/
 }
 ```
 
-#### `documents/{documentId}`
+#### `documents/{documentId}` (עודכן 3.4)
 ```typescript
 {
   ownerId: string,
   projectId: string,
   fileName: string,
-  storageURL: string,         // ב-Firebase Storage
+  storage: 'firebase' | 'drive' | 'onedrive',
+  storageURL: string?,             // אם storage='firebase'
+  externalURL: string?,            // אם storage='drive'/'onedrive'
   fileSize: number,
   mimeType: string,
-  type: 'contract' | 'invoice' | 'approval' | 'plan' | 'other',
+  type: string,                    // free text (3.4)
+                                   // דוגמאות: "contract" / "invoice" /
+                                   // "drawing_dwg" / "drawing_pdf" /
+                                   // "test_report" / "permit" / "other"
   tags: string[],
-  uploadedAt: timestamp
+  uploadedAt: timestamp,
+
+  // נשלף אוטומטית מקובץ חוזה (Cloud Function + LLM)
+  contractMetadata: {
+    contractDate: timestamp?,
+    partyA: { name: string, companyId: string? }?,    // המזמין
+    partyB: { name: string, companyId: string? }?,    // הקבלן
+    endClient: string?,                                // המזמין הסופי
+    amount: number?,
+    currency: 'ILS' | 'USD' | 'EUR'?,
+    startDate: timestamp?,
+    deliveryDate: timestamp?,
+    warrantyMonths: number?,
+    paymentTerms: string?,                             // "שוטף + 60"
+    guaranteeAmount: number?,                          // ערבות ביצוע
+    delayPenalty: string?,                             // סנקציות על פיגור
+    indexLinkage: string?,                             // צמדות מדד
+    annexes: string[]?,                                // רשימת נספחים
+  }?
 }
 ```
+
+#### `project_documents/{docId}` (חדש בגרסה 3.4)
+
+מאחד מסמכי פרויקט שמתפרשים על מחזור החיים — **מכרז → הצעה → חוזה → שינויים**.
+
+```typescript
+{
+  ownerId: string,
+  projectId: string?,              // null אם זה רק מכרז שעוד לא זכינו
+  tenderId: string?,               // אם קשור למכרז (Phase 8)
+  type: 'tender_publication'       // מסמכי מכרז שהמזמין פרסם
+      | 'proposal'                 // ההצעה שלנו
+      | 'contract'                 // החוזה החתום
+      | 'amendment'                // תוספת/שינוי לחוזה
+      | 'work_order'               // הוראת ביצוע
+      | 'other',
+  isPrimaryContract: bool,         // הקובץ הראשי לפרויקט
+                                   // (3.4) הקובץ הזה:
+                                   // - מופיע ראשון במסך הפרויקט
+                                   // - ה-AI עונה ממנו בברירת מחדל
+                                   // - סיכום אוטומטי נוצר ממנו
+  fileURL: string,
+  fileName: string,
+  mimeType: string,
+  uploadedAt: timestamp,
+  extractedMetadata: any?,         // ראה contractMetadata ב-documents
+  notes: string?
+}
+```
+
+> **חוקיות**: רק קובץ אחד פר פרויקט יכול להיות `isPrimaryContract=true`. אכיפה בלוגיקה (לא ברמת DB).
+
+### אוספים של Phase 8 (יוסיפו אחרי MVP)
+
+#### `tenders/{tenderId}` (Phase 8)
+```typescript
+{
+  ownerId: string,
+  tenderNumber: string,            // מספר מכרז שהמזמין פרסם
+  publishedBy: string,             // ref ל-clients/ (מי פרסם)
+  publishedDate: timestamp,
+  submissionDeadline: timestamp,   // ← תזכורת בדשבורד
+  estimatedValue: number?,         // אומדן ערך המכרז
+  status: 'evaluating'             // בוחנים אם להגיש
+        | 'preparing'              // מכינים הצעה
+        | 'submitted'              // הגשנו
+        | 'won'                    // זכינו
+        | 'lost'                   // הפסדנו
+        | 'cancelled',
+  ourProposedAmount: number?,      // הסכום שהגשנו
+  currency: 'ILS' | 'USD' | 'EUR',
+  exchangeRateToILS: number,
+  amountInILS: number,
+  resultDate: timestamp?,
+  linkedProjectId: string?,        // אם זכינו - ref ל-projects/
+  documents: string[],             // refs ל-project_documents/
+  notes: string?,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+#### `purchase_orders/{poId}` (Phase 8) — long lead items
+```typescript
+{
+  ownerId: string,
+  projectId: string,
+  poNumber: string,                // מספר הזמנת רכש
+  supplierId: string,              // ref ל-suppliers/
+  description: string,             // "טורבינת גז GE 9F.05 מס' סידורי..."
+  amount: number,
+  currency: 'ILS' | 'USD' | 'EUR',
+  exchangeRateToILS: number,
+  amountInILS: number,
+  orderDate: timestamp,
+  expectedDeliveryDate: timestamp, // ← קריטי, יוצג בדשבורד
+  actualDeliveryDate: timestamp?,
+  status: 'ordered'                // הוזמן
+        | 'in_production'          // בייצור
+        | 'shipped'                // נשלח
+        | 'delivered'              // התקבל
+        | 'partial'                // אספקה חלקית
+        | 'cancelled',
+  isLongLeadItem: bool,            // ← בולט בדשבורד
+  invoiceId: string?,              // ref ל-expenses (כשהחשבונית הגיעה)
+  notes: string?,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+#### `timesheets/{timesheetId}` (Phase 8)
+ניהול שעות עבודה של צוות פנימי וקבלנים. סכמה מפורטת תוגדר ב-Phase 8.
 
 ### חוקי Firestore (אבטחה) - דוגמת בסיס
 ```javascript
@@ -508,23 +913,30 @@ service cloud.firestore {
 - כפתורים: הוסף, ערוך, שכפל, ארכוב
 
 ### מסך 3 - פירוט פרויקט (`/projects/[id]`)
-- טאבים: סקירה / הוצאות / הכנסות / קבלנים / ספקים / כתב כמויות / לוח זמנים / משימות / מסמכים
+- כותרת פרויקט עם תפקיד (קבלן ראשי / קבלן משנה) ומזמין סופי
+- טאבים: סקירה / מסמכים / חשבונות חלקיים / הוצאות / הכנסות / קבלנים / ספקים / לוח זמנים / משימות
+- **סקירה** = החוזה הראשי בראש (`isPrimaryContract=true`) + סיכום AI אוטומטי + 10 שאלות RAG מהירות
 - כל טאב מסונן אוטומטית ל-projectId הנוכחי
 
 ### מסך 4 - הוצאות והכנסות (`/finance`)
 - 2 לשוניות: הוצאות / הכנסות
 - תצוגות: רשימה / גרפים / לוח זמני (timeline)
 - העלאת Excel ידנית
+- **3 מטבעות** — הצגה בש"ח (default), toggle למטבע מקור
 
 ### מסך 5 - קבלנים וספקים (`/parties`)
 - 2 לשוניות: קבלנים / ספקים
 - כרטיסיה לכל אחד עם יתרה פתוחה
 - כפתור "צור תשלום"
+- סינון לפי `specialty` / `category` (free text)
 
-### מסך 6 - כתב כמויות (`/boq`)
-- בחירת פרויקט בראש
-- טבלה היררכית (פרק → סעיף)
-- עמודות: מתוכנן/בפועל, אחוז ביצוע, עלות
+### מסך 6 - חשבונות חלקיים (`/boq`)
+- בחירת פרויקט בראש + רשימת `boq_revisions/` (חשבונות 1, 2, 3...) מהצד
+- טבלה היררכית 4 רמות (פרק → תת-פרק → קבוצה → סעיף)
+- 15 עמודות תקן ישראלי
+- שורות `rowType='note'` מוצגות אחרת (לא חלק מהסכומים)
+- כפתור "צור חשבון חלקי חדש" → יוצר snapshot ב-`boq_revisions/`
+- (Phase מאוחר) כפתור "ייצא PDF" להגשה רשמית למזמין
 
 ### מסך 7 - לוח זמנים (`/schedule`)
 - תצוגת גאנט (ספריית JS - נחליט בסשן הבא בין `frappe-gantt`, `dhtmlx-gantt` או built-from-scratch)
@@ -539,6 +951,8 @@ service cloud.firestore {
 - ניהול חיבורים: Google Calendar, Outlook (אישי), OneDrive (אישי)
 - ייבוא ראשוני (העלאת קובץ Excel גדול)
 - ייצוא נתונים (Backup ל-Drive)
+- **מטבע ברירת מחדל לתצוגה** (ש"ח / USD / EUR)
+- צפייה בשערי חליפין נוכחיים מ-`exchange_rates/`
 
 ---
 
@@ -593,6 +1007,24 @@ service cloud.firestore {
 - שמירה ב-Firebase Storage תחת `/backups/`
 - שמירה גם ב-Google Drive האישי (דרך Google Drive API)
 
+### Function 8: dailyExchangeRateSync (חדש בגרסה 3.4)
+**טריגר**: Schedule (כל בוקר ב-07:00)
+**פעולה**:
+- שליפת שערי חליפין מ-API חינמי (בנק ישראל / ECB / exchangerate.host)
+- שמירת שערים לאוסף `exchange_rates/{date}` עם USD→ILS ו-EUR→ILS
+- שערים אלה ישמשו ל-snapshot של כל רשומה חדשה (`exchangeRateToILS`)
+
+**פורמט**:
+```typescript
+exchange_rates/2026-05-15 {
+  date: '2026-05-15',
+  USD_to_ILS: 3.65,
+  EUR_to_ILS: 3.92,
+  source: 'BankOfIsrael' | 'ECB' | 'exchangerate.host',
+  fetchedAt: timestamp
+}
+```
+
 ---
 
 ## 9. אינטגרציה עם Excel
@@ -608,22 +1040,26 @@ service cloud.firestore {
 לכל סוג דוח תהיה תבנית. הקובץ חייב להיות **טבלת Excel מוגדרת** (Ctrl+T):
 
 **expenses.xlsx**
-| date | category | description | amount | vat | invoice_number | invoice_date | supplier_name | payment_status |
-|---|---|---|---|---|---|---|---|---|
+| date | category | description | amount | vat | currency | invoice_number | invoice_date | supplier_name | payment_status |
+|---|---|---|---|---|---|---|---|---|---|
 
 **income.xlsx**
-| date | client | description | amount | vat | invoice_number | status |
-|---|---|---|---|---|---|---|
+| date | client | description | amount | vat | currency | invoice_number | status |
+|---|---|---|---|---|---|---|---|
 
 **payments.xlsx**
-| project_name | payee_type | payee_name | invoice_number | amount | payment_method | payment_date |
-|---|---|---|---|---|---|---|
+| project_name | payee_type | payee_name | invoice_number | amount | currency | payment_method | payment_date |
+|---|---|---|---|---|---|---|---|
 
-**boq.xlsx**
-| section | item_number | description | unit | quantity | unit_price |
-|---|---|---|---|---|---|
+**boq.xlsx** — תקן ישראלי 15 עמודות (עודכן 3.4)
+| מספר | תיאור | יחידת מידה | מחיר יחידה | כמות חוזה | כמות קודמת | % תשלום קודם | כמות נמדדת | כמות מצטברת לתשלום | אחוז לתשלום | סכום מצטבר | % מצטבר מחוזה | סכום לחשבון זה | % חשבון זה מחוזה | % חשבון זה מחשבון קודם |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
-תבניות פעמיות יופקו ב-Phase 1.
+> **מספר**: "02.38.01.040" - היררכיית קוד 4 רמות
+> **יחידת מידה**: free text - "מטר", "מ"ק", "יח'", "קומפ'", "מ"א", "טון", "ש"ע", "הערה"
+> **סוג שורה "הערה"**: תנאי חוזה - לא סעיף תשלום. מזוהה אוטומטית או דרך עמודה נוספת `row_type`.
+
+תבניות יופקו ב-Phase 3 על בסיס הקבצים האמיתיים שאביחי יעלה.
 
 ### סנכרון אוטומטי מ-OneDrive אישי (לעתיד)
 - חיבור OAuth עם חשבון Microsoft אישי
@@ -733,15 +1169,17 @@ import { Document, Page } from "react-pdf";
 
 | סוג שאלה | דוגמה |
 |---------|------|
-| חיפוש בחשבוניות/תשלומים | "תמצא חשבוניות ממנדלסון בפרויקט 2253" |
-| תוכן חוזים (RAG) | "מתי תאריך מסירת השלד?" / "מי חתום על חוזה האינסטלציה?" |
-| צבירה / אגרגציה | "כמה הוצאתי החודש על חשמל בכל הפרויקטים?" |
+| חיפוש בחשבוניות/תשלומים | "תמצא חשבוניות מ-מ.צ. ריתוכים בפרויקט 2253" |
+| תוכן חוזים (RAG) | "מתי תאריך מסירת הצנרת?" / "מי חתום על חוזה הטורבינה?" |
+| צבירה / אגרגציה | "כמה הוצאתי החודש על צנרת בכל הפרויקטים?" |
 | משימות / לוז | "מה דחוף השבוע?" / "מתי הפגישה הבאה עם הקבלן?" |
-| יתרות לספקים | "מה היתרה לאלי שלד?" / "מי הקבלן עם החוב הגדול?" |
-| השוואות חוצות-פרויקטים | "השווה תקציב חשמל בין 2253 ל-2288" |
+| יתרות לספקים | "מה היתרה ל-י.ר.ן?" / "מי הקבלן עם החוב הגדול?" |
+| השוואות חוצות-פרויקטים | "השווה תקציב צנרת בין 2253 ל-2288" |
 | מסמכים | "כל המסמכים שהועלו השבוע" |
 | סיכומים | "תסכם לי מה קרה השבוע" |
-| פעולות (עתידי) | "תוסיף משימה: לתאם עם החשמלאי עד מחר" |
+| פעולות (עתידי) | "תוסיף משימה: לתאם בקרת ריתוכים עד מחר" |
+| Long lead items | "אילו הזמנות רכש בעיכוב מעבר ל-30 יום?" |
+| חוזים — RAG ספציפי | "מה גובה הערבות הבנקאית?" / "מה תקופת הבדק?" |
 
 ### ארכיטקטורה - Tool-Calling Agent
 
@@ -761,7 +1199,7 @@ import { Document, Page } from "react-pdf";
 │  LLM מחליט: באיזה כלי להשתמש ועם איזה פרמטרים                │
 │  לדוגמה: searchTransactions({                                │
 │    projectId: "2253",                                       │
-│    supplierName: "מנדלסון"                                   │
+│    supplierName: "מ.צ. ריתוכים"                              │
 │  })                                                          │
 └─────────────────────┬───────────────────────────────────────┘
                       ▼
@@ -879,7 +1317,7 @@ markTaskDone({ taskId }): void
 
 2. **בעמוד פר-פרויקט** - צ'אט עם הקשר אוטומטי לפרויקט הזה
    - השאלה מועברת עם `projectId` מובנה - הסוכן יודע באיזה פרויקט מדובר
-   - "מה המצב עם החשמלאי?" - יודע לאיזה פרויקט הוא מתייחס
+   - "מה המצב עם הקבלן?" - יודע לאיזה פרויקט הוא מתייחס
 
 **UI:**
 - כפתור צ'אט קבוע בפינה ימנית-תחתונה (Floating Action Button)
@@ -888,6 +1326,23 @@ markTaskDone({ taskId }): void
   - שדה שאלה + 4-6 דוגמאות מוצעות
   - תשובות עם ציטוטים שניתנים ללחיצה (פותחות את המסמך/הטרנזקציה)
   - כפתור "התחל שיחה חדשה"
+
+### שאלות RAG מומלצות לכפתורים בצ'אט החוזה הראשי (3.4)
+
+כשהמשתמש פותח את עמוד הפרויקט, הסוכן יזהה את החוזה הראשי (`isPrimaryContract=true`) ויציע 10 שאלות מהירות:
+
+1. "מתי תאריך המסירה הסופי?"
+2. "מה תקופת הבדק?"
+3. "מה גובה הערבות הבנקאית הנדרשת?"
+4. "האם החוזה צמוד למדד? לאיזה?"
+5. "מה הסנקציות על פיגור?"
+6. "מי המפקח מטעם המזמין?"
+7. "מה אחוז העכבון המותר?"
+8. "אילו נספחים מצורפים?"
+9. "מי האחראי על בטיחות?"
+10. "מה תנאי התשלום (שוטף + X)?"
+
+המטרה: בלחיצה אחת לקבל את התשובות הכי שאלות שמנהל פרויקט מחפש בחוזה.
 
 ### בחירת ספקים (להחלטה לפני בנייה)
 
@@ -1087,7 +1542,7 @@ Cloud Function שולחת התראה כל בוקר אם לא בוצע ייבוא
 ### Phase 3 - העלאת Excel
 - [ ] Cloud Function `parseExcelOnUpload`
 - [ ] UI להעלאה ולחיווי התקדמות
-- [ ] תבניות Excel לדוגמה (פיתוח על בסיס `build_budget.py` הקיים)
+- [ ] תבניות Excel לדוגמה לתחום תשתיות אנרגיה (build_budget.py הישן בריפו לא רלוונטי — היה לבנייה פרטית)
 
 ### Phase 4 - כתב כמויות + לוח זמנים + משימות
 - [ ] מסך BoQ עם תצוגה היררכית
@@ -1112,10 +1567,27 @@ Cloud Function שולחת התראה כל בוקר אם לא בוצע ייבוא
 - [ ] Mobile app ילידית (React Native) - רק אם PWA לא מספיק
 
 ### Phase 8 - מודולים נוספים לתחום (אחרי שהבסיס יציב)
-מודולים שזוהו כחיוניים לעבודה של מנהל פרויקטים בתעשייה הכבדה (ראה סעיף 1.5):
-- [ ] **מכרזים והצעות מחיר** - שלב מקדים לפרויקט: מעקב אחרי מכרזים, ניהול הצעות מחיר שהוגשו, סטטוס זכייה/הפסד. אוסף חדש: `tenders/`.
-- [ ] **הזמנות רכש (Purchase Orders)** - מעקב אחרי הזמנות גדולות של חומרים/ציוד/כלי עבודה לפני שהחשבונית מתקבלת. אוסף חדש: `purchase_orders/`. מתחבר ל-`expenses` כאשר החשבונית מתקבלת.
-- [ ] **ניהול כוח אדם ושעות עבודה** - מעקב אחרי שעות צוות פנימי וקבלנים. אוסף חדש: `timesheets/`.
+מודולים שזוהו כחיוניים לעבודה של מנהל פרויקטים בתשתיות אנרגיה (ראה סעיף 1.5):
+
+- [ ] **מכרזים והצעות מחיר** — שלב מקדים לפרויקט (שלבים 1-4 במחזור החיים).
+  - אוסף `tenders/` — סכמה מפורטת בסעיף 6.
+  - מעקב אחרי מכרזים שלסיכו שוקלת / מכינה / הגישה.
+  - סטטוס: evaluating / preparing / submitted / won / lost / cancelled.
+  - תזכורת אוטומטית לפני `submissionDeadline`.
+  - אם זוכים: יצירת אוטומטית של `projects/` עם `tenderId` מקושר.
+
+- [ ] **הזמנות רכש (Purchase Orders) + מעקב long lead items** — קריטי לתחום.
+  - אוסף `purchase_orders/` — סכמה מפורטת בסעיף 6.
+  - דגל `isLongLeadItem` יוצר כרטיס בולט בדשבורד הראשי.
+  - תזכורות לפני `expectedDeliveryDate`.
+  - חיווי על עיכובים (delta בין expected ל-actual).
+  - כשהחשבונית מתקבלת — קישור ל-`expenses/{expenseId}` דרך `linkedPurchaseOrderId`.
+
+- [ ] **ניהול כוח אדם ושעות עבודה** — אוסף `timesheets/`.
+  - מעקב אחרי שעות צוות פנימי וקבלני משנה.
+  - אינטגרציה עם `tasks/` ו-`schedule_items/`.
+
+- [ ] **הפקת PDF של חשבון חלקי** — מ-`boq_revisions/` להגשה רשמית למזמין.
 
 ---
 
@@ -1145,23 +1617,48 @@ Cloud Function שולחת התראה כל בוקר אם לא בוצע ייבוא
 
 ## 14. שאלות פתוחות
 
-### נענו ✅
-3. **שמות פרויקטים** — שמות/מספרים חופשיים, פורמט דמו `2253` / `2288` / `2306`.
-5. **גישה משותפת בעתיד** — לא בקרוב. נשאיר את שדה `ownerId` במודל כהכנה אבל לא בונים UI לזה ב-MVP.
+### נענו ✅ (במצטבר עד גרסה 3.4)
+1. **שם הפרויקט** ← **PM ATUAN**
+2. **דומיין** ← **Firebase Hosting חינמי**, יעד: `pm-atuan.web.app` (זמני: `pm-dashboard-avichai.web.app`)
+3. **שמות פרויקטים** ← שמות/מספרים חופשיים, פורמט דמו `2253` / `2288` / `2306`
+4. **מטבעות** ← **3 מטבעות**: ש"ח (default), דולר, יורו. שדות `currency`, `exchangeRateToILS`, `amountInILS`.
+5. **גישה משותפת בעתיד** ← לא בקרוב. `ownerId` נשמר במודל כהכנה.
+6. **דוגמת Excel** ← בסבב הבא — קבצים שיתקבלו: מעקב הוצאות פר פרויקט, תזרים מזומנים / רווח-הפסד פר פרויקט.
+7. **מחזור חיים של פרויקט** ← 13 שלבים (סעיף 1.6).
+8. **המעורבים בפרויקט טיפוסי** ← `clients/` נפרד עם `clientType` (end_client / main_contractor / both). תמיכה בשתי תצורות תפקיד דרך `ourRole`.
+9. **גודל ומשך פרויקט טיפוסי** ← תיעוד מורחב בסבב הבא, אך המבנה גמיש לכל גודל.
+10. **פעולות יומיומיות** ← מוקד הליבה: ניהול קבצים + AI חוזים + דשבורד פיננסי + תזכורות (סעיף 3).
+11. **מבנה כתב כמויות** ← 15 עמודות תקן ישראלי, היררכיה 4 רמות, snapshot ב-`boq_revisions/`.
+12. **דוגמת חוזה** ← לסבב הבא; שדה `contractMetadata` ב-`documents/` מוכן לחילוץ.
 
-### עדיין פתוחות (יושלמו בסבבים הבאים)
-1. **שם הפרויקט** באפליקציה (לדוגמה "Aviproject", "Atuan PM", "מנהל הפרויקטים")?
-2. **דומיין** - תת-דומיין חינמי של Firebase Hosting (`your-project.web.app`), או דומיין אישי בעתיד?
-4. **מטבעות** - רק ש"ח, או צריך גם דולר/יורו (לקבלנים מחו"ל)?
-6. **דוגמת Excel** - העלאת קובץ אקסל אחד שמשתמשים בו היום (אפילו מטושטש).
+### החלטות שנפלו ב-3.4 (סיכום ל-trace)
+1. שם האפליקציה: **PM ATUAN**
+2. דומיין: **Firebase Hosting חינמי** (`pm-atuan.web.app`)
+3. מטבעות: **ש"ח + דולר + יורו**
+4. מוקד: ניהול קבצים + AI על חוזים + דשבורד פיננסי + תזכורות
+5. הסכמה תומכת בשתי תצורות (לסיכו=ראשי / משנה) דרך `ourRole`
+6. כתב כמויות = חשבון חלקי. snapshot ב-`boq_revisions/`
+7. היררכיה 4 רמות בקוד הסעיף (`XX.YY.ZZ.NNN`)
+8. סוג שורה "הערה" קיים ואינו חייב בתשלום
+9. `category` / `specialty` = **free text**, לא enum
+10. שלב "המתנה לאספקה" עומד בפני עצמו - long lead items בולטים בדשבורד
+11. אוסף `clients/` נפרד עם `clientType`
+12. מסמכים: היברידי - חוזים + חשבוניות באפליקציה, תכניות ב-Drive
+13. מכרז + הצעה + חוזה באוסף אחד (`project_documents/`) עם `type`
+14. הקובץ עם `isPrimaryContract=true` הוא ה"חוזה הראשי" (סיכום אוטומטי, ברירת מחדל ל-AI)
+15. ניהול גרסאות תכניות: ידנית ע"י המשתמש, האפליקציה רק קישור
+16. שיתוף עם צוות: **לא ל-MVP**. `ownerId` נשמר כהכנה
+17. MVP: ניהול פרויקטים + מסמכים + AI חוזים + דשבורד KPI
 
-### שאלות חדשות לסבב הבא של איסוף דרישות (מבנה פרויקט אמיתי)
-7. **מחזור חיים של פרויקט אצלך** — מה השלבים בפועל? (מכרז → הצעה → זכייה → תכנון → רכש → ביצוע → מסירה → תחזוקה? סדר אחר?)
-8. **המעורבים בפרויקט טיפוסי** — מזמין יחיד או מספר גופים? קבלן ראשי + קבלני משנה? צוות פנימי / חיצוני? פיקוח / רגולציה?
-9. **גודל ומשך פרויקט טיפוסי** — תקציב נע בין... ש"ח. משך נע בין... חודשים. כמה פרויקטים מקבילים בממוצע.
-10. **3-4 פעולות שתופסות הכי הרבה זמן ביומיום** מתוך הרשימה בסעיף 1.5.
-11. **מבנה כתב כמויות** — אילו עמודות יש בכתב כמויות אופייני שלך? אילו פרקים/קטגוריות?
-12. **דוגמת חוזה** — האם אפשר להעלות PDF של חוזה (מטושטש) לבחינת מבנה?
+### קבצים שיגיעו בסבב הבא לעדכון נוסף
+- קובץ Excel של מעקב הוצאות פר פרויקט (לאישור מבנה `expenses.xlsx`)
+- קובץ Excel של תזרים מזומנים / רווח-הפסד פר פרויקט (לאישור מבנה דשבורד)
+- PDF של חוזה מטושטש (לבחינת `contractMetadata` ולחידוד שאלות RAG)
+
+### שאלות מינוריות שעוד פתוחות
+1. **יומן פרויקט (notes יומי)** — מודול בסיסי או רק שדה במשימות? — להחליט אחרי שנראה איך מתנהל יומיומית.
+2. **הפקת PDF של חשבון חלקי מ-Firestore** להגשה רשמית למזמין — Phase מאוחר אחרי שהבסיס יציב.
+3. **גרסאות תכניות AutoCAD** — נשאר ידני? או UI מובנה לניהול גרסאות? — להחליט אחרי שנראה כמה גרסאות בפועל.
 
 ---
 
@@ -1170,8 +1667,15 @@ Cloud Function שולחת התראה כל בוקר אם לא בוצע ייבוא
 | קובץ | תיאור | סטטוס |
 |---|---|---|
 | `PLAN.md` | המסמך הזה - הספק הראשי | קיים, מתעדכן |
-| `build_budget.py` | סקריפט Python ליצירת תבנית תקציב | קיים (מסשן קודם) |
-| `תקציב_בניית_בית_פרטי.xlsx` | קובץ תקציב לדוגמה | קיים |
+| `build_budget.py` | סקריפט Python ליצירת תבנית תקציב | קיים (legacy מסשן קודם — היה לבנייה פרטית, לא רלוונטי לדומיין הנוכחי) |
+| `תקציב_בניית_בית_פרטי.xlsx` | קובץ תקציב לדוגמה | קיים (legacy — לא רלוונטי) |
+| `app/` | קוד Next.js + Firebase integration | קיים, באוויר ב-Firebase Hosting |
+| `firebase.json` | תצורת Hosting + Firestore | קיים |
+| `firestore.rules` | חוקי אבטחה (ownerId-based) | קיים, לא נדחף עדיין ל-Firebase (חסרה הרשאה ל-SA) |
+| `firestore.indexes.json` | אינדקסים | קיים, ריק |
+| `.firebaserc` | project = pm-dashboard-avichai | קיים |
+| `app/.env.local.example` | תבנית של 6 משתני סביבת Firebase | קיים |
+| `app/.env.local` | ערכים אמיתיים | קיים (gitignored) |
 
 קבצים שיתווספו בסשנים הבאים:
 - `app/` - קוד Next.js
