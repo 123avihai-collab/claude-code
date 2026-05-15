@@ -584,74 +584,184 @@ service cloud.firestore {
 
 ---
 
-## 9.5 ניהול חוזים + צ'אט AI לפר-פרויקט (RAG)
+## 9.5 סוכן AI מלא + ניהול חוזים (Agent + RAG)
 
-> כל פרויקט מקבל תיקייה ייעודית למסמכי חוזים, וצ'אט AI שיודע לענות על שאלות מבוססות תוכן החוזים של אותו פרויקט בלבד.
+> סוכן AI שיודע לפעול על **כל** הנתונים באפליקציה: חשבוניות, חוזים, משימות, קבלנים, תזרים, מלאי. הסוכן בוחר באיזה כלי להשתמש לפי השאלה - דומה לאיך ש-Claude Code עובד.
 
-### דרישה משתמש
-- כל פרויקט יציג tab "חוזים" עם רשימת מסמכים (PDF/Word)
-- צ'אט בעמוד הפרויקט. שואלים שאלות כמו:
-  - "כמה התשלום השלישי לקבלן השלד?"
-  - "מתי תאריך מסירת הגמרים?"
-  - "האם יש סעיף קנס על איחור?"
-  - "מי חתום על חוזה החשמל ומה תאריך החתימה?"
-- התשובה מצביעה על המסמך והעמוד שממנו נשלפה (Citations)
-- הצ'אט מוגבל אך ורק לחוזים של אותו פרויקט - לא דולף מידע בין פרויקטים
+### דרישת משתמש
 
-### ארכיטקטורת RAG (Retrieval Augmented Generation)
+המשתמש שואל שאלות חופשיות בעברית - הסוכן אמור לדעת איך לענות. דוגמאות:
+
+| סוג שאלה | דוגמה |
+|---------|------|
+| חיפוש בחשבוניות/תשלומים | "תמצא חשבוניות ממנדלסון בפרויקט 2253" |
+| תוכן חוזים (RAG) | "מתי תאריך מסירת השלד?" / "מי חתום על חוזה האינסטלציה?" |
+| צבירה / אגרגציה | "כמה הוצאתי החודש על חשמל בכל הפרויקטים?" |
+| משימות / לוז | "מה דחוף השבוע?" / "מתי הפגישה הבאה עם הקבלן?" |
+| יתרות לספקים | "מה היתרה לאלי שלד?" / "מי הקבלן עם החוב הגדול?" |
+| השוואות חוצות-פרויקטים | "השווה תקציב חשמל בין 2253 ל-2288" |
+| מסמכים | "כל המסמכים שהועלו השבוע" |
+| סיכומים | "תסכם לי מה קרה השבוע" |
+| פעולות (עתידי) | "תוסיף משימה: לתאם עם החשמלאי עד מחר" |
+
+### ארכיטקטורה - Tool-Calling Agent
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  1. INGESTION - העלאת חוזה                                    │
-│  אתה גורר PDF לתיקיית "חוזים" של פרויקט 2253                  │
-│  (מתוך האפליקציה, או דרך Drive/OneDrive מסונכרן)              │
-└────────────────────┬─────────────────────────────────────────┘
-                     ▼
-┌──────────────────────────────────────────────────────────────┐
-│  2. PROCESSING - Cloud Function אוטומטית                      │
-│  ─ חילוץ טקסט (pdf-parse לטקסט, Vision API אם סרוק)          │
-│  ─ Chunking - חיתוך ל-קטעים של ~500 מילים עם חפיפה            │
-│  ─ Embeddings - יצירת וקטור 1536-מימדי לכל chunk              │
-│  ─ אחסון: Firestore + Vector DB עם tag projectId="2253"      │
-└────────────────────┬─────────────────────────────────────────┘
-                     ▼
-┌──────────────────────────────────────────────────────────────┐
-│  3. QUERY - אתה שואל בצ'אט בעמוד פרויקט 2253                  │
-│  "מתי הקבלן צריך לסיים את השלד?"                              │
-└────────────────────┬─────────────────────────────────────────┘
-                     ▼
-┌──────────────────────────────────────────────────────────────┐
-│  4. RETRIEVAL                                                 │
-│  ─ embedding לשאלה                                           │
-│  ─ vector similarity search - מסונן רק ל-projectId="2253"    │
-│  ─ TOP-5 chunks הכי רלוונטיים                                │
-└────────────────────┬─────────────────────────────────────────┘
-                     ▼
-┌──────────────────────────────────────────────────────────────┐
-│  5. GENERATION - LLM (Claude/Gemini/GPT)                     │
-│  ─ פרומפט מובנה: "ענה בעברית רק על-פי הקטעים. אם אין מידע    │
-│     מספיק - אמור 'לא מצאתי בחוזים'. צטט את המקור."           │
-│  ─ הצגת התשובה + רשימת מקורות (מסמך + עמוד)                  │
-└──────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  משתמש שואל בצ'אט (בעמוד פרויקט או בדשבורד הראשי)            │
+└─────────────────────┬───────────────────────────────────────┘
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  LLM (Claude / Gemini / GPT) עם רשימת כלים זמינים            │
+│  - searchTransactions, searchContractors, searchTasks...    │
+│  - searchDocumentContent (RAG)                              │
+│  - aggregate, compare, summarize                            │
+└─────────────────────┬───────────────────────────────────────┘
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  LLM מחליט: באיזה כלי להשתמש ועם איזה פרמטרים                │
+│  לדוגמה: searchTransactions({                                │
+│    projectId: "2253",                                       │
+│    supplierName: "מנדלסון"                                   │
+│  })                                                          │
+└─────────────────────┬───────────────────────────────────────┘
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Cloud Function מריץ את הכלי בפועל                            │
+│  ─ שאילתת Firestore עם סינון על ownerId                      │
+│  ─ אם RAG: vector search ב-document_chunks                  │
+│  ─ אם אגרגציה: aggregation pipeline                         │
+└─────────────────────┬───────────────────────────────────────┘
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│  התוצאה חוזרת ל-LLM, שמרכיב תשובה בעברית                     │
+│  + ציטוטים: לאן ללחוץ לראות את הנתון/מסמך המלא               │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### אבטחה - הפרדה בין פרויקטים
-- כל chunk ב-Vector DB מתויג ב-`projectId`
-- שאילתה תמיד מסננת לפי `projectId` של הפרויקט הפעיל
-- Firestore Rules: רק `ownerId == request.auth.uid` רואה גם את המסמכים וגם את ה-chunks
-- הצ'אט לא יכול "לדלוף" מידע בין פרויקטים גם אם הניסוח של השאלה מבולבל
+### רשימת הכלים (Tools) שהסוכן יקבל
+
+#### כלים לחיפוש בנתונים מובנים (Firestore)
+
+```typescript
+searchTransactions({
+  projectId?: string,           // optional - אם לא צוין, חוצה פרויקטים
+  supplierName?: string,        // חיפוש חלקי בשם הספק/קבלן
+  category?: string,            // "materials" | "labor" | ...
+  dateFrom?: string,
+  dateTo?: string,
+  amountMin?: number,
+  amountMax?: number,
+  paymentStatus?: string,
+}): Transaction[]
+
+searchContractors({
+  projectId?: string,
+  name?: string,
+  specialty?: string,
+  hasOpenBalance?: boolean,
+}): Contractor[]
+
+searchTasks({
+  projectId?: string,
+  status?: "pending" | "in-progress" | "done",
+  urgency?: "today" | "this-week" | "later",
+  dueBefore?: string,
+}): Task[]
+
+searchInventory({
+  projectId?: string,
+  itemName?: string,
+  belowThreshold?: boolean,    // רק פריטים שחסרים
+}): InventoryItem[]
+
+searchDocuments({
+  projectId?: string,
+  category?: "contract" | "invoice" | "permit" | "other",
+  uploadedAfter?: string,
+  fileNameContains?: string,
+}): Document[]
+```
+
+#### כלי RAG לחיפוש בתוכן מסמכים
+
+```typescript
+searchDocumentContent({
+  projectId: string,            // חובה - מבודד לפרויקט
+  question: string,             // השאלה בעברית
+  documentId?: string,          // אם רוצים בתוך מסמך ספציפי
+  topK?: number,                // כמה קטעים לקבל (default: 5)
+}): { chunks: Chunk[], citations: Citation[] }
+```
+
+#### כלי אגרגציה
+
+```typescript
+aggregate({
+  collection: "expenses" | "income" | "transactions" | "payments",
+  projectId?: string,           // אם לא צוין, על-פני כל הפרויקטים
+  groupBy?: "category" | "supplier" | "month" | "project",
+  dateFrom?: string,
+  dateTo?: string,
+  metric: "sum" | "count" | "avg",
+}): { groups: Array<{ key: string, value: number }> }
+
+compareProjects({
+  projectIds: string[],         // 2-5 פרויקטים להשוואה
+  metric: "budget" | "spent" | "progress" | "balance",
+  groupBy?: "category" | "month",
+}): ComparisonResult
+```
+
+#### כלים עתידיים (פעולות כתיבה, פאזה 6)
+
+```typescript
+createTask({ projectId, title, dueDate, urgency }): Task
+createExpense({ projectId, amount, category, supplierName, date }): Expense
+markTaskDone({ taskId }): void
+```
+
+> **חשוב**: כלי כתיבה יבקשו אישור מהמשתמש לפני ביצוע - הסוכן לא יוצר/משנה דברים אוטומטית.
+
+### אבטחה
+
+- כל כלי מוסיף `ownerId == request.auth.uid` כסינון חובה לפני שאילתה
+- Firestore Rules: גם אם הסוכן יבקש מידע של משתמש אחר, יחזור empty
+- כלי RAG בודק שה-projectId שייך למשתמש המבקש לפני ביצוע
+- היסטוריית הצ'אט שמורה ב-`chat_messages` עם `ownerId` ו-`projectId` (אם רלוונטי)
+
+### איפה הצ'אט יישב ב-UI
+
+**2 מקומות:**
+
+1. **בדשבורד הראשי** - צ'אט גלובלי, לשאלות חוצות פרויקטים
+   - "השווה את 2253 ל-2288"
+   - "כמה הוצאתי החודש?"
+
+2. **בעמוד פר-פרויקט** - צ'אט עם הקשר אוטומטי לפרויקט הזה
+   - השאלה מועברת עם `projectId` מובנה - הסוכן יודע באיזה פרויקט מדובר
+   - "מה המצב עם החשמלאי?" - יודע לאיזה פרויקט הוא מתייחס
+
+**UI:**
+- כפתור צ'אט קבוע בפינה ימנית-תחתונה (Floating Action Button)
+- פותח Drawer צד עם:
+  - היסטוריית שיחה
+  - שדה שאלה + 4-6 דוגמאות מוצעות
+  - תשובות עם ציטוטים שניתנים ללחיצה (פותחות את המסמך/הטרנזקציה)
+  - כפתור "התחל שיחה חדשה"
 
 ### בחירת ספקים (להחלטה לפני בנייה)
 
 | רכיב | אופציה A (חינמית) | אופציה B (איכותית) | אופציה C (מאוזנת) |
 |------|-------------------|--------------------|-------------------|
+| **LLM עם Tool Calling** | Gemini 2.0 Flash (חינמי במכסה) | Claude Sonnet 4 / Haiku | GPT-4o-mini |
 | **Embeddings** | Voyage AI (200M tokens free) | OpenAI text-embedding-3-small | Cohere Embed Multilingual |
 | **Vector DB** | Pinecone Free (100K vectors) | Qdrant Cloud Free | Firestore Vector Search (beta) |
-| **LLM** | Gemini 2.0 Flash (חינמי במכסה) | Claude Haiku (~$0.25/1M tokens) | GPT-4o-mini (~$0.15/1M tokens) |
-| **עלות חודשית בשימוש אישי** | **0 ש"ח** | ~$3-5 | ~$2-3 |
+| **תמיכה ב-Tool Calling** | מצוין | מצוין | מצוין |
 | **איכות בעברית** | טובה | מצוינת | טובה מאוד |
+| **עלות חודשית בשימוש אישי** | **0 ש"ח** | ~$5-10 | ~$3-5 |
 
-**המלצה ראשונית**: התחלה עם **אופציה A** (חינמית, גם זה עובד טוב לעברית) - אם האיכות לא מספקת, מעבר ל-C או B במחיר זניח. בכל מקרה - לא lock-in, פשוט להחליף ספק LLM.
+**המלצה ראשונית**: התחלה עם **אופציה A** (Gemini Flash 2.0 - חינמי, מהיר, תומך מצוין ב-tool calling).
 
 ### מודל נתונים (תוספת ל-Firestore)
 
@@ -660,40 +770,53 @@ service cloud.firestore {
 documents/{documentId} {
   ownerId: string,
   projectId: string,
-  fileName: string,          // "חוזה_קבלן_שלד.pdf"
+  fileName: string,
   category: "contract" | "invoice" | "permit" | "other",
-  storageURL: string,        // Firebase Storage path
-  fileSize: number,          // bytes
+  storageURL: string,
+  fileSize: number,
   uploadedAt: timestamp,
   processingStatus: "pending" | "extracting" | "embedding" | "ready" | "failed",
   pagesCount: number,
   totalChunks: number,
-  totalCost: number,         // לעקוב אחרי עלות ה-embedding
+  extractedSupplierName?: string,    // נשלף אוטומטית מטקסט החשבונית
+  extractedTotalAmount?: number,
+  extractedInvoiceNumber?: string,
+  extractedDate?: string,
 }
 
 // אוסף חדש: document_chunks - קטעי טקסט עם embeddings
 document_chunks/{chunkId} {
   ownerId: string,
-  projectId: string,         // לסינון מהיר!
+  projectId: string,
   documentId: string,
-  documentName: string,      // duplicate לתצוגת מקור
+  documentName: string,
   pageNumber: number,
-  chunkIndex: number,        // סדר בתוך המסמך
-  text: string,              // הטקסט עצמו
-  embedding: number[],       // vector של 1536 מספרים (או 1024)
+  chunkIndex: number,
+  text: string,
+  embedding: number[],          // vector 1536 או 1024
 }
 
-// אוסף חדש: chat_messages - היסטוריית צ'אטים
+// אוסף חדש: chat_sessions - שיחות צ'אט
+chat_sessions/{sessionId} {
+  ownerId: string,
+  projectId?: string,            // null = גלובלי מהדשבורד
+  title: string,                 // מתעדכן אוטומטית מהשאלה הראשונה
+  lastMessageAt: timestamp,
+  createdAt: timestamp,
+}
+
+// אוסף חדש: chat_messages - הודעות בצ'אט
 chat_messages/{messageId} {
   ownerId: string,
-  projectId: string,         // צ'אט נפרד לכל פרויקט
-  role: "user" | "assistant",
+  sessionId: string,
+  role: "user" | "assistant" | "tool",
   content: string,
-  citations: Array<{
-    documentId: string,
-    documentName: string,
-    pageNumber: number,
-    snippet: string,
+  toolCalls?: Array<{ name: string, input: object, output: object }>,
+  citations?: Array<{
+    type: "document" | "transaction" | "task" | "contractor",
+    refId: string,
+    label: string,
+    snippet?: string,
   }>,
   createdAt: timestamp,
 }
@@ -703,42 +826,52 @@ chat_messages/{messageId} {
 
 ```typescript
 // Function 8: processUploadedDocument
-// Triggered: כשמועלה מסמך חדש ל-Storage תחת documents/{userId}/{projectId}/
-// פעולה: חילוץ טקסט → chunking → embeddings → שמירה
-async function processUploadedDocument(file: StorageFile) { ... }
+// Triggered: על העלאת קובץ ל-Storage
+async function processUploadedDocument(file: StorageFile) {
+  // 1. extract text
+  // 2. chunk
+  // 3. embed
+  // 4. save to Firestore + Vector DB
+  // 5. if invoice - extract structured data (supplier, amount, date)
+}
 
-// Function 9: ragChatQuery
-// Triggered: HTTP callable מה-frontend כשהמשתמש שואל שאלה
-// פעולה: embedding לשאלה → vector search → LLM prompt → תשובה + citations
-async function ragChatQuery(req: { projectId, question, history }) { ... }
+// Function 9: agentChat (HTTPS Callable)
+// Triggered: כשהמשתמש שולח שאלה
+async function agentChat(req: {
+  sessionId: string,
+  projectId?: string,
+  message: string,
+}) {
+  // 1. load history
+  // 2. send to LLM with available tools
+  // 3. LLM may decide to call tools
+  // 4. execute tools (with ownerId filter!)
+  // 5. send tool results back to LLM
+  // 6. final answer + save to chat_messages
+}
+
+// כלי 1: searchTransactions (לא Cloud Function בפני עצמו - חלק מ-agentChat)
+// כלי 2-N: ...
 ```
 
-### עלויות חזויות (אופציה A - חינמית)
+### עלויות חזויות (אופציה A - Gemini Flash 2.0 חינמי)
 
 | תרחיש | חישוב | עלות |
 |-------|------|------|
-| 50 חוזים, 30 עמ' כל אחד = 1500 עמ' | ~750K tokens × Voyage free | ₪0 |
-| 100 שאלות בחודש | ~30K input tokens × Gemini free quota | ₪0 |
+| 50 חוזים, 30 עמ׳ כל אחד = 1500 עמ׳ | ~750K tokens × Voyage free tier | ₪0 |
+| 200 שאלות בחודש × 3 tool calls בממוצע | ~600 קריאות ל-Gemini Flash << 1500/day free | ₪0 |
 | אחסון Vector DB | ~15K vectors << 100K free | ₪0 |
 | **סה"כ לחודש** | | **₪0** |
 
-הגבלות המסלול החינמי לא יחרגו עד שתהיה לך כמות פרויקטים פי 10 מהיום.
+המכסות החינמיות של Gemini Flash 2.0 הן 1500 בקשות ביום ו-1M tokens בחודש. אם תחרוג - העלות עדיין זניחה (~₪10/חודש בשימוש כבד).
 
-### UI - איפה החוזים והצ'אט יישבו
+### שלבי פיתוח (פאזה 5)
 
-**בעמוד פרויקט פר-פרויקטי, יתווספו 2 רכיבים:**
-1. **Tab "חוזים"** (לצד "סקירה", "פיננסי" וכו') - גריד של PDFs עם תאריך, גודל, וסטטוס עיבוד
-2. **כפתור צ'אט קבוע** (פינה ימנית למטה) - פותח Drawer עם:
-   - היסטוריית שיחות עם הפרויקט הזה
-   - שדה שאלה
-   - תשובה + רשימת ציטוטים (לחיצה פותחת את המסמך באותו עמוד)
-
-### שלבי פיתוח
-
-זה לא נכלל ב-MVP הראשון. הוספה בפאזה 5:
-1. **Phase 5A**: העלאה ואחסון מסמכים (Storage + UI להעלאה) - שבוע
-2. **Phase 5B**: pipeline עיבוד (Cloud Function + chunking + embeddings) - שבוע
-3. **Phase 5C**: צ'אט UI + RAG query - שבוע
+1. **Phase 5A**: העלאה ואחסון מסמכים (Storage + UI) - שבוע
+2. **Phase 5B**: pipeline עיבוד (חילוץ טקסט + embeddings + Vector DB) - שבוע
+3. **Phase 5C**: כלי Firestore (searchTransactions וכו') - שבוע
+4. **Phase 5D**: סוכן + LLM integration + UI צ'אט - שבוע
+5. **Phase 5E**: כלי כתיבה (createTask, createExpense) - שבוע
 
 ---
 

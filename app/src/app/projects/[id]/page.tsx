@@ -288,34 +288,40 @@ export default async function ProjectPage({
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🤖</span>
-                <h3 className="font-bold text-slate-800">שאל את החוזים (AI)</h3>
+                <h3 className="font-bold text-slate-800">סוכן AI - שואל כל שאלה על הפרויקט</h3>
               </div>
               <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
                 בפיתוח · פאזה 5
               </span>
             </div>
             <p className="text-xs text-slate-600 mb-3">
-              צ&apos;אט שעונה על שאלות מתוך החוזים של פרויקט {project.name} בלבד. דוגמאות:
+              סוכן שיודע לפעול על <b>כל</b> הנתונים של {project.name} - חשבוניות, חוזים, משימות, קבלנים, תזרים. דוגמאות:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
               <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-                💭 &quot;מתי תאריך מסירת השלד?&quot;
+                💭 &quot;תמצא חשבוניות ממנדלסון&quot;
               </div>
               <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-                💭 &quot;כמה התשלום הבא לקבלן החשמל?&quot;
+                💭 &quot;מתי תאריך מסירת השלד?&quot; <span className="text-purple-600">(חוזה)</span>
               </div>
               <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-                💭 &quot;האם יש סעיף קנס על איחור?&quot;
+                💭 &quot;כמה הוצאתי החודש על חשמל?&quot;
               </div>
               <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-                💭 &quot;מי חתום על חוזה האינסטלציה?&quot;
+                💭 &quot;מה היתרה לאלי שלד?&quot;
+              </div>
+              <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
+                💭 &quot;מה דחוף השבוע?&quot;
+              </div>
+              <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
+                💭 &quot;תסכם לי הפעילות השבוע&quot;
               </div>
             </div>
             <div className="flex gap-2">
               <input
                 type="text"
                 disabled
-                placeholder="שאל שאלה על החוזים של הפרויקט..."
+                placeholder="שאל כל שאלה על הפרויקט..."
                 className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white/60 text-sm cursor-not-allowed"
               />
               <button
@@ -326,7 +332,7 @@ export default async function ProjectPage({
               </button>
             </div>
             <p className="text-xs text-slate-400 mt-2 text-center">
-              ⓘ התשובות יבואו עם ציטוטים למסמך ועמוד · מבודד לפר-פרויקט
+              ⓘ תשובות עם ציטוטים לנתון/מסמך · יכול גם השוואות בין פרויקטים מהדשבורד הראשי
             </p>
           </div>
         </div>

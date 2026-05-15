@@ -115,6 +115,26 @@
     </div>
   </div>
 
+  <!-- AI Agent - Global -->
+  <div class="card bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 mb-6 border-2 border-dashed border-indigo-200">
+    <div class="flex justify-between items-center mb-3">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">🤖</span>
+        <h3 class="font-bold text-slate-800">סוכן AI - שאל על כל הפרויקטים</h3>
+      </div>
+      <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">בפיתוח · פאזה 5</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+      <div class="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">💭 "כמה הוצאתי החודש בכל הפרויקטים?"</div>
+      <div class="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">💭 "השווה בין 2253 ל-2288"</div>
+      <div class="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">💭 "תמצא חשבוניות ממנדלסון בכל הפרויקטים"</div>
+    </div>
+    <div class="flex gap-2">
+      <input type="text" disabled placeholder="שאל כל שאלה על כל הפרויקטים..." class="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white/60 text-sm cursor-not-allowed">
+      <button disabled class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm cursor-not-allowed opacity-50">שלח</button>
+    </div>
+  </div>
+
   <!-- Projects grid -->
   <div class="flex justify-between items-center mb-3">
     <h3 class="font-bold text-slate-800 text-lg">הפרויקטים שלי</h3>
@@ -487,6 +507,67 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Contracts folder + AI Agent (project-scoped) -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+    <div class="card bg-white rounded-2xl p-5">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-slate-800">📁 חוזים ומסמכים</h3>
+        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">בקרוב</span>
+      </div>
+      <div class="space-y-2 text-sm">
+        <div class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg opacity-60">
+          <span class="text-xl">📄</span>
+          <div class="flex-1">
+            <p class="font-medium">חוזה_קבלן_שלד.pdf</p>
+            <p class="text-xs text-slate-500">28 עמ׳ · הועלה 12/05</p>
+          </div>
+          <span class="text-xs text-green-600">✓ נסרק</span>
+        </div>
+        <div class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg opacity-60">
+          <span class="text-xl">📄</span>
+          <div class="flex-1">
+            <p class="font-medium">חוזה_חשמלאי.pdf</p>
+            <p class="text-xs text-slate-500">15 עמ׳ · הועלה 03/05</p>
+          </div>
+          <span class="text-xs text-green-600">✓ נסרק</span>
+        </div>
+        <div class="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg opacity-60">
+          <span class="text-xl">📄</span>
+          <div class="flex-1">
+            <p class="font-medium">היתר_בנייה.pdf</p>
+            <p class="text-xs text-slate-500">4 עמ׳ · הועלה 28/04</p>
+          </div>
+          <span class="text-xs text-green-600">✓ נסרק</span>
+        </div>
+        <button class="w-full mt-2 border border-dashed border-slate-300 rounded-lg p-3 text-sm text-slate-500 hover:bg-slate-50">+ העלה חוזה חדש</button>
+      </div>
+    </div>
+
+    <div class="card bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 lg:col-span-2 border-2 border-dashed border-indigo-200">
+      <div class="flex justify-between items-center mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🤖</span>
+          <h3 class="font-bold text-slate-800">סוכן AI - שואל כל שאלה על הפרויקט</h3>
+        </div>
+        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">בפיתוח · פאזה 5</span>
+      </div>
+      <p class="text-xs text-slate-600 mb-3">סוכן שיודע לפעול על <b>כל</b> הנתונים - חשבוניות, חוזים, משימות, קבלנים, תזרים. דוגמאות:</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+        <div class="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">💭 "תמצא חשבוניות ממנדלסון"</div>
+        <div class="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">💭 "מתי תאריך מסירת השלד?" <span class="text-purple-600">(חוזה)</span></div>
+        <div class="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">💭 "כמה הוצאתי החודש על חשמל?"</div>
+        <div class="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">💭 "מה היתרה לאלי שלד?"</div>
+        <div class="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">💭 "מה דחוף השבוע?"</div>
+        <div class="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">💭 "תסכם לי הפעילות השבוע"</div>
+      </div>
+      <div class="flex gap-2">
+        <input type="text" disabled placeholder="שאל כל שאלה על הפרויקט..." class="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white/60 text-sm cursor-not-allowed">
+        <button disabled class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm cursor-not-allowed opacity-50">שלח</button>
+      </div>
+      <p class="text-xs text-slate-400 mt-2 text-center">ⓘ תשובות עם ציטוטים לנתון/מסמך · ניתן גם השוואות בין פרויקטים מהדשבורד הראשי</p>
     </div>
   </div>
 
