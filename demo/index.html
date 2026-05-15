@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>דשבורד ניהול פרויקט - דמו</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Heebo', sans-serif; }
+  .card { transition: all 0.2s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+  .tab-active { background: #1F3864; color: white; }
+  .arch-box { transition: all 0.3s; }
+  .arch-box:hover { transform: scale(1.03); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+  .flow-arrow { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% {opacity:0.6;} 50% {opacity:1;} }
+  .progress-bar { transition: width 1s ease-in-out; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<!-- Top Navigation -->
+<nav class="bg-gradient-to-l from-[#1F3864] to-[#2F5597] text-white shadow-lg sticky top-0 z-50">
+  <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-xl font-bold">🏗️</div>
+      <div>
+        <h1 class="text-xl font-bold">דשבורד ניהול פרויקט</h1>
+        <p class="text-xs text-blue-100">בניית בית פרטי · גרסת דמו</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="showTab('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium tab-active">דשבורד</button>
+      <button onclick="showTab('architecture')" id="tab-architecture" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/10">אדריכלות</button>
+      <button onclick="showTab('dataflow')" id="tab-dataflow" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/10">זרימת מידע</button>
+    </div>
+  </div>
+</nav>
+
+<!-- DASHBOARD TAB -->
+<div id="content-dashboard" class="tab-content container mx-auto p-6">
+
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="card bg-white rounded-2xl p-5 border-r-4 border-blue-600">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-slate-500 text-sm">תקציב כולל</p>
+          <p class="text-2xl font-bold text-slate-800 mt-1">₪2,450,000</p>
+        </div>
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">💰</div>
+      </div>
+      <p class="text-xs text-slate-400 mt-2">לפי כתב כמויות מאושר</p>
+    </div>
+    <div class="card bg-white rounded-2xl p-5 border-r-4 border-orange-500">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-slate-500 text-sm">הוצא בפועל</p>
+          <p class="text-2xl font-bold text-slate-800 mt-1">₪1,387,200</p>
+        </div>
+        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">💸</div>
+      </div>
+      <div class="w-full bg-slate-100 rounded-full h-1.5 mt-3">
+        <div class="bg-orange-500 h-1.5 rounded-full progress-bar" style="width: 56.6%"></div>
+      </div>
+      <p class="text-xs text-slate-400 mt-1">56.6% מהתקציב</p>
+    </div>
+    <div class="card bg-white rounded-2xl p-5 border-r-4 border-green-600">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-slate-500 text-sm">יתרה זמינה</p>
+          <p class="text-2xl font-bold text-slate-800 mt-1">₪1,062,800</p>
+        </div>
+        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">🏦</div>
+      </div>
+      <p class="text-xs text-green-600 mt-2">✓ בתוך התקציב</p>
+    </div>
+    <div class="card bg-white rounded-2xl p-5 border-r-4 border-purple-600">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="text-slate-500 text-sm">התקדמות פיזית</p>
+          <p class="text-2xl font-bold text-slate-800 mt-1">62%</p>
+        </div>
+        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">📊</div>
+      </div>
+      <div class="w-full bg-slate-100 rounded-full h-1.5 mt-3">
+        <div class="bg-purple-600 h-1.5 rounded-full progress-bar" style="width: 62%"></div>
+      </div>
+      <p class="text-xs text-slate-400 mt-1">שלב גמר התחלתי</p>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+    <div class="card bg-white rounded-2xl p-5 lg:col-span-2">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-slate-800">תזרים מצטבר - תקציב מול בפועל</h3>
+        <select class="text-sm border rounded-lg px-2 py-1 text-slate-600">
+          <option>12 חודשים אחרונים</option>
+          <option>השנה</option>
+        </select>
+      </div>
+      <canvas id="cashflowChart" height="100"></canvas>
+    </div>
+    <div class="card bg-white rounded-2xl p-5">
+      <h3 class="font-bold text-slate-800 mb-4">פילוח הוצאות לפי קטגוריה</h3>
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Tables row -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <!-- Contractor balances -->
+    <div class="card bg-white rounded-2xl p-5">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-slate-800">יתרות לקבלנים וספקים</h3>
+        <span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">3 דחוף</span>
+      </div>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg border-r-2 border-red-500">
+          <div>
+            <p class="font-medium text-slate-800">אלי שלד בע"מ</p>
+            <p class="text-xs text-slate-500">שלד בטון · חוזה: ₪380,000</p>
+          </div>
+          <div class="text-left">
+            <p class="font-bold text-red-600">₪45,000</p>
+            <p class="text-xs text-red-500">לתשלום מיידי</p>
+          </div>
+        </div>
+        <div class="flex justify-between items-center p-3 bg-amber-50 rounded-lg border-r-2 border-amber-500">
+          <div>
+            <p class="font-medium text-slate-800">חשמלי הצפון</p>
+            <p class="text-xs text-slate-500">חשמל ותקשורת · חוזה: ₪95,000</p>
+          </div>
+          <div class="text-left">
+            <p class="font-bold text-amber-600">₪28,500</p>
+            <p class="text-xs text-amber-500">השבוע</p>
+          </div>
+        </div>
+        <div class="flex justify-between items-center p-3 bg-amber-50 rounded-lg border-r-2 border-amber-500">
+          <div>
+            <p class="font-medium text-slate-800">אינסטלציית כהן</p>
+            <p class="text-xs text-slate-500">אינסטלציה · חוזה: ₪65,000</p>
+          </div>
+          <div class="text-left">
+            <p class="font-bold text-amber-600">₪19,500</p>
+            <p class="text-xs text-amber-500">השבוע</p>
+          </div>
+        </div>
+        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+          <div>
+            <p class="font-medium text-slate-800">קרמיקה עד הבית</p>
+            <p class="text-xs text-slate-500">חיפויים · חוזה: ₪48,000</p>
+          </div>
+          <div class="text-left">
+            <p class="font-bold text-slate-600">₪14,400</p>
+            <p class="text-xs text-slate-400">ב-30 יום</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming tasks -->
+    <div class="card bg-white rounded-2xl p-5">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-slate-800">משימות קרובות</h3>
+        <button class="text-xs text-blue-600 hover:underline">+ הוסף משימה</button>
+      </div>
+      <div class="space-y-3">
+        <div class="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg">
+          <input type="checkbox" class="w-4 h-4 accent-blue-600">
+          <div class="flex-1">
+            <p class="font-medium text-slate-800">פגישת תיאום עם חשמלאי</p>
+            <p class="text-xs text-slate-500">📅 היום · 15:00 · באתר</p>
+          </div>
+          <span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">דחוף</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg">
+          <input type="checkbox" class="w-4 h-4 accent-blue-600">
+          <div class="flex-1">
+            <p class="font-medium text-slate-800">אישור הזמנת אריחי קרמיקה</p>
+            <p class="text-xs text-slate-500">📅 מחר · עד 12:00</p>
+          </div>
+          <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">היום</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg">
+          <input type="checkbox" class="w-4 h-4 accent-blue-600">
+          <div class="flex-1">
+            <p class="font-medium text-slate-800">בדיקת איכות בטון בתקרה</p>
+            <p class="text-xs text-slate-500">📅 18/05 · עם מפקח</p>
+          </div>
+          <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">השבוע</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg">
+          <input type="checkbox" class="w-4 h-4 accent-blue-600">
+          <div class="flex-1">
+            <p class="font-medium text-slate-800">סקירת חוזה גמרים</p>
+            <p class="text-xs text-slate-500">📅 22/05 · משרד עו"ד</p>
+          </div>
+          <span class="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded-full">בקרוב</span>
+        </div>
+        <div class="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg opacity-60">
+          <input type="checkbox" class="w-4 h-4 accent-blue-600" checked>
+          <div class="flex-1">
+            <p class="font-medium text-slate-800 line-through">תשלום למהנדס קונסטרוקציה</p>
+            <p class="text-xs text-slate-500">✓ הושלם ב-12/05</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent activity + Inventory -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+    <div class="card bg-white rounded-2xl p-5">
+      <h3 class="font-bold text-slate-800 mb-4">תנועות אחרונות</h3>
+      <div class="space-y-3 text-sm">
+        <div class="flex justify-between border-b pb-2">
+          <div>
+            <p class="font-medium">תשלום: אלי שלד</p>
+            <p class="text-xs text-slate-500">13/05/26</p>
+          </div>
+          <p class="text-red-600 font-bold">-₪75,000</p>
+        </div>
+        <div class="flex justify-between border-b pb-2">
+          <div>
+            <p class="font-medium">קבלת תשלום מבנק</p>
+            <p class="text-xs text-slate-500">10/05/26 · משכנתא</p>
+          </div>
+          <p class="text-green-600 font-bold">+₪450,000</p>
+        </div>
+        <div class="flex justify-between border-b pb-2">
+          <div>
+            <p class="font-medium">קניית אריחים</p>
+            <p class="text-xs text-slate-500">08/05/26 · קרמיקה עד הבית</p>
+          </div>
+          <p class="text-red-600 font-bold">-₪32,400</p>
+        </div>
+        <div class="flex justify-between border-b pb-2">
+          <div>
+            <p class="font-medium">אגרת בנייה</p>
+            <p class="text-xs text-slate-500">05/05/26 · עיריית הרצליה</p>
+          </div>
+          <p class="text-red-600 font-bold">-₪12,500</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-white rounded-2xl p-5">
+      <h3 class="font-bold text-slate-800 mb-4">מלאי באתר</h3>
+      <div class="space-y-2">
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span>בלוקים (קוב)</span>
+            <span class="font-bold">85 / 120</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2">
+            <div class="bg-green-500 h-2 rounded-full" style="width: 70%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span>ברזל (טון)</span>
+            <span class="font-bold">12 / 30</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2">
+            <div class="bg-amber-500 h-2 rounded-full" style="width: 40%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span>צמנט (שקים)</span>
+            <span class="font-bold text-red-600">35 / 200</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2">
+            <div class="bg-red-500 h-2 rounded-full" style="width: 17%"></div>
+          </div>
+          <p class="text-xs text-red-500 mt-1">⚠ נדרשת הזמנה</p>
+        </div>
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span>אריחי קרמיקה (מ"ר)</span>
+            <span class="font-bold">180 / 240</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2">
+            <div class="bg-green-500 h-2 rounded-full" style="width: 75%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-white rounded-2xl p-5">
+      <h3 class="font-bold text-slate-800 mb-4">התראות</h3>
+      <div class="space-y-3">
+        <div class="flex gap-2 p-2 bg-red-50 rounded-lg">
+          <span class="text-xl">🚨</span>
+          <div>
+            <p class="text-sm font-medium">חריגה בקטגוריית חשמל</p>
+            <p class="text-xs text-slate-500">12% מעל תקציב</p>
+          </div>
+        </div>
+        <div class="flex gap-2 p-2 bg-amber-50 rounded-lg">
+          <span class="text-xl">⏰</span>
+          <div>
+            <p class="text-sm font-medium">חוזה אינסטלציה מסתיים</p>
+            <p class="text-xs text-slate-500">תוקף 14 ימים</p>
+          </div>
+        </div>
+        <div class="flex gap-2 p-2 bg-blue-50 rounded-lg">
+          <span class="text-xl">📄</span>
+          <div>
+            <p class="text-sm font-medium">3 חשבוניות חדשות מ-Priority</p>
+            <p class="text-xs text-slate-500">סונכרן לפני 2 שעות</p>
+          </div>
+        </div>
+        <div class="flex gap-2 p-2 bg-green-50 rounded-lg">
+          <span class="text-xl">✓</span>
+          <div>
+            <p class="text-sm font-medium">גיבוי הושלם</p>
+            <p class="text-xs text-slate-500">היום בבוקר ל-Drive</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ARCHITECTURE TAB -->
+<div id="content-architecture" class="tab-content container mx-auto p-6 hidden">
+  <div class="bg-white rounded-2xl p-6 mb-6">
+    <h2 class="text-2xl font-bold text-slate-800 mb-2">אדריכלות מערכת</h2>
+    <p class="text-slate-600 mb-6">איך הכל מתחבר - מהקובץ ב-Drive ועד למסך שלך</p>
+
+    <!-- Layer 1: Sources -->
+    <div class="mb-2 text-center">
+      <span class="inline-block bg-slate-200 text-slate-700 text-xs px-3 py-1 rounded-full">שכבה 1 · מקורות מידע</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+      <div class="arch-box bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-xl p-4 text-center">
+        <div class="text-3xl mb-2">📊</div>
+        <p class="font-bold text-slate-800">Priority ERP</p>
+        <p class="text-xs text-slate-600 mt-1">ייצוא Excel אוטומטי</p>
+      </div>
+      <div class="arch-box bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-xl p-4 text-center">
+        <div class="text-3xl mb-2">☁️</div>
+        <p class="font-bold text-slate-800">Google Drive</p>
+        <p class="text-xs text-slate-600 mt-1">תיקיית סנכרון</p>
+      </div>
+      <div class="arch-box bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 rounded-xl p-4 text-center">
+        <div class="text-3xl mb-2">📅</div>
+        <p class="font-bold text-slate-800">Google + Outlook</p>
+        <p class="text-xs text-slate-600 mt-1">לוחות שנה</p>
+      </div>
+      <div class="arch-box bg-gradient-to-br from-emerald-50 to-emerald-100 border-2 border-emerald-300 rounded-xl p-4 text-center">
+        <div class="text-3xl mb-2">✏️</div>
+        <p class="font-bold text-slate-800">קלט ידני</p>
+        <p class="text-xs text-slate-600 mt-1">משימות, הערות, מסמכים</p>
+      </div>
+    </div>
+
+    <div class="flex justify-center my-3"><div class="text-3xl text-slate-400 flow-arrow">↓</div></div>
+
+    <!-- Layer 2: Backend -->
+    <div class="mb-2 text-center">
+      <span class="inline-block bg-slate-200 text-slate-700 text-xs px-3 py-1 rounded-full">שכבה 2 · Backend (Firebase) · חינמי</span>
+    </div>
+    <div class="bg-gradient-to-br from-orange-50 to-amber-100 border-2 border-orange-300 rounded-2xl p-5 mb-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="arch-box bg-white rounded-lg p-3 text-center">
+          <div class="text-2xl mb-1">🔥</div>
+          <p class="font-bold text-sm">Firestore</p>
+          <p class="text-xs text-slate-500">מסד נתונים</p>
+        </div>
+        <div class="arch-box bg-white rounded-lg p-3 text-center">
+          <div class="text-2xl mb-1">🔐</div>
+          <p class="font-bold text-sm">Auth</p>
+          <p class="text-xs text-slate-500">כניסה עם Google</p>
+        </div>
+        <div class="arch-box bg-white rounded-lg p-3 text-center">
+          <div class="text-2xl mb-1">📦</div>
+          <p class="font-bold text-sm">Storage</p>
+          <p class="text-xs text-slate-500">PDFs, חשבוניות</p>
+        </div>
+        <div class="arch-box bg-white rounded-lg p-3 text-center">
+          <div class="text-2xl mb-1">⚙️</div>
+          <p class="font-bold text-sm">Cloud Functions</p>
+          <p class="text-xs text-slate-500">פרסור Excel</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-center my-3"><div class="text-3xl text-slate-400 flow-arrow">↓</div></div>
+
+    <!-- Layer 3: Frontend -->
+    <div class="mb-2 text-center">
+      <span class="inline-block bg-slate-200 text-slate-700 text-xs px-3 py-1 rounded-full">שכבה 3 · ממשק (Next.js PWA)</span>
+    </div>
+    <div class="bg-gradient-to-br from-indigo-50 to-blue-100 border-2 border-indigo-300 rounded-2xl p-5 mb-4">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <div class="arch-box bg-white rounded-lg p-3 text-center text-sm">
+          <div class="text-xl mb-1">🏠</div>
+          <p class="font-bold">דשבורד</p>
+        </div>
+        <div class="arch-box bg-white rounded-lg p-3 text-center text-sm">
+          <div class="text-xl mb-1">💰</div>
+          <p class="font-bold">פיננסי</p>
+        </div>
+        <div class="arch-box bg-white rounded-lg p-3 text-center text-sm">
+          <div class="text-xl mb-1">👷</div>
+          <p class="font-bold">קבלנים</p>
+        </div>
+        <div class="arch-box bg-white rounded-lg p-3 text-center text-sm">
+          <div class="text-xl mb-1">📋</div>
+          <p class="font-bold">משימות</p>
+        </div>
+        <div class="arch-box bg-white rounded-lg p-3 text-center text-sm">
+          <div class="text-xl mb-1">📅</div>
+          <p class="font-bold">לוח שנה</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-center my-3"><div class="text-3xl text-slate-400 flow-arrow">↓</div></div>
+
+    <!-- Layer 4: Devices -->
+    <div class="mb-2 text-center">
+      <span class="inline-block bg-slate-200 text-slate-700 text-xs px-3 py-1 rounded-full">שכבה 4 · המכשירים שלך</span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div class="arch-box bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-4 text-center">
+        <div class="text-3xl mb-1">💻</div>
+        <p class="font-bold text-sm">מחשב נייח</p>
+      </div>
+      <div class="arch-box bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-4 text-center">
+        <div class="text-3xl mb-1">💻</div>
+        <p class="font-bold text-sm">מחשב נייד</p>
+      </div>
+      <div class="arch-box bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-4 text-center">
+        <div class="text-3xl mb-1">📱</div>
+        <p class="font-bold text-sm">נייד</p>
+      </div>
+      <div class="arch-box bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl p-4 text-center">
+        <div class="text-3xl mb-1">📲</div>
+        <p class="font-bold text-sm">טאבלט</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key principles -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="card bg-white rounded-2xl p-5 border-t-4 border-green-500">
+      <div class="text-3xl mb-2">💸</div>
+      <h3 class="font-bold text-lg mb-2">עלות: 0 ש"ח</h3>
+      <p class="text-sm text-slate-600">Firebase Spark Plan חינמי - לא צריך כרטיס אשראי. אם תחרוג ממכסה, האפליקציה עוצרת ולא מחייבת.</p>
+    </div>
+    <div class="card bg-white rounded-2xl p-5 border-t-4 border-blue-500">
+      <div class="text-3xl mb-2">🔒</div>
+      <h3 class="font-bold text-lg mb-2">פרטיות מוחלטת</h3>
+      <p class="text-sm text-slate-600">הכל על חשבונות אישיים. המעסיק לא רואה את הנתונים, את הקוד, ולא יכול לחסום גישה.</p>
+    </div>
+    <div class="card bg-white rounded-2xl p-5 border-t-4 border-purple-500">
+      <div class="text-3xl mb-2">📲</div>
+      <h3 class="font-bold text-lg mb-2">PWA - כל מכשיר</h3>
+      <p class="text-sm text-slate-600">לא Native app - אתר. ניתן להתקין למסך הבית בנייד, אבל בלי לעבור בחנות האפליקציות.</p>
+    </div>
+  </div>
+</div>
+
+<!-- DATAFLOW TAB -->
+<div id="content-dataflow" class="tab-content container mx-auto p-6 hidden">
+  <div class="bg-white rounded-2xl p-6 mb-6">
+    <h2 class="text-2xl font-bold text-slate-800 mb-2">איך המידע מגיע מ-Priority לדשבורד</h2>
+    <p class="text-slate-600 mb-6">אופציה מומלצת: דוח מתוזמן ב-Priority ← Drive ← פרסור אוטומטי ← Firestore</p>
+
+    <div class="space-y-4">
+      <!-- Step 1 -->
+      <div class="flex gap-4 items-start">
+        <div class="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">1</div>
+        <div class="flex-1 bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <h3 class="font-bold text-slate-800">Priority שולח דוח אוטומטית</h3>
+          <p class="text-sm text-slate-600 mt-1">כל בוקר ב-7:00, Priority מריץ דוח (חשבוניות / תשלומים / כתב כמויות) ושומר אותו כקובץ Excel בתיקייה ברשת.</p>
+          <p class="text-xs text-slate-500 mt-2">⚙️ הגדרה: Reports → Schedule Report → File output</p>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="flex gap-4 items-start">
+        <div class="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">2</div>
+        <div class="flex-1 bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <h3 class="font-bold text-slate-800">Drive Desktop מסנכרן לענן</h3>
+          <p class="text-sm text-slate-600 mt-1">תיקיית הרשת בה Priority שמר את הקובץ מסונכרנת ל-Google Drive האישי שלך. הקובץ עולה אוטומטית - אתה לא נוגע.</p>
+          <p class="text-xs text-slate-500 mt-2">⚙️ דרוש: Google Drive Desktop מותקן ומחובר לחשבון אישי</p>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="flex gap-4 items-start">
+        <div class="flex-shrink-0 w-12 h-12 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold text-lg">3</div>
+        <div class="flex-1 bg-orange-50 border border-orange-200 rounded-xl p-4">
+          <h3 class="font-bold text-slate-800">Cloud Function זיהתה קובץ חדש</h3>
+          <p class="text-sm text-slate-600 mt-1">פונקציה ב-Firebase מאזינה ל-Drive Webhook. ברגע שהקובץ עולה - היא ניגשת אליו, מפרסרת את ה-Excel ומכניסה את השורות ל-Firestore.</p>
+          <p class="text-xs text-slate-500 mt-2">⚙️ Cloud Function + Drive API webhook · ~50 שורות קוד</p>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="flex gap-4 items-start">
+        <div class="flex-shrink-0 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg">4</div>
+        <div class="flex-1 bg-purple-50 border border-purple-200 rounded-xl p-4">
+          <h3 class="font-bold text-slate-800">הדשבורד שלך מתעדכן בזמן אמת</h3>
+          <p class="text-sm text-slate-600 mt-1">Firestore Listener בדפדפן/נייד שלך מקבל push ברגע שיש שורה חדשה. המסך מתעדכן - בלי refresh.</p>
+          <p class="text-xs text-slate-500 mt-2">⚙️ Firestore onSnapshot · אוטומטי</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+      <p class="text-sm text-slate-700"><strong>📌 מה חשוב להבין:</strong> אתה לא מעלה קבצים לאפליקציה ידנית. אתה רק שומר ל-Drive (אוטומטית מ-Priority או ידנית) - והאפליקציה דואגת לשאר.</p>
+    </div>
+  </div>
+
+  <!-- Comparison table -->
+  <div class="bg-white rounded-2xl p-6">
+    <h3 class="font-bold text-xl text-slate-800 mb-4">השוואת אופציות אוטומציה</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-100">
+            <th class="p-3 text-right">אופציה</th>
+            <th class="p-3 text-right">קלות הגדרה</th>
+            <th class="p-3 text-right">דורש פיתוח</th>
+            <th class="p-3 text-right">זמן עד עדכון</th>
+            <th class="p-3 text-right">מומלץ ל-MVP?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b bg-green-50">
+            <td class="p-3 font-bold">Scheduled Report → Drive</td>
+            <td class="p-3">⭐⭐⭐⭐⭐</td>
+            <td class="p-3">לא</td>
+            <td class="p-3">1-24 שעות</td>
+            <td class="p-3 text-green-700 font-bold">✓ כן</td>
+          </tr>
+          <tr class="border-b">
+            <td class="p-3 font-bold">BPM / Procedure ב-Priority</td>
+            <td class="p-3">⭐⭐⭐</td>
+            <td class="p-3">קצת (סקריפט)</td>
+            <td class="p-3">דקות</td>
+            <td class="p-3">בשלב 2</td>
+          </tr>
+          <tr class="border-b">
+            <td class="p-3 font-bold">Priority REST API</td>
+            <td class="p-3">⭐⭐</td>
+            <td class="p-3">כן (מלא)</td>
+            <td class="p-3">בזמן אמת</td>
+            <td class="p-3">בעתיד</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer class="text-center text-xs text-slate-400 py-6">
+  דמו · Mock data · נבנה ב-HTML + Tailwind + Chart.js
+</footer>
+
+<script>
+  // Tab switching
+  function showTab(name) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('tab-active'));
+    document.getElementById('content-' + name).classList.remove('hidden');
+    document.getElementById('tab-' + name).classList.add('tab-active');
+  }
+
+  // Cashflow chart
+  const cashCtx = document.getElementById('cashflowChart');
+  new Chart(cashCtx, {
+    type: 'line',
+    data: {
+      labels: ['יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר','ינואר','פברואר','מרץ','אפריל','מאי'],
+      datasets: [
+        {
+          label: 'תקציב מתוכנן',
+          data: [0, 180000, 380000, 620000, 880000, 1100000, 1320000, 1520000, 1700000, 1880000, 2050000, 2200000],
+          borderColor: '#94a3b8',
+          backgroundColor: 'rgba(148, 163, 184, 0.1)',
+          borderDash: [6, 4],
+          tension: 0.3
+        },
+        {
+          label: 'בפועל',
+          data: [0, 165000, 410000, 645000, 920000, 1135000, 1290000, 1387200, null, null, null, null],
+          borderColor: '#2F5597',
+          backgroundColor: 'rgba(47, 85, 151, 0.15)',
+          fill: true,
+          tension: 0.3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', align: 'end' },
+      },
+      scales: {
+        y: {
+          ticks: { callback: v => '₪' + (v/1000) + 'K' }
+        }
+      }
+    }
+  });
+
+  // Category pie
+  const catCtx = document.getElementById('categoryChart');
+  new Chart(catCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['שלד ובטון','גמרים','חשמל','אינסטלציה','מטבח','אחר'],
+      datasets: [{
+        data: [385, 280, 195, 165, 145, 217],
+        backgroundColor: ['#1F3864','#2F5597','#5B7BC4','#8FA8DC','#C5D2EC','#E8EDF7'],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 8 } }
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
