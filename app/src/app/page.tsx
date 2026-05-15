@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { AuthGuard } from "@/components/auth-guard";
 import { alerts, projects, tasks } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/format";
 import { CombinedCashflowChart } from "@/components/charts/combined-cashflow-chart";
@@ -36,7 +37,7 @@ export default function HomePage() {
   const urgentAlerts = alerts.slice(0, 4);
 
   return (
-    <>
+    <AuthGuard>
       <SiteHeader />
       <main className="container mx-auto px-6 py-6">
         <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
@@ -283,6 +284,6 @@ export default function HomePage() {
       <footer className="text-center text-xs text-slate-400 py-6">
         נתוני mock · MVP גרסה ראשונית
       </footer>
-    </>
+    </AuthGuard>
   );
 }

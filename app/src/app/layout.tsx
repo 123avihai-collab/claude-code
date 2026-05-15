@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Heebo } from "next/font/google";
 import "./globals.css";
+import { Providers } from "@/components/providers";
 
 const heebo = Heebo({
   variable: "--font-heebo",
@@ -10,7 +11,7 @@ const heebo = Heebo({
 
 export const metadata: Metadata = {
   title: "דשבורד ניהול פרויקטים",
-  description: "אפליקציה לניהול פרויקטי בנייה אישיים",
+  description: "אפליקציה אישית לניהול פרויקטים",
 };
 
 export default function RootLayout({
@@ -25,7 +26,7 @@ export default function RootLayout({
       className={`${heebo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-50 font-sans">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
