@@ -61,7 +61,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  שכבת ממשק - Power Apps Canvas App                                │
+│  שכבת ממשק - Power Apps Canvas App (Standard)                     │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐  │
 │  │ דשבורד  │  │הוצאות/  │  │קבלנים/  │  │ משימות+ │  │הגדרות │  │
 │  │ראשי     │  │הכנסות   │  │ספקים    │  │לוז      │  │       │  │
@@ -70,8 +70,8 @@
                            │
                            ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│  שכבת נתונים - Dataverse (אם יש Premium) או SharePoint Lists      │
-│  טבלאות: Projects, Expenses, Income, Contractors, Suppliers,     │
+│  שכבת נתונים - SharePoint Lists (אתר ייעודי בארגון)               │
+│  רשימות: Projects, Expenses, Income, Contractors, Suppliers,     │
 │  Payments, BoQ_Items, Tasks, Schedule_Items, Documents, ...      │
 └──────────────────────────┬───────────────────────────────────────┘
                            ▲
@@ -92,41 +92,51 @@
 
 ---
 
-## 4. איך לבדוק את רישיון Power Apps שלך
+## 4. רישיון הרישוי - תוצאת בדיקה (סופית)
 
-עליך לבדוק את הרישיון לפני שמחליטים בין Dataverse ל-SharePoint Lists.
+> **בדיקה הושלמה ב-2026-05-15**. הרישיון המרכזי: **Microsoft 365 Business Premium**.
 
-### דרך 1 - מתוך פורטל Office 365 (פשוט)
-1. כנס ל: https://www.office.com
-2. לחץ על תמונת הפרופיל בפינה הימנית-עליונה
-3. לחץ על **"View account"** / **"הצג חשבון"**
-4. תפריט שמאל → **"Subscriptions"** / **"מנויים"**
-5. חפש שורה שכוללת אחת מהמילים הבאות:
-   - `Microsoft 365 E3` / `E5` → יש לך **Power Apps Standard** (כלול)
-   - `Power Apps Per User Plan` → יש לך **Premium** (מעולה!)
-   - `Power Apps Per App Plan` → יש לך **Premium מוגבל**
-   - `Microsoft 365 Business Standard/Premium` → **Standard בלבד**
+### הרישיונות הרלוונטיים שזוהו
 
-### דרך 2 - מתוך Power Apps עצמו (מדויק יותר)
-1. כנס ל: https://make.powerapps.com
-2. בחר את הסביבה שלך (פינה ימין-עליונה)
-3. לחץ על גלגל השיניים (⚙️) → **"Session details"**
-4. בחלון שנפתח חפש **"Available licenses"** - שם רשום בדיוק מה יש לך
-
-### דרך 3 - שאל את ה-IT שלך
-שלח להם את ההודעה:
-> "אנא בדקו לי איזה רישיון Power Apps יש לי - האם רישיון Standard (כלול ב-M365) או Premium (Per User / Per App). תודה."
-
-### מה ההבדל המעשי?
-
-| תכונה | Standard | Premium |
+| מוצר | סטטוס | משמעות לפרויקט |
 |---|---|---|
-| מסד נתונים | SharePoint Lists | **Dataverse** (חזק יותר, מתאים לאפליקציה רצינית) |
-| חיבור ל-Priority API | ❌ דורש Custom Connector בתשלום | ✅ HTTP Connector מובנה |
-| Power Automate Premium | ❌ | ✅ זרימות מתוזמנות מתקדמות |
-| ביצועים עם הרבה נתונים | סביר עד 5,000 פריטים פר רשימה | מצוין גם ל-100,000+ |
+| Microsoft 365 Business Premium | ✅ | רישיון בסיס מלא לעסקים קטנים |
+| Power Apps for Office 365 | ✅ Standard | אפשר לבנות, רק Standard Connectors |
+| Power Automate for Office 365 | ✅ Standard | זרימות עם Standard Connectors |
+| SharePoint (Plan 1) | ✅ | **כאן יושב מסד הנתונים** |
+| OneDrive for Business | ✅ | אחסון קבצים + Excel |
+| Exchange Online (Plan 1) | ✅ | Outlook (מיילים + לוח שנה) |
+| Microsoft Teams | ✅ | להתראות |
+| Microsoft Planner | ✅ | אופציה לשילוב משימות מובנה |
+| Microsoft To-Do (Plan 1) | ✅ | משימות אישיות |
+| Power BI | ⚠️ Free בלבד | בלי Pro - גרפים בתוך Power Apps |
+| Common Data Service | ⚠️ for Teams בלבד | **אין Dataverse מלא** |
+| HTTP / Custom Connectors | ❌ | לא רלוונטי - ויתרנו על Priority API |
 
-**שורה תחתונה**: אם יש Premium - נבנה על Dataverse. אם לא - נבנה על SharePoint Lists עם פתרונות עוקפים ל-Priority. שני הדרכים עובדות, השני פשוט פחות אלגנטי.
+### ההכרעה הסופית
+
+**SharePoint Lists + Power Apps Canvas + Power Automate Standard**
+
+זאת ארכיטקטורה שעובדת ב-100% עם הרישיונות הקיימים, בלי תשלום נוסף, בלי IT approval נוסף.
+
+### מגבלות שצריך לדעת מראש
+
+| מגבלה | השפעה ממשית | אסטרטגיית מיתון |
+|---|---|---|
+| SharePoint List: 5,000 פריטים בתצוגה | רק אם פרויקט יחיד יחזיק עשרות אלפי שורות | סינון בעמודות אינדקס, חלוקה לפי שנה |
+| SharePoint List: 30 מיליון פריטים בכל רשימה | אקדמי - לא נגיע לזה | - |
+| Power Automate Standard: ~2,000 ריצות בחודש | בעיה רק אם זרימות פעולות שמגיבות לכל שינוי קטן | אגירה (batching), טריגרים פחות תכופים |
+| בלי Dataverse | חסר Schema rigor, חסר Relationships אמיתיים | SharePoint Lookup Columns מפצים סבירות |
+| בלי Custom Connectors | אין REST API חופשי | לא רלוונטי בארכיטקטורה הזו |
+| בלי AI Builder | אין OCR אוטומטי על חשבוניות | (יכול להוסיף ידנית פר הוצאה) |
+
+### דברים שכן אפשר לעשות בזכות הרישיון
+
+- אינטגרציה מלאה עם Outlook (מייל + לוח שנה)
+- אינטגרציה עם Google Calendar (Standard connector, חינם)
+- אינטגרציה עם Teams (התראות)
+- שימוש ב-Microsoft Planner ככלי עזר למשימות (אופציונלי)
+- Power BI Free יכול לצרוך נתונים מ-SharePoint - אם בעתיד רוצים דשבורד נפרד
 
 ---
 
@@ -517,7 +527,8 @@ PriorityReportMappings = JSON עם מיפוי שם קובץ → טבלת יעד
 ## 11. שלבי פיתוח מומלצים
 
 ### Phase 0 - הכנות (משימות שלך, לא שלי)
-- [ ] בדיקת רישיון Power Apps (סעיף 4 לעיל)
+- [x] בדיקת רישיון Power Apps - **הושלם, ראה סעיף 4**
+- [ ] יצירת אתר SharePoint ייעודי לפרויקט (לדוגמה `https://lesico.sharepoint.com/sites/ProjectDashboard`)
 - [ ] יצירת תיקיית `Projects/` ב-OneDrive עם תת-תיקיות לכל פרויקט פעיל
 - [ ] יצירת תיקיית `Projects/_Priority_Exports/` ב-OneDrive
 - [ ] בדיקה האם מנהל הפריוריטי יכול להגדיר דוחות מתוזמנים שנשלחים למייל (אופציונלי - מקל בעתיד)
@@ -525,9 +536,10 @@ PriorityReportMappings = JSON עם מיפוי שם קובץ → טבלת יעד
 - [ ] העלאת דוגמת קובץ אקסל אחד אמיתי שאתה משתמש בו (מטושטש אם יש סודות) - לסשן הבא
 
 ### Phase 1 - תשתית מסד נתונים (סשן הבא, אחרי שתאשר)
-- [ ] יצירת סביבת Power Apps (Environment)
-- [ ] יצירת כל הטבלאות לפי הסכמה בסעיף 5 - אספק לך JSON / סקריפט PowerShell
-- [ ] יצירת הקשרים (Lookups) בין טבלאות
+- [ ] הקמת אתר SharePoint ייעודי
+- [ ] יצירת כל הרשימות לפי הסכמה בסעיף 5 - אספק לך סקריפט PowerShell PnP מוכן
+- [ ] יצירת קישורים (Lookup Columns) בין רשימות
+- [ ] הגדרת אינדקסים בעמודות חיפוש (חשוב לביצועים בגלל מגבלת 5,000)
 - [ ] טעינת נתוני seed (פרויקט דמו, קבלן דמו, ספק דמו)
 
 ### Phase 2 - אפליקציית קנבס בסיסית
@@ -560,7 +572,7 @@ PriorityReportMappings = JSON עם מיפוי שם קובץ → טבלת יעד
 
 ## 12. שאלות פתוחות (לדיון בסשן הבא)
 
-1. **רישיון Power Apps** - מה הרישיון בפועל (אחרי שתבדוק)?
+1. ~~**רישיון Power Apps** - מה הרישיון בפועל (אחרי שתבדוק)?~~ ✅ Standard, M365 Business Premium
 2. **מבנה הקבצים הקיים** - איך נראים האקסלים שלך היום? (תעלה דוגמה)
 3. **דוחות פריוריטי** - איזה דוחות אתה משתמש בהם בפועל? כדאי לייצא דוגמה אחת לפחות מכל דוח חשוב
 4. **שמות פרויקטים** - יש קונבנציית מיספור (P-2026-001) או חופשי?
