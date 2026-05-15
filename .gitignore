@@ -1,2 +1,5 @@
 # Build artifacts (sent to user, not versioned)
 *.zip
+
+# Firebase CLI cache
+.firebase/
