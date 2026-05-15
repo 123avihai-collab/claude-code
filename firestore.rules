@@ -1,0 +1,77 @@
+rules_version = '2';
+
+// Firestore Security Rules
+// Default: deny everything. Each collection explicitly allows access
+// only to documents where `ownerId == request.auth.uid`.
+// See PLAN.md section 6 for the data model.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    function isCreatingOwn() {
+      return request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    match /projects/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /expenses/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /income/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /contractors/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /suppliers/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /payments/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /boq_items/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /tasks/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /schedule_items/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /documents/{id} {
+      allow read, update, delete: if isOwner();
+      allow create: if isCreatingOwn();
+    }
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
