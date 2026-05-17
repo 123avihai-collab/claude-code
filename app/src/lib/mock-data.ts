@@ -3,6 +3,7 @@ import type {
   Contractor,
   ExpenseCategory,
   InventoryItem,
+  PartialBill,
   Project,
   ProjectStatus,
   PurchaseOrder,
@@ -375,6 +376,123 @@ export const purchaseOrders: PurchaseOrder[] = [
 
 export function getPurchaseOrders(projectId: string): PurchaseOrder[] {
   return purchaseOrders.filter((po) => po.projectId === projectId);
+}
+
+// 7 חשבונות חלקיים שהוגשו ע"י לסיכו לקבלן הראשי (י.ר.ן) עבור פרויקט 2253.
+// סכומים אמיתיים מקובץ ה-master R02 (מצטבר ל-₪10,033,697).
+export const partialBills: PartialBill[] = [
+  {
+    id: "pb1",
+    projectId: "2253",
+    billNumber: 1,
+    periodLabel: "נובמבר 2024",
+    invoiceNumber: "IV-191",
+    invoiceDate: "27/02/2025",
+    amountBeforeVat: 690_127,
+    vatRate: 0.18,
+    amountWithVat: 814_350,
+    cumulativeBeforeVat: 690_127,
+    paymentDueDate: "13/04/2025",
+    paidDate: "10/04/2025",
+    status: "paid",
+  },
+  {
+    id: "pb2",
+    projectId: "2253",
+    billNumber: 2,
+    periodLabel: "דצמבר 2024",
+    invoiceNumber: "IV-352",
+    invoiceDate: "31/03/2025",
+    amountBeforeVat: 363_802,
+    vatRate: 0.18,
+    amountWithVat: 429_287,
+    cumulativeBeforeVat: 1_053_930,
+    paymentDueDate: "15/05/2025",
+    paidDate: "14/05/2025",
+    status: "paid",
+  },
+  {
+    id: "pb3",
+    projectId: "2253",
+    billNumber: 3,
+    periodLabel: "ינואר 2025",
+    invoiceNumber: "IV-414",
+    invoiceDate: "24/04/2025",
+    amountBeforeVat: 4_248_226,
+    vatRate: 0.18,
+    amountWithVat: 5_012_907,
+    cumulativeBeforeVat: 5_302_157,
+    paymentDueDate: "08/06/2025",
+    paidDate: "07/06/2025",
+    status: "paid",
+    notes: "החשבון הגדול — שיא הפרויקט",
+  },
+  {
+    id: "pb4",
+    projectId: "2253",
+    billNumber: 4,
+    periodLabel: "פברואר 2025",
+    invoiceNumber: "IV-553",
+    invoiceDate: "26/05/2025",
+    amountBeforeVat: 1_354_482,
+    vatRate: 0.18,
+    amountWithVat: 1_598_289,
+    cumulativeBeforeVat: 6_656_639,
+    paymentDueDate: "10/07/2025",
+    paidDate: "09/07/2025",
+    status: "paid",
+  },
+  {
+    id: "pb5",
+    projectId: "2253",
+    billNumber: 5,
+    periodLabel: "מרץ 2025",
+    invoiceNumber: "IV-660",
+    invoiceDate: "30/06/2025",
+    amountBeforeVat: 1_469_221,
+    vatRate: 0.18,
+    amountWithVat: 1_733_681,
+    cumulativeBeforeVat: 8_125_860,
+    paymentDueDate: "14/08/2025",
+    paidDate: "13/08/2025",
+    status: "paid",
+  },
+  {
+    id: "pb6",
+    projectId: "2253",
+    billNumber: 6,
+    periodLabel: "ספטמבר 2025",
+    invoiceNumber: "IV-1280",
+    invoiceDate: "26/11/2025",
+    amountBeforeVat: 1_108_809,
+    vatRate: 0.18,
+    amountWithVat: 1_308_395,
+    cumulativeBeforeVat: 9_234_669,
+    paymentDueDate: "10/01/2026",
+    paidDate: "09/01/2026",
+    status: "paid",
+  },
+  {
+    id: "pb7",
+    projectId: "2253",
+    billNumber: 7,
+    periodLabel: "דצמבר 2025",
+    invoiceNumber: "IV-175",
+    invoiceDate: "28/02/2026",
+    amountBeforeVat: 799_028,
+    vatRate: 0.18,
+    amountWithVat: 942_853,
+    cumulativeBeforeVat: 10_033_697,
+    paymentDueDate: "14/04/2026",
+    status: "approved",
+    notes: "אושר ע\"י המזמין — ממתין לתשלום",
+  },
+];
+
+export function getPartialBills(projectId: string): PartialBill[] {
+  return partialBills
+    .filter((b) => b.projectId === projectId)
+    .sort((a, b) => b.billNumber - a.billNumber);
 }
 
 export function getProject(id: string): Project | undefined {

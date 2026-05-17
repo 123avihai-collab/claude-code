@@ -85,6 +85,32 @@ export type PoUserStatus =
   | "invoice_rejected"
   | "needs_review";
 
+export type PartialBillStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "paid"
+  | "rejected"
+  | "overdue";
+
+export type PartialBill = {
+  id: string;
+  projectId: string;
+  billNumber: number;           // 1, 2, 3...
+  periodLabel: string;          // "נובמבר 2024"
+  invoiceNumber: string;        // "IV-191"
+  invoiceDate: string;
+  amountBeforeVat: number;
+  vatRate: number;              // 0.18
+  amountWithVat: number;
+  cumulativeBeforeVat: number;
+  paymentDueDate: string;       // שוטף + 45
+  paidDate?: string;
+  status: PartialBillStatus;
+  daysOverdue?: number;
+  notes?: string;
+};
+
 export type PurchaseOrder = {
   id: string;
   projectId: string;
