@@ -3,10 +3,21 @@ import { ProjectCashflowChart } from "@/components/charts/project-cashflow-chart
 import { CategoryChart } from "@/components/charts/category-chart";
 import {
   expenseCategoriesByProject,
+  getExpenseCategoryTree,
   getProject,
+  getTopSuppliers,
   transactions,
 } from "@/lib/mock-data";
 import { formatCurrency, formatPercent } from "@/lib/format";
+
+const colorClasses: Record<string, { bg: string; border: string; text: string }> = {
+  blue: { bg: "bg-blue-50", border: "border-blue-500", text: "text-blue-700" },
+  orange: { bg: "bg-orange-50", border: "border-orange-500", text: "text-orange-700" },
+  purple: { bg: "bg-purple-50", border: "border-purple-500", text: "text-purple-700" },
+  amber: { bg: "bg-amber-50", border: "border-amber-500", text: "text-amber-700" },
+  red: { bg: "bg-red-50", border: "border-red-500", text: "text-red-700" },
+  slate: { bg: "bg-slate-50", border: "border-slate-400", text: "text-slate-700" },
+};
 
 export default async function ProjectFinancePage({
   params,
@@ -21,7 +32,9 @@ export default async function ProjectFinancePage({
   const profit = project.revenue - project.actualSpent;
   const profitMargin = Math.round((profit / project.revenue) * 100);
   const categories = expenseCategoriesByProject[project.id] ?? [];
-  const totalCategorized = categories.reduce((s, c) => s + c.amount, 0);
+  const categoryTree = getExpenseCategoryTree(project.id);
+  const topSuppliers = getTopSuppliers(project.id);
+  const totalCategorized = categoryTree.reduce((s, c) => s + c.amount, 0);
   const projectTransactions = transactions.filter((t) => t.projectId === project.id);
   const totalIncome = projectTransactions
     .filter((t) => t.amount > 0)
@@ -73,56 +86,133 @@ export default async function ProjectFinancePage({
         </div>
       </div>
 
+      {/* Hierarchical expense breakdown */}
       <div className="card-hover bg-white rounded-2xl p-5 mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-slate-800">פירוט הוצאות לפי קטגוריה</h3>
+          <h3 className="font-bold text-slate-800">פירוט הוצאות היררכי</h3>
           <button className="text-xs bg-[#1F3864] text-white px-3 py-2 rounded-lg hover:bg-[#2F5597]">
             + הוצאה חדשה
           </button>
         </div>
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 border-b">
-            <tr>
-              <th className="p-3 text-right font-medium text-slate-600">קטגוריה</th>
-              <th className="p-3 text-right font-medium text-slate-600">סכום</th>
-              <th className="p-3 text-right font-medium text-slate-600">% מסה"כ ההוצאות</th>
-              <th className="p-3 text-right font-medium text-slate-600">% מההכנסות</th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.map((c) => {
-              const share = (c.amount / totalCategorized) * 100;
-              const shareOfRevenue = (c.amount / project.revenue) * 100;
+
+        <div className="space-y-4">
+          {categoryTree.map((cat) => {
+            const c = colorClasses[cat.color] ?? colorClasses.slate;
+            const sharePct = (cat.amount / totalCategorized) * 100;
+            const revenueShare = (cat.amount / project.revenue) * 100;
+            return (
+              <div
+                key={cat.id}
+                className={`rounded-xl border-r-4 ${c.border} ${c.bg} p-4`}
+              >
+                <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{cat.icon}</span>
+                    <div>
+                      <h4 className={`font-bold ${c.text}`}>{cat.label}</h4>
+                      <p className="text-xs text-slate-500">
+                        {sharePct.toFixed(1)}% מההוצאות · {revenueShare.toFixed(1)}% מההכנסות
+                      </p>
+                    </div>
+                  </div>
+                  <p className={`text-xl font-bold ${c.text}`}>
+                    {formatCurrency(cat.amount)}
+                  </p>
+                </div>
+
+                <div className="bg-white/60 rounded-full h-1.5 mb-3">
+                  <div
+                    className={`h-1.5 rounded-full ${c.border.replace("border-", "bg-")}`}
+                    style={{ width: `${sharePct}%` }}
+                  />
+                </div>
+
+                {cat.children && cat.children.length > 0 && (
+                  <div className="space-y-2 mt-3 bg-white rounded-lg p-3">
+                    {cat.children.map((child, idx) => {
+                      const childPct = (child.amount / cat.amount) * 100;
+                      return (
+                        <div key={idx} className="flex items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="text-sm text-slate-700">{child.label}</span>
+                              <span className="text-xs text-slate-500 font-mono whitespace-nowrap">
+                                {childPct.toFixed(0)}%
+                              </span>
+                            </div>
+                            <div className="bg-slate-100 rounded-full h-1">
+                              <div
+                                className={`h-1 rounded-full ${c.border.replace("border-", "bg-")}`}
+                                style={{ width: `${childPct}%` }}
+                              />
+                            </div>
+                            {child.note && (
+                              <p className="text-xs text-slate-400 mt-1">⚠ {child.note}</p>
+                            )}
+                            {child.rowCount && (
+                              <p className="text-xs text-slate-400 mt-1">{child.rowCount} תנועות</p>
+                            )}
+                          </div>
+                          <span className="text-sm font-bold text-slate-800 whitespace-nowrap">
+                            {formatCurrency(child.amount)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="flex justify-between items-center bg-slate-800 text-white rounded-xl p-4 font-bold">
+            <span>סה&quot;כ הוצאות פרויקט</span>
+            <span className="text-xl">{formatCurrency(totalCategorized)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Top suppliers */}
+      {topSuppliers.length > 0 && (
+        <div className="card-hover bg-white rounded-2xl p-5 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-slate-800">Top ספקים וקבלנים בפרויקט</h3>
+            <span className="text-xs text-slate-500">{topSuppliers.length} ספקים פעילים</span>
+          </div>
+          <div className="space-y-2">
+            {topSuppliers.map((s, idx) => {
+              const maxAmount = topSuppliers[0].totalAmount;
+              const widthPct = (s.totalAmount / maxAmount) * 100;
               return (
-                <tr key={c.label} className="border-b hover:bg-slate-50">
-                  <td className="p-3 font-medium">{c.label}</td>
-                  <td className="p-3 text-orange-600 font-bold">{formatCurrency(c.amount)}</td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-700 w-12">{share.toFixed(1)}%</span>
-                      <div className="flex-1 bg-slate-100 rounded-full h-1.5 max-w-32">
-                        <div
-                          className="bg-blue-500 h-1.5 rounded-full"
-                          style={{ width: `${share}%` }}
-                        />
+                <div key={idx} className="border-b last:border-0 py-2">
+                  <div className="flex justify-between items-center gap-3 mb-1">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className="text-xs bg-slate-100 text-slate-600 rounded-full w-7 h-7 flex items-center justify-center font-bold">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-800 truncate">{s.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {s.category} · {s.txCount} תנועות
+                        </p>
                       </div>
                     </div>
-                  </td>
-                  <td className="p-3 text-slate-500">{shareOfRevenue.toFixed(1)}%</td>
-                </tr>
+                    <p className="font-bold text-slate-800 whitespace-nowrap">
+                      {formatCurrency(s.totalAmount)}
+                    </p>
+                  </div>
+                  <div className="bg-slate-100 rounded-full h-1">
+                    <div
+                      className="bg-blue-500 h-1 rounded-full"
+                      style={{ width: `${widthPct}%` }}
+                    />
+                  </div>
+                </div>
               );
             })}
-            <tr className="bg-slate-100 font-bold">
-              <td className="p-3">סה&quot;כ הוצאות</td>
-              <td className="p-3 text-orange-600">{formatCurrency(totalCategorized)}</td>
-              <td className="p-3">100%</td>
-              <td className="p-3 text-slate-700">
-                {((totalCategorized / project.revenue) * 100).toFixed(1)}%
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <div className="card-hover bg-white rounded-2xl p-5">

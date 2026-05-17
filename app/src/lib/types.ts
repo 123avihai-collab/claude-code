@@ -67,6 +67,29 @@ export type ExpenseCategory = {
   amount: number;
 };
 
+export type ExpenseSubItem = {
+  label: string;
+  amount: number;
+  rowCount?: number;     // כמה תנועות תרמו לסכום (אם זמין)
+  note?: string;
+};
+
+export type ExpenseCategoryNode = {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;        // לסטיילינג
+  amount: number;
+  children?: ExpenseSubItem[];
+};
+
+export type TopSupplier = {
+  name: string;
+  totalAmount: number;
+  txCount: number;
+  category: string;     // "חומרים" / "קבלני משנה" / וכו'
+};
+
 export type PoRamdorStatus =
   | "closed"
   | "partial"

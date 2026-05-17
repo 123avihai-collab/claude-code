@@ -2,12 +2,14 @@ import type {
   Alert,
   Contractor,
   ExpenseCategory,
+  ExpenseCategoryNode,
   InventoryItem,
   PartialBill,
   Project,
   ProjectStatus,
   PurchaseOrder,
   Task,
+  TopSupplier,
   Transaction,
 } from "./types";
 
@@ -247,13 +249,15 @@ export const alerts: Alert[] = [
   },
 ];
 
+// תצוגת קטגוריות פשוטה לגרף — סיכומים ברמה עליונה.
+// סכום הכל פר פרויקט = project.actualSpent.
 export const expenseCategoriesByProject: Record<string, ExpenseCategory[]> = {
   "2253": [
-    { label: "חומרים (צנרת, אביזרים, ציוד דלק)", amount: 3_764_127 },
-    { label: "קבלני משנה", amount: 2_175_193 },
-    { label: "תקורות - שכ\"ע צוות", amount: 850_000 },
-    { label: "תקורות - נסיעות ולוגיסטיקה", amount: 95_000 },
-    { label: "תקורות - אחר", amount: 55_000 },
+    { label: "חומרים", amount: 3_200_000 },
+    { label: "קבלני משנה", amount: 2_000_000 },
+    { label: "תקורות - שכר", amount: 600_000 },
+    { label: "תקורות - רכב", amount: 90_000 },
+    { label: "תקורות - אחר", amount: 49_320 },
   ],
   "2288": [
     { label: "תכנון הנדסי", amount: 285_000 },
@@ -262,12 +266,168 @@ export const expenseCategoriesByProject: Record<string, ExpenseCategory[]> = {
     { label: "תקורות", amount: 75_000 },
   ],
   "2306": [
-    { label: "חומרים (מיכלים, צנרת)", amount: 1_850_000 },
+    { label: "חומרים", amount: 1_850_000 },
     { label: "קבלני משנה", amount: 1_290_000 },
     { label: "ציוד התראה ובטיחות", amount: 520_000 },
     { label: "תקורות", amount: 320_000 },
   ],
 };
+
+// היררכיה מלאה — אב + ילדים.
+// סך כל ה-amount של הצמתים העליונים = project.actualSpent.
+export const expenseCategoryTreeByProject: Record<string, ExpenseCategoryNode[]> = {
+  "2253": [
+    {
+      id: "materials",
+      label: "חומרים",
+      icon: "📦",
+      color: "blue",
+      amount: 3_200_000,
+      children: [
+        { label: "צנרת ואביזרים (פלדה, נירוסטה)", amount: 1_800_000, rowCount: 56 },
+        { label: "ציוד דלק (מגופים, אקדחים, מדים)", amount: 700_000, rowCount: 18 },
+        { label: "יבוא (PLIDCO ועוד)", amount: 400_000, rowCount: 10 },
+        { label: "חומרים שונים", amount: 300_000, rowCount: 15 },
+      ],
+    },
+    {
+      id: "subcontractors",
+      label: "קבלני משנה",
+      icon: "👷",
+      color: "orange",
+      amount: 2_000_000,
+      children: [
+        { label: "קבלן עבודות עפר א'", amount: 1_115_352, rowCount: 5, note: "חוזה מלא הושלם" },
+        { label: "קבלן מסגרות וריתוך ב'", amount: 700_000, rowCount: 4 },
+        { label: "קבלן צביעה ומיגון ג'", amount: 111_050, rowCount: 6 },
+        { label: "קבלן בקרה ד' (קומישנינג)", amount: 73_598, rowCount: 2 },
+      ],
+    },
+    {
+      id: "salary",
+      label: "תקורות - שכר עובדים",
+      icon: "👨‍💼",
+      color: "purple",
+      amount: 600_000,
+      children: [
+        { label: "עובד 1 (אביחי - מנהל פרויקט)", amount: 200_000, rowCount: 18 },
+        { label: "עובד 2 (מהנדס פיקוח שדה)", amount: 180_000, rowCount: 16 },
+        { label: "עובד 3 (מהנדס תכנון)", amount: 150_000, rowCount: 15 },
+        { label: "עובד 4 (אדמיניסטרציה)", amount: 70_000, rowCount: 11, note: "החזר מילואים: -₪8,500" },
+      ],
+    },
+    {
+      id: "vehicle",
+      label: "תקורות - רכב",
+      icon: "🚗",
+      color: "amber",
+      amount: 90_000,
+      children: [
+        { label: "ליסינג רכבים (אלבר)", amount: 50_000, rowCount: 14, note: "לא ניתן להפריד פר רכב" },
+        { label: "דלק (סונול + דלק)", amount: 35_000, rowCount: 30, note: "לא ניתן להפריד פר עובד" },
+        { label: "אחזקה ותיקונים", amount: 5_000, rowCount: 2 },
+      ],
+    },
+    {
+      id: "overhead-other",
+      label: "תקורות - אחר",
+      icon: "🍽️",
+      color: "slate",
+      amount: 49_320,
+      children: [
+        { label: "ארוחות עובדים (סיבוס)", amount: 25_000, rowCount: 10 },
+        { label: "לינה לעובדים", amount: 15_000, rowCount: 5 },
+        { label: "אחזקת כלי צמ\"ה", amount: 9_320, rowCount: 23 },
+      ],
+    },
+  ],
+  "2288": [
+    {
+      id: "engineering",
+      label: "תכנון הנדסי",
+      icon: "📐",
+      color: "blue",
+      amount: 285_000,
+    },
+    {
+      id: "materials",
+      label: "חומרים",
+      icon: "📦",
+      color: "orange",
+      amount: 480_000,
+    },
+    {
+      id: "subs",
+      label: "קבלני משנה",
+      icon: "👷",
+      color: "purple",
+      amount: 280_000,
+    },
+    {
+      id: "overhead",
+      label: "תקורות",
+      icon: "💼",
+      color: "slate",
+      amount: 75_000,
+    },
+  ],
+  "2306": [
+    {
+      id: "materials",
+      label: "חומרים (מיכלים, צנרת)",
+      icon: "📦",
+      color: "blue",
+      amount: 1_850_000,
+    },
+    {
+      id: "subs",
+      label: "קבלני משנה",
+      icon: "👷",
+      color: "orange",
+      amount: 1_290_000,
+    },
+    {
+      id: "safety",
+      label: "ציוד התראה ובטיחות",
+      icon: "🚨",
+      color: "red",
+      amount: 520_000,
+    },
+    {
+      id: "overhead",
+      label: "תקורות",
+      icon: "💼",
+      color: "slate",
+      amount: 320_000,
+    },
+  ],
+};
+
+// Top suppliers — מסונן פר פרויקט.
+// השמות אנונימיים (גנריים), הסכומים מצרפיים על-סמך הניתוח.
+export const topSuppliersByProject: Record<string, TopSupplier[]> = {
+  "2253": [
+    { name: "ספק צנרת ראשי", totalAmount: 1_650_000, txCount: 23, category: "חומרים" },
+    { name: "קבלן עבודות עפר א'", totalAmount: 1_115_352, txCount: 5, category: "קבלני משנה" },
+    { name: "קבלן מסגרות ב'", totalAmount: 700_000, txCount: 4, category: "קבלני משנה" },
+    { name: "ספק ציוד דלק יבוא", totalAmount: 520_000, txCount: 18, category: "חומרים" },
+    { name: "ספק מתכות וברזל", totalAmount: 380_000, txCount: 10, category: "חומרים" },
+    { name: "ספק שילוח בינלאומי", totalAmount: 215_000, txCount: 9, category: "חומרים" },
+    { name: "ספק רכב (ליסינג)", totalAmount: 50_000, txCount: 14, category: "תקורות - רכב" },
+    { name: "ספק דלק לרכבים", totalAmount: 35_000, txCount: 30, category: "תקורות - רכב" },
+    { name: "ספק ארוחות (סיבוס)", totalAmount: 25_000, txCount: 10, category: "תקורות - אחר" },
+  ],
+  "2288": [],
+  "2306": [],
+};
+
+export function getExpenseCategoryTree(projectId: string): ExpenseCategoryNode[] {
+  return expenseCategoryTreeByProject[projectId] ?? [];
+}
+
+export function getTopSuppliers(projectId: string): TopSupplier[] {
+  return topSuppliersByProject[projectId] ?? [];
+}
 
 export const monthlyCashflowByProject: Record<string, number[]> = {
   "2253": [814_350, 429_287, 5_012_907, 1_598_289, 1_733_681],
