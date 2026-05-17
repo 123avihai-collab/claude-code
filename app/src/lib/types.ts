@@ -66,3 +66,39 @@ export type ExpenseCategory = {
   label: string;
   amount: number;
 };
+
+export type PoRamdorStatus =
+  | "closed"
+  | "partial"
+  | "shipped"
+  | "approved"
+  | "draft"
+  | "cancelled";
+
+export type PoUserStatus =
+  | "pending"
+  | "verified_closed"
+  | "awaiting_invoice"
+  | "cancelled_unused"
+  | "partial_complete"
+  | "invoice_pending_approval"
+  | "invoice_rejected"
+  | "needs_review";
+
+export type PurchaseOrder = {
+  id: string;
+  projectId: string;
+  poNumber: string;
+  supplierName: string;
+  itemSummary: string;
+  totalAmount: number;
+  currency: "ILS" | "USD" | "EUR";
+  outstandingValue: number;
+  orderDate: string;
+  expectedDeliveryDate: string;
+  ramdorStatus: PoRamdorStatus;
+  userStatus: PoUserStatus;
+  userStatusReason?: string;
+  isLongLeadItem?: boolean;
+  daysOpen: number;
+};

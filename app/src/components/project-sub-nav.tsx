@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { id: "overview", label: "סקירה", icon: "🏠", path: "" },
   { id: "finance", label: "פיננסי", icon: "💰", path: "/finance" },
+  { id: "po", label: "הזמנות רכש", icon: "📦", path: "/purchase-orders" },
   { id: "tasks", label: "משימות", icon: "📋", path: "/tasks" },
   { id: "contractors", label: "קבלנים וספקים", icon: "👷", path: "/contractors" },
   { id: "documents", label: "חוזים ומסמכים", icon: "📁", path: "/documents" },
