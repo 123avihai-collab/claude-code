@@ -17,8 +17,9 @@ export default async function ProjectFinancePage({
   const project = getProject(id);
   if (!project) notFound();
 
-  const pct = Math.round((project.actualSpent / project.budget) * 100);
-  const remaining = project.budget - project.actualSpent;
+  const pct = Math.round((project.actualSpent / project.revenue) * 100);
+  const profit = project.revenue - project.actualSpent;
+  const profitMargin = Math.round((profit / project.revenue) * 100);
   const categories = expenseCategoriesByProject[project.id] ?? [];
   const totalCategorized = categories.reduce((s, c) => s + c.amount, 0);
   const projectTransactions = transactions.filter((t) => t.projectId === project.id);
@@ -33,20 +34,22 @@ export default async function ProjectFinancePage({
     <>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-blue-600">
-          <p className="text-slate-500 text-sm">תקציב</p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(project.budget, true)}</p>
-          <p className="text-xs text-slate-400 mt-2">לפי כתב כמויות</p>
+          <p className="text-slate-500 text-sm">הכנסות מהחוזה</p>
+          <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(project.revenue, true)}</p>
+          <p className="text-xs text-slate-400 mt-2">מצטבר עד היום</p>
         </div>
         <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-orange-500">
-          <p className="text-slate-500 text-sm">הוצא</p>
+          <p className="text-slate-500 text-sm">הוצאות בפועל</p>
           <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(project.actualSpent, true)}</p>
-          <p className="text-xs text-orange-600 mt-2">{formatPercent(pct)} מהתקציב</p>
+          <p className="text-xs text-orange-600 mt-2">{formatPercent(pct)} מההכנסות</p>
         </div>
-        <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-green-600">
-          <p className="text-slate-500 text-sm">יתרה זמינה</p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(remaining, true)}</p>
-          <p className="text-xs text-green-600 mt-2">
-            {remaining > 0 ? "✓ בתוך התקציב" : "⚠ חריגה"}
+        <div className={`card-hover bg-white rounded-2xl p-5 border-r-4 ${profit >= 0 ? "border-green-600" : "border-red-600"}`}>
+          <p className="text-slate-500 text-sm">רווח גולמי</p>
+          <p className={`text-2xl font-bold mt-1 ${profit >= 0 ? "text-green-700" : "text-red-700"}`}>
+            {profit >= 0 ? "+" : ""}{formatCurrency(profit, true)}
+          </p>
+          <p className={`text-xs mt-2 ${profit >= 0 ? "text-green-600" : "text-red-600"}`}>
+            {profit >= 0 ? `✓ רווחיות ${profitMargin}%` : `⚠ הפסד ${Math.abs(profitMargin)}%`}
           </p>
         </div>
         <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-emerald-500">
@@ -55,13 +58,13 @@ export default async function ProjectFinancePage({
             {totalIncome - totalExpense >= 0 ? "+" : ""}
             {formatCurrency(totalIncome - totalExpense, true)}
           </p>
-          <p className="text-xs text-slate-400 mt-2">הכנסות פחות הוצאות</p>
+          <p className="text-xs text-slate-400 mt-2">תקבולים פחות תשלומים</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <div className="card-hover bg-white rounded-2xl p-5 lg:col-span-2">
-          <h3 className="font-bold text-slate-800 mb-4">תזרים מצטבר - תקציב מול בפועל</h3>
+          <h3 className="font-bold text-slate-800 mb-4">תזרים מצטבר - הכנסות מול הוצאות</h3>
           <ProjectCashflowChart />
         </div>
         <div className="card-hover bg-white rounded-2xl p-5">
@@ -82,16 +85,14 @@ export default async function ProjectFinancePage({
             <tr>
               <th className="p-3 text-right font-medium text-slate-600">קטגוריה</th>
               <th className="p-3 text-right font-medium text-slate-600">סכום</th>
-              <th className="p-3 text-right font-medium text-slate-600">% מסה"כ</th>
-              <th className="p-3 text-right font-medium text-slate-600">תקציב</th>
-              <th className="p-3 text-right font-medium text-slate-600">סטטוס</th>
+              <th className="p-3 text-right font-medium text-slate-600">% מסה"כ ההוצאות</th>
+              <th className="p-3 text-right font-medium text-slate-600">% מההכנסות</th>
             </tr>
           </thead>
           <tbody>
             {categories.map((c) => {
               const share = (c.amount / totalCategorized) * 100;
-              const allocatedBudget = (c.amount / totalCategorized) * project.budget;
-              const overshoot = c.amount > allocatedBudget * 1.05;
+              const shareOfRevenue = (c.amount / project.revenue) * 100;
               return (
                 <tr key={c.label} className="border-b hover:bg-slate-50">
                   <td className="p-3 font-medium">{c.label}</td>
@@ -107,27 +108,17 @@ export default async function ProjectFinancePage({
                       </div>
                     </div>
                   </td>
-                  <td className="p-3 text-slate-600">{formatCurrency(allocatedBudget)}</td>
-                  <td className="p-3">
-                    {overshoot ? (
-                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                        ⚠ חריגה
-                      </span>
-                    ) : (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                        ✓ תקין
-                      </span>
-                    )}
-                  </td>
+                  <td className="p-3 text-slate-500">{shareOfRevenue.toFixed(1)}%</td>
                 </tr>
               );
             })}
             <tr className="bg-slate-100 font-bold">
-              <td className="p-3">סה&quot;כ</td>
+              <td className="p-3">סה&quot;כ הוצאות</td>
               <td className="p-3 text-orange-600">{formatCurrency(totalCategorized)}</td>
               <td className="p-3">100%</td>
-              <td className="p-3">{formatCurrency(project.budget)}</td>
-              <td className="p-3"></td>
+              <td className="p-3 text-slate-700">
+                {((totalCategorized / project.revenue) * 100).toFixed(1)}%
+              </td>
             </tr>
           </tbody>
         </table>

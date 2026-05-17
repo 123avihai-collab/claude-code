@@ -32,7 +32,9 @@ const quickActions = [
 ];
 
 export default function HomePage() {
-  const totalBudget = projects.reduce((s, p) => s + p.budget, 0);
+  const totalRevenue = projects.reduce((s, p) => s + p.revenue, 0);
+  const totalSpent = projects.reduce((s, p) => s + p.actualSpent, 0);
+  const totalProfit = totalRevenue - totalSpent;
   const upcomingTasks = tasks.filter((t) => !t.done).slice(0, 5);
   const urgentAlerts = alerts.slice(0, 4);
 
@@ -61,8 +63,8 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="card-hover bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl p-5">
-            <p className="text-blue-100 text-sm">סך תקציב פעיל</p>
-            <p className="text-2xl font-bold mt-1">{formatCurrency(totalBudget, true)}</p>
+            <p className="text-blue-100 text-sm">סך הכנסות (מצטבר)</p>
+            <p className="text-2xl font-bold mt-1">{formatCurrency(totalRevenue, true)}</p>
             <p className="text-xs text-blue-100 mt-2">על-פני {projects.length} פרויקטים</p>
           </div>
           <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-orange-500">
@@ -150,7 +152,7 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {projects.map((p) => {
-            const pct = Math.round((p.actualSpent / p.budget) * 100);
+            const pct = Math.round((p.actualSpent / p.revenue) * 100);
             const badge = statusBadgeMap[p.status];
             return (
               <Link
@@ -172,8 +174,8 @@ export default function HomePage() {
                 </div>
                 <div className="space-y-2 mt-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">תקציב</span>
-                    <span className="font-bold">{formatCurrency(p.budget, true)}</span>
+                    <span className="text-slate-500">הכנסות</span>
+                    <span className="font-bold">{formatCurrency(p.revenue, true)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-500">הוצא</span>

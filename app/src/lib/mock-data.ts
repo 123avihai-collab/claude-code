@@ -18,7 +18,7 @@ export const projects: Project[] = [
     icon: "⛽",
     status: "active",
     startDate: "11/2024",
-    budget: 10_033_697,
+    revenue: 10_033_697,
     actualSpent: 5_939_320,
     progressPercent: 78,
     urgentCount: 2,
@@ -32,7 +32,7 @@ export const projects: Project[] = [
     icon: "🏭",
     status: "active",
     startDate: "02/2026",
-    budget: 7_500_000,
+    revenue: 7_500_000,
     actualSpent: 1_120_000,
     progressPercent: 14,
     urgentCount: 1,
@@ -46,7 +46,7 @@ export const projects: Project[] = [
     icon: "🛢️",
     status: "almost-done",
     startDate: "06/2024",
-    budget: 4_200_000,
+    revenue: 4_200_000,
     actualSpent: 3_980_000,
     progressPercent: 94,
     urgentCount: 0,
@@ -387,8 +387,9 @@ export function totalsAcrossProjects(filter: ProjectStatus | "all" = "active") {
       ? projects
       : projects.filter((p) => p.status === filter || (filter === "active" && p.status === "almost-done"));
   return {
-    totalBudget: filtered.reduce((s, p) => s + p.budget, 0),
+    totalRevenue: filtered.reduce((s, p) => s + p.revenue, 0),
     totalSpent: filtered.reduce((s, p) => s + p.actualSpent, 0),
+    totalProfit: filtered.reduce((s, p) => s + (p.revenue - p.actualSpent), 0),
     count: filtered.length,
   };
 }

@@ -7,8 +7,8 @@ export type Project = {
   icon: string;
   status: ProjectStatus;
   startDate: string;
-  budget: number;
-  actualSpent: number;
+  revenue: number;       // הכנסות מהחוזה (מצטבר עד היום)
+  actualSpent: number;   // הוצאות בפועל
   progressPercent: number;
   urgentCount: number;
   tasksCount: number;

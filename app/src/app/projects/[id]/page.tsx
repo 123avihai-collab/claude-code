@@ -35,8 +35,9 @@ export default async function ProjectOverviewPage({
   const project = getProject(id);
   if (!project) notFound();
 
-  const pct = Math.round((project.actualSpent / project.budget) * 100);
-  const remaining = project.budget - project.actualSpent;
+  const pct = Math.round((project.actualSpent / project.revenue) * 100);
+  const profit = project.revenue - project.actualSpent;
+  const profitMargin = Math.round((profit / project.revenue) * 100);
   const projectContractors = contractors.filter((c) => c.projectId === project.id);
   const projectTasks = tasks.filter((t) => t.projectId === project.id);
   const projectTransactions = transactions.filter((t) => t.projectId === project.id);
@@ -50,12 +51,12 @@ export default async function ProjectOverviewPage({
         <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-blue-600">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-sm">תקציב כולל</p>
-              <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(project.budget)}</p>
+              <p className="text-slate-500 text-sm">הכנסות מהחוזה</p>
+              <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(project.revenue)}</p>
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">💰</div>
           </div>
-          <p className="text-xs text-slate-400 mt-2">לפי כתב כמויות מאושר</p>
+          <p className="text-xs text-slate-400 mt-2">מצטבר עד היום (7 חשבונות חלקיים)</p>
         </div>
         <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-orange-500">
           <div className="flex justify-between items-start">
@@ -73,18 +74,22 @@ export default async function ProjectOverviewPage({
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-xs text-slate-400 mt-1">{formatPercent(pct)} מהתקציב</p>
+          <p className="text-xs text-slate-400 mt-1">{formatPercent(pct)} מההכנסות</p>
         </div>
-        <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-green-600">
+        <div className={`card-hover bg-white rounded-2xl p-5 border-r-4 ${profit >= 0 ? "border-green-600" : "border-red-600"}`}>
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-sm">יתרה זמינה</p>
-              <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(remaining)}</p>
+              <p className="text-slate-500 text-sm">רווח גולמי</p>
+              <p className={`text-2xl font-bold mt-1 ${profit >= 0 ? "text-green-700" : "text-red-700"}`}>
+                {formatCurrency(profit)}
+              </p>
             </div>
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">🏦</div>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${profit >= 0 ? "bg-green-100" : "bg-red-100"}`}>
+              {profit >= 0 ? "📈" : "📉"}
+            </div>
           </div>
-          <p className="text-xs text-green-600 mt-2">
-            {remaining > 0 ? "✓ בתוך התקציב" : "⚠ חריגה מתקציב"}
+          <p className={`text-xs mt-2 ${profit >= 0 ? "text-green-600" : "text-red-600"}`}>
+            {profit >= 0 ? `✓ רווחיות ${profitMargin}%` : `⚠ הפסד ${Math.abs(profitMargin)}%`}
           </p>
         </div>
         <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-purple-600">
@@ -107,7 +112,7 @@ export default async function ProjectOverviewPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <div className="card-hover bg-white rounded-2xl p-5 lg:col-span-2">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800">תזרים מצטבר - תקציב מול בפועל</h3>
+            <h3 className="font-bold text-slate-800">תזרים מצטבר - הכנסות מול הוצאות</h3>
             <Link href={`/projects/${project.id}/finance`} className="text-xs text-blue-600 hover:underline">
               לפיננסי המלא ←
             </Link>
