@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const tabs = [
   { id: "overview", label: "סקירה", icon: "🏠", path: "" },
-  { id: "finance", label: "פיננסי", icon: "💰", path: "/finance" },
+  { id: "expenses", label: "הוצאות", icon: "💸", path: "/finance" },
   { id: "bills", label: "חשבונות חלקיים", icon: "🧾", path: "/partial-bills" },
   { id: "po", label: "הזמנות רכש", icon: "📦", path: "/purchase-orders" },
   { id: "tasks", label: "משימות", icon: "📋", path: "/tasks" },

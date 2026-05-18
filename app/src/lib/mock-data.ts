@@ -258,9 +258,7 @@ export const expenseCategoriesByProject: Record<string, ExpenseCategory[]> = {
   "2253": [
     { label: "חומרים", amount: 3_200_000 },
     { label: "קבלני משנה", amount: 2_000_000 },
-    { label: "תקורות - שכר", amount: 600_000 },
-    { label: "תקורות - רכב", amount: 90_000 },
-    { label: "תקורות - אחר", amount: 49_320 },
+    { label: "תקורות", amount: 739_320 },
   ],
   "2288": [
     { label: "תכנון הנדסי", amount: 285_000 },
@@ -276,8 +274,9 @@ export const expenseCategoriesByProject: Record<string, ExpenseCategory[]> = {
   ],
 };
 
-// היררכיה מלאה — אב + ילדים.
+// היררכיה מלאה — אב + ילדים. שמות ספקים אמיתיים מ-Priority.
 // סך כל ה-amount של הצמתים העליונים = project.actualSpent.
+// תקורות מאוחדות לקטגוריה אחת עם 3 תת-קטגוריות.
 export const expenseCategoryTreeByProject: Record<string, ExpenseCategoryNode[]> = {
   "2253": [
     {
@@ -287,10 +286,20 @@ export const expenseCategoryTreeByProject: Record<string, ExpenseCategoryNode[]>
       color: "blue",
       amount: 3_200_000,
       children: [
-        { label: "צנרת ואביזרים (פלדה, נירוסטה)", amount: 1_800_000, rowCount: 56 },
-        { label: "ציוד דלק (מגופים, אקדחים, מדים)", amount: 700_000, rowCount: 18 },
-        { label: "יבוא (PLIDCO ועוד)", amount: 400_000, rowCount: 10 },
-        { label: "חומרים שונים", amount: 300_000, rowCount: 15 },
+        { label: "מנדלסון תשתיות ותעשיות בע\"מ", amount: 1_550_000, rowCount: 23, note: "ספק עיקרי - צנרת ואביזרים" },
+        { label: "PLIDCO THE PIPE LINE DEVE (יבוא)", amount: 380_000, rowCount: 8, note: "יבוא ישיר" },
+        { label: "אל.בי.אל טריידינג בע\"מ", amount: 280_000, rowCount: 9 },
+        { label: "קבוצת סקופ מתכות בע\"מ", amount: 245_000, rowCount: 10 },
+        { label: "יחדיו שילוח בינלאומי ועמילות מכס", amount: 215_000, rowCount: 9 },
+        { label: "ניטטק בע\"מ", amount: 180_000, rowCount: 5 },
+        { label: "ג.ברקוביץ ייבוא וסחר בע\"מ", amount: 130_000, rowCount: 7 },
+        { label: "ליר הנדסה ומסחר בע\"מ", amount: 95_000, rowCount: 4 },
+        { label: "שב-טל בע\"מ", amount: 50_000, rowCount: 4 },
+        { label: "פקר פלדות וגילוון בע\"מ", amount: 32_000, rowCount: 3 },
+        { label: "עמידן ענתות בע\"מ", amount: 18_000, rowCount: 2 },
+        { label: "מסגריית שטיל נאמן בע\"מ", amount: 12_000, rowCount: 2 },
+        { label: "ג.ש.נדיר שיווק בע\"מ", amount: 8_000, rowCount: 1 },
+        { label: "ספקים נוספים", amount: 5_000, rowCount: 3 },
       ],
     },
     {
@@ -300,47 +309,34 @@ export const expenseCategoryTreeByProject: Record<string, ExpenseCategoryNode[]>
       color: "orange",
       amount: 2_000_000,
       children: [
-        { label: "קבלן עבודות עפר א'", amount: 1_115_352, rowCount: 5, note: "חוזה מלא הושלם" },
-        { label: "קבלן מסגרות וריתוך ב'", amount: 700_000, rowCount: 4 },
-        { label: "קבלן צביעה ומיגון ג'", amount: 111_050, rowCount: 6 },
-        { label: "קבלן בקרה ד' (קומישנינג)", amount: 73_598, rowCount: 2 },
+        { label: "ימית צורית פיתוח וכבישים בע\"מ", amount: 1_115_352, rowCount: 6, note: "עבודות עפר וכבישים - חוזה הושלם" },
+        { label: "ע.ח עבודות מסגרות + לינת עובדים", amount: 948_790, rowCount: 5, note: "מסגרות וריתוך" },
+        { label: "טכנובר בע\"מ", amount: 45_000, rowCount: 6, note: "השכרת ציוד וכלים" },
+        { label: "קבלני משנה קטנים", amount: -109_142, rowCount: 4, note: "כולל קיזוזים/החזרים" },
       ],
     },
     {
-      id: "salary",
-      label: "תקורות - שכר עובדים",
-      icon: "👨‍💼",
+      id: "overheads",
+      label: "תקורות (שכר + רכב + אחר)",
+      icon: "💼",
       color: "purple",
-      amount: 600_000,
+      amount: 739_320,
       children: [
-        { label: "עובד 1 (אביחי - מנהל פרויקט)", amount: 200_000, rowCount: 18 },
-        { label: "עובד 2 (מהנדס פיקוח שדה)", amount: 180_000, rowCount: 16 },
-        { label: "עובד 3 (מהנדס תכנון)", amount: 150_000, rowCount: 15 },
-        { label: "עובד 4 (אדמיניסטרציה)", amount: 70_000, rowCount: 11, note: "החזר מילואים: -₪8,500" },
-      ],
-    },
-    {
-      id: "vehicle",
-      label: "תקורות - רכב",
-      icon: "🚗",
-      color: "amber",
-      amount: 90_000,
-      children: [
-        { label: "ליסינג רכבים (אלבר)", amount: 50_000, rowCount: 14, note: "לא ניתן להפריד פר רכב" },
-        { label: "דלק (סונול + דלק)", amount: 35_000, rowCount: 30, note: "לא ניתן להפריד פר עובד" },
-        { label: "אחזקה ותיקונים", amount: 5_000, rowCount: 2 },
-      ],
-    },
-    {
-      id: "overhead-other",
-      label: "תקורות - אחר",
-      icon: "🍽️",
-      color: "slate",
-      amount: 49_320,
-      children: [
-        { label: "ארוחות עובדים (סיבוס)", amount: 25_000, rowCount: 10 },
-        { label: "לינה לעובדים", amount: 15_000, rowCount: 5 },
-        { label: "אחזקת כלי צמ\"ה", amount: 9_320, rowCount: 23 },
+        // === שכר (600K) ===
+        { label: "👨‍💼 שכר - עובד 1511", amount: 195_000, rowCount: 18, note: "שכר ריכוז" },
+        { label: "👨‍💼 שכר - עובד 2385", amount: 175_000, rowCount: 16, note: "שכר ריכוז + הנהלה" },
+        { label: "👨‍💼 שכר - עובד 9593", amount: 145_000, rowCount: 15, note: "שכר ריכוז" },
+        { label: "👨‍💼 שכר - עובד 6197", amount: 85_000, rowCount: 11, note: "החזר מילואים: -₪8,500" },
+        // === רכב (90K) ===
+        { label: "🚗 אלבר ציי רכב - ליסינג", amount: 50_000, rowCount: 14, note: "לא ניתן להפריד פר רכב" },
+        { label: "🚗 סונול ישראל - דלק", amount: 18_000, rowCount: 15, note: "לא ניתן להפריד פר עובד" },
+        { label: "🚗 דלק חברת הדלק הישראלית", amount: 14_000, rowCount: 15, note: "לא ניתן להפריד פר עובד" },
+        { label: "🚗 איתוראן איתור ושליטה", amount: 4_500, rowCount: 19, note: "מערכת איתור לרכבים" },
+        { label: "🚗 דרך ארץ הייווייז - אגרות", amount: 3_500, rowCount: 19 },
+        // === אחר (49K) ===
+        { label: "🍽️ פלאקסי ישראל - סיבוס", amount: 25_000, rowCount: 10, note: "ארוחות עובדים" },
+        { label: "🛏️ לינת עובדים", amount: 15_000, rowCount: 5 },
+        { label: "🔧 אחזקת כלי צמ\"ה ומשאיות", amount: 9_320, rowCount: 23 },
       ],
     },
   ],
@@ -406,19 +402,20 @@ export const expenseCategoryTreeByProject: Record<string, ExpenseCategoryNode[]>
   ],
 };
 
-// Top suppliers — מסונן פר פרויקט.
-// השמות אנונימיים (גנריים), הסכומים מצרפיים על-סמך הניתוח.
+// Top suppliers — שמות אמיתיים מ-Priority cashflow report (פר פרויקט).
 export const topSuppliersByProject: Record<string, TopSupplier[]> = {
   "2253": [
-    { name: "ספק צנרת ראשי", totalAmount: 1_650_000, txCount: 23, category: "חומרים" },
-    { name: "קבלן עבודות עפר א'", totalAmount: 1_115_352, txCount: 5, category: "קבלני משנה" },
-    { name: "קבלן מסגרות ב'", totalAmount: 700_000, txCount: 4, category: "קבלני משנה" },
-    { name: "ספק ציוד דלק יבוא", totalAmount: 520_000, txCount: 18, category: "חומרים" },
-    { name: "ספק מתכות וברזל", totalAmount: 380_000, txCount: 10, category: "חומרים" },
-    { name: "ספק שילוח בינלאומי", totalAmount: 215_000, txCount: 9, category: "חומרים" },
-    { name: "ספק רכב (ליסינג)", totalAmount: 50_000, txCount: 14, category: "תקורות - רכב" },
-    { name: "ספק דלק לרכבים", totalAmount: 35_000, txCount: 30, category: "תקורות - רכב" },
-    { name: "ספק ארוחות (סיבוס)", totalAmount: 25_000, txCount: 10, category: "תקורות - אחר" },
+    { name: "מנדלסון תשתיות ותעשיות בע\"מ", totalAmount: 1_550_000, txCount: 23, category: "חומרים" },
+    { name: "ימית צורית פיתוח וכבישים בע\"מ", totalAmount: 1_115_352, txCount: 6, category: "קבלני משנה" },
+    { name: "ע.ח עבודות מסגרות", totalAmount: 948_790, txCount: 5, category: "קבלני משנה" },
+    { name: "PLIDCO THE PIPE LINE DEVE", totalAmount: 380_000, txCount: 8, category: "חומרים (יבוא)" },
+    { name: "אל.בי.אל טריידינג בע\"מ", totalAmount: 280_000, txCount: 9, category: "חומרים" },
+    { name: "קבוצת סקופ מתכות בע\"מ", totalAmount: 245_000, txCount: 10, category: "חומרים" },
+    { name: "יחדיו שילוח בינלאומי ועמילות מכס", totalAmount: 215_000, txCount: 9, category: "חומרים (שילוח)" },
+    { name: "ניטטק בע\"מ", totalAmount: 180_000, txCount: 5, category: "חומרים" },
+    { name: "ג.ברקוביץ ייבוא וסחר בע\"מ", totalAmount: 130_000, txCount: 7, category: "חומרים" },
+    { name: "אלבר ציי רכב(ר.צ) בע\"מ", totalAmount: 50_000, txCount: 14, category: "תקורות - רכב" },
+    { name: "פלאקסי ישראל בע\"מ", totalAmount: 25_000, txCount: 10, category: "תקורות - סיבוס" },
   ],
   "2288": [],
   "2306": [],

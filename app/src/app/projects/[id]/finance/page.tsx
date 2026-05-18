@@ -86,10 +86,10 @@ export default async function ProjectFinancePage({
         </div>
       </div>
 
-      {/* Hierarchical expense breakdown */}
+      {/* Hierarchical expense breakdown — top-level cards clickable */}
       <div className="card-hover bg-white rounded-2xl p-5 mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-slate-800">פירוט הוצאות היררכי</h3>
+          <h3 className="font-bold text-slate-800">פירוט הוצאות לפי קטגוריה</h3>
           <button className="text-xs bg-[#1F3864] text-white px-3 py-2 rounded-lg hover:bg-[#2F5597]">
             + הוצאה חדשה
           </button>
@@ -111,7 +111,7 @@ export default async function ProjectFinancePage({
                     <div>
                       <h4 className={`font-bold ${c.text}`}>{cat.label}</h4>
                       <p className="text-xs text-slate-500">
-                        {sharePct.toFixed(1)}% מההוצאות · {revenueShare.toFixed(1)}% מההכנסות
+                        {sharePct.toFixed(1)}% מההוצאות · {revenueShare.toFixed(1)}% מההכנסות · {cat.children?.length ?? 0} פריטים
                       </p>
                     </div>
                   </div>
