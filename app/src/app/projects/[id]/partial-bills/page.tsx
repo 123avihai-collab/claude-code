@@ -202,7 +202,7 @@ export default async function PartialBillsPage({
           bills={bills}
           projectRevenue={project.revenue}
           totalBeforeVat={totalBeforeVat}
-          totalWithVat={totalWithVat}
+          totalWithVat={totalBeforeVat * 1.18}
         />
       </div>
 
