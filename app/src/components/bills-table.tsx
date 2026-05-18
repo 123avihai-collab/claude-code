@@ -266,14 +266,30 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
                   <td className="p-2 text-left text-slate-500">
                     {isNote ? "—" : fmtQty(item.previousCumulativeQty)}
                   </td>
-                  <td className={`p-2 text-left font-bold bg-blue-50/50 ${isReduction ? "text-red-700" : "text-slate-800"}`}>
-                    {isNote ? "—" : fmtQty(item.currentBillQty)}
+                  <td className={`p-2 text-left font-bold bg-blue-50/50 ${item.currentBillQty < -0.001 ? "text-red-700" : "text-slate-800"}`}>
+                    {isNote ? "—" : (
+                      item.currentBillQty < -0.001 ? (
+                        <span title="כמות הוקטנה ע&quot;י המפקח (rollback)">
+                          ↩ {fmtQty(item.currentBillQty)}
+                        </span>
+                      ) : (
+                        fmtQty(item.currentBillQty)
+                      )
+                    )}
                   </td>
                   <td className="p-2 text-left text-slate-700">
                     {isNote ? "—" : fmtQty(item.cumulativeQtyAfter)}
                   </td>
-                  <td className={`p-2 text-left font-bold bg-blue-50/50 whitespace-nowrap ${isReduction ? "text-red-700" : "text-blue-800"}`}>
-                    {isNote ? "—" : formatCurrency(item.currentBillAmount)}
+                  <td className={`p-2 text-left font-bold bg-blue-50/50 whitespace-nowrap ${item.currentBillAmount < -0.5 ? "text-red-700" : "text-blue-800"}`}>
+                    {isNote ? "—" : (
+                      item.currentBillAmount < -0.5 ? (
+                        <span title="סכום קוזז ע&quot;י המפקח">
+                          ↩ {formatCurrency(item.currentBillAmount)}
+                        </span>
+                      ) : (
+                        formatCurrency(item.currentBillAmount)
+                      )
+                    )}
                   </td>
                   <td className="p-2 text-left text-slate-700 whitespace-nowrap">
                     {isNote ? "—" : (
