@@ -47,7 +47,18 @@ export default async function ProjectOverviewPage({
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
+        <div className="card-hover bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-2xl p-5 border-r-4 border-slate-800">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-slate-300 text-sm">היקף החוזה</p>
+              <p className="text-2xl font-bold text-white mt-1">{formatCurrency(project.contractAmount)}</p>
+            </div>
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">📜</div>
+          </div>
+          <p className="text-xs text-slate-300 mt-2">סך החוזה החתום מול המזמין</p>
+        </div>
+
         <Link
           href={`/projects/${project.id}/partial-bills`}
           className="card-hover bg-white rounded-2xl p-5 border-r-4 border-blue-600 block hover:shadow-lg transition-shadow"
@@ -59,7 +70,15 @@ export default async function ProjectOverviewPage({
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">💰</div>
           </div>
-          <p className="text-xs text-blue-600 mt-2">לחץ לפירוט 7 החשבונות החלקיים ←</p>
+          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3">
+            <div
+              className="bg-blue-500 h-1.5 rounded-full transition-all duration-700"
+              style={{ width: `${Math.round((project.revenue / project.contractAmount) * 100)}%` }}
+            />
+          </div>
+          <p className="text-xs text-blue-600 mt-1">
+            {Math.round((project.revenue / project.contractAmount) * 100)}% מההיקף · לחץ לפירוט ←
+          </p>
         </Link>
 
         <Link

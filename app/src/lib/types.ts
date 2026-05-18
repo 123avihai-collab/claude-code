@@ -7,8 +7,9 @@ export type Project = {
   icon: string;
   status: ProjectStatus;
   startDate: string;
-  revenue: number;       // הכנסות מהחוזה (מצטבר עד היום)
-  actualSpent: number;   // הוצאות בפועל
+  contractAmount: number;   // היקף החוזה הכולל (סכום החוזה החתום)
+  revenue: number;          // הכנסות מצטברות עד היום (מ-7 חשבונות חלקיים)
+  actualSpent: number;      // הוצאות בפועל
   progressPercent: number;
   urgentCount: number;
   tasksCount: number;
@@ -116,12 +117,31 @@ export type PartialBillStatus =
   | "rejected"
   | "overdue";
 
+export type ExceptionStatus =
+  | "approved"            // אושר ע"י המפקח
+  | "pending_inspector"   // ממתין לאישור מפקח
+  | "in_review"           // בבדיקה
+  | "rejected"            // נדחה
+  | "needs_documentation"; // דורש תיעוד נוסף
+
+export type BillException = {
+  id: string;
+  description: string;          // "תוספת פיר עפר נוסף בקטע צפוני"
+  itemCode?: string;            // קוד סעיף בכתב הכמויות (אם רלוונטי)
+  amount: number;               // בש"ח
+  status: ExceptionStatus;
+  inspectorName?: string;
+  inspectorNote?: string;
+  submittedDate?: string;
+  approvedDate?: string;
+};
+
 export type PartialBill = {
   id: string;
   projectId: string;
   billNumber: number;           // 1, 2, 3...
   periodLabel: string;          // "נובמבר 2024"
-  invoiceNumber: string;        // "IV-191"
+  invoiceNumber: string;        // "IV250000191" (מלא)
   invoiceDate: string;
   amountBeforeVat: number;
   vatRate: number;              // 0.18
@@ -131,6 +151,9 @@ export type PartialBill = {
   paidDate?: string;
   status: PartialBillStatus;
   daysOverdue?: number;
+  documentURL?: string;         // קישור להורדה (Drive / OneDrive / Firebase Storage)
+  exceptions?: BillException[]; // חריגים בחשבון זה
+  exceptionsTotal?: number;     // סכום מצטבר של חריגים בחשבון (מחושב)
   notes?: string;
 };
 
