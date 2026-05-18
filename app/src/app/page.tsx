@@ -27,21 +27,21 @@ export default function HomePage() {
   return (
     <AuthGuard>
       <SiteHeader />
-      <main className="container mx-auto px-6 py-6">
+      <main className="container mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">שלום, אביחי 👋</h1>
-            <p className="text-slate-500 text-sm mt-1">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-800">שלום, אביחי 👋</h1>
+            <p className="text-slate-500 text-xs sm:text-sm mt-1">
               יש לך {projects.filter((p) => p.status === "active").length} פרויקטים פעילים ·{" "}
               {tasks.filter((t) => !t.done && (t.urgency === "today" || t.urgency === "tomorrow")).length}{" "}
               משימות דחופות · {alerts.filter((a) => a.type === "critical").length} התראות
             </p>
           </div>
-          <div className="flex gap-2">
-            <button className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm hover:bg-slate-50">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button className="flex-1 sm:flex-initial bg-white border border-slate-200 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm hover:bg-slate-50 whitespace-nowrap">
               📥 ייבא מ-Excel
             </button>
-            <button className="bg-[#1F3864] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#2F5597]">
+            <button className="flex-1 sm:flex-initial bg-[#1F3864] text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm hover:bg-[#2F5597] whitespace-nowrap">
               + פרויקט חדש
             </button>
           </div>

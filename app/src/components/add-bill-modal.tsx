@@ -85,27 +85,27 @@ export function AddBillModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8"
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl sm:my-8 max-h-[95vh] sm:max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-5 border-b">
-          <h2 className="text-lg font-bold text-slate-800">
+        <div className="flex justify-between items-center p-4 sm:p-5 border-b shrink-0">
+          <h2 className="text-base sm:text-lg font-bold text-slate-800">
             ➕ הזנת חשבון חלקי חדש
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 text-xl leading-none"
+            className="text-slate-400 hover:text-slate-700 text-2xl leading-none p-1"
             aria-label="סגור"
           >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 sm:space-y-5 overflow-y-auto">
           {/* Row 1: bill number + period */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -288,11 +288,11 @@ export function AddBillModal({
           </div>
 
           {/* Footer */}
-          <div className="flex justify-between items-center pt-3 border-t">
-            <p className="text-xs text-slate-500">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-3 border-t">
+            <p className="text-[11px] sm:text-xs text-slate-500">
               💾 נשמר ב-localStorage של הדפדפן · יעבור ל-Firestore בסשן הבא
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 justify-end">
               <button
                 type="button"
                 onClick={onClose}

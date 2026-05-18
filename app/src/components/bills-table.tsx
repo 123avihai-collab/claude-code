@@ -43,55 +43,157 @@ export function BillsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 border-b">
-          <tr>
-            <th className="p-3 text-right font-medium text-slate-600 w-8"></th>
-            <th className="p-3 text-right font-medium text-slate-600">#</th>
-            <th className="p-3 text-right font-medium text-slate-600">תקופה</th>
-            <th className="p-3 text-right font-medium text-slate-600">מס׳ חשבונית</th>
-            <th className="p-3 text-right font-medium text-slate-600">תאריך</th>
-            <th className="p-3 text-right font-medium text-slate-600">לפני מע&quot;מ</th>
-            <th className="p-3 text-right font-medium text-slate-600">כולל מע&quot;מ</th>
-            <th className="p-3 text-right font-medium text-slate-600">מצטבר</th>
-            <th className="p-3 text-right font-medium text-slate-600">פירעון</th>
-            <th className="p-3 text-right font-medium text-slate-600">סטטוס</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bills.map((b) => {
-            const s = statusMap[b.status];
-            const cumPct = (b.cumulativeBeforeVat / projectRevenue) * 100;
-            const isExpanded = expandedId === b.id;
-            const hasItems = b.boqItems && b.boqItems.length > 0;
-            return (
-              <BillRowGroup
-                key={b.id}
-                bill={b}
-                isExpanded={isExpanded}
-                hasItems={!!hasItems}
-                onToggle={() => toggle(b.id)}
-                statusLabel={s}
-                cumPct={cumPct}
-              />
-            );
-          })}
-          <tr className="bg-slate-100 font-bold">
-            <td className="p-3"></td>
-            <td className="p-3" colSpan={4}>
-              סה&quot;כ ({bills.length} חשבונות)
-            </td>
-            <td className="p-3 text-slate-800">{formatCurrency(totalBeforeVat)}</td>
-            <td className="p-3 text-slate-800">{formatCurrency(totalWithVat)}</td>
-            <td className="p-3 text-xs text-slate-600">
+    <>
+      {/* Mobile: card list */}
+      <div className="lg:hidden space-y-2">
+        {bills.map((b) => (
+          <BillMobileCard
+            key={b.id}
+            bill={b}
+            projectRevenue={projectRevenue}
+            isExpanded={expandedId === b.id}
+            onToggle={() => toggle(b.id)}
+          />
+        ))}
+        <div className="bg-slate-100 rounded-lg p-3 font-bold text-sm flex justify-between items-center">
+          <span>סה&quot;כ {bills.length} חשבונות</span>
+          <div className="text-left">
+            <div className="text-slate-800">{formatCurrency(totalBeforeVat)}</div>
+            <div className="text-xs text-slate-500 font-normal">
               {((totalBeforeVat / projectRevenue) * 100).toFixed(0)}% מהחוזה
-            </td>
-            <td className="p-3"></td>
-            <td className="p-3"></td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop: full table */}
+      <div className="hidden lg:block overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b">
+            <tr>
+              <th className="p-3 text-right font-medium text-slate-600 w-8"></th>
+              <th className="p-3 text-right font-medium text-slate-600">#</th>
+              <th className="p-3 text-right font-medium text-slate-600">תקופה</th>
+              <th className="p-3 text-right font-medium text-slate-600">מס׳ חשבונית</th>
+              <th className="p-3 text-right font-medium text-slate-600">תאריך</th>
+              <th className="p-3 text-right font-medium text-slate-600">לפני מע&quot;מ</th>
+              <th className="p-3 text-right font-medium text-slate-600">כולל מע&quot;מ</th>
+              <th className="p-3 text-right font-medium text-slate-600">מצטבר</th>
+              <th className="p-3 text-right font-medium text-slate-600">פירעון</th>
+              <th className="p-3 text-right font-medium text-slate-600">סטטוס</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bills.map((b) => {
+              const s = statusMap[b.status];
+              const cumPct = (b.cumulativeBeforeVat / projectRevenue) * 100;
+              const isExpanded = expandedId === b.id;
+              const hasItems = b.boqItems && b.boqItems.length > 0;
+              return (
+                <BillRowGroup
+                  key={b.id}
+                  bill={b}
+                  isExpanded={isExpanded}
+                  hasItems={!!hasItems}
+                  onToggle={() => toggle(b.id)}
+                  statusLabel={s}
+                  cumPct={cumPct}
+                />
+              );
+            })}
+            <tr className="bg-slate-100 font-bold">
+              <td className="p-3"></td>
+              <td className="p-3" colSpan={4}>
+                סה&quot;כ ({bills.length} חשבונות)
+              </td>
+              <td className="p-3 text-slate-800">{formatCurrency(totalBeforeVat)}</td>
+              <td className="p-3 text-slate-800">{formatCurrency(totalWithVat)}</td>
+              <td className="p-3 text-xs text-slate-600">
+                {((totalBeforeVat / projectRevenue) * 100).toFixed(0)}% מהחוזה
+              </td>
+              <td className="p-3"></td>
+              <td className="p-3"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function BillMobileCard({
+  bill: b,
+  projectRevenue,
+  isExpanded,
+  onToggle,
+}: {
+  bill: PartialBill;
+  projectRevenue: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const s = statusMap[b.status];
+  const cumPct = (b.cumulativeBeforeVat / projectRevenue) * 100;
+  const hasItems = b.boqItems && b.boqItems.length > 0;
+
+  return (
+    <div className="border border-slate-200 rounded-xl overflow-hidden">
+      <button
+        onClick={onToggle}
+        className={`w-full p-3 text-right ${isExpanded ? "bg-blue-50" : "bg-white"} active:bg-slate-50`}
+      >
+        <div className="flex justify-between items-start gap-2 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-lg font-bold text-slate-700 shrink-0">
+              #{b.billNumber}
+            </span>
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-slate-800 truncate">
+                {b.periodLabel}
+              </div>
+              <div className="text-[11px] text-slate-500 font-mono truncate">
+                {b.invoiceNumber}
+              </div>
+            </div>
+          </div>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 ${s.cls}`}>
+            {s.emoji} {s.label}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <div className="text-slate-500">לפני מע&quot;מ</div>
+            <div className="font-bold text-slate-800">{formatCurrency(b.amountBeforeVat)}</div>
+          </div>
+          <div>
+            <div className="text-slate-500">כולל מע&quot;מ</div>
+            <div className="font-bold text-slate-800">{formatCurrency(b.amountWithVat)}</div>
+          </div>
+          <div>
+            <div className="text-slate-500">מצטבר</div>
+            <div className="text-slate-700">
+              {formatCurrency(b.cumulativeBeforeVat)}{" "}
+              <span className="text-slate-400">({cumPct.toFixed(0)}%)</span>
+            </div>
+          </div>
+          <div>
+            <div className="text-slate-500">פירעון</div>
+            <div className="text-slate-700">{b.paymentDueDate || "—"}</div>
+            {b.paidDate && (
+              <div className="text-green-600 text-[10px]">✓ שולם {b.paidDate}</div>
+            )}
+          </div>
+        </div>
+
+        {hasItems && (
+          <div className="mt-2 text-[11px] text-blue-600 flex items-center gap-1">
+            <span>{isExpanded ? "▾" : "◂"}</span>
+            <span>{isExpanded ? "סגור פירוט" : "פתח פירוט סעיפים"}</span>
+          </div>
+        )}
+      </button>
+      {isExpanded && hasItems && <BoqItemsExpansion bill={b} />}
     </div>
   );
 }
@@ -185,18 +287,21 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
   const totalCumulative = items.reduce((s, i) => s + i.cumulativeAmount, 0);
 
   return (
-    <div className="bg-blue-50 border-r-4 border-blue-500 p-4">
+    <div className="bg-blue-50 border-r-4 border-blue-500 p-2 sm:p-4">
       <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
-        <h4 className="font-bold text-blue-900 flex items-center gap-2">
+        <h4 className="font-bold text-blue-900 flex items-center gap-2 text-sm sm:text-base">
           📋 סעיפי כתב כמויות בחשבון {bill.billNumber}
           <span className="text-xs font-normal text-blue-700">
             ({items.length} סעיפים)
           </span>
         </h4>
-        <span className="text-xs text-blue-700">
-          סכום סעיפים: {formatCurrency(totalCurrent)} · מצטבר: {formatCurrency(totalCumulative)}
+        <span className="text-[11px] sm:text-xs text-blue-700">
+          סכום: {formatCurrency(totalCurrent)} · מצטבר: {formatCurrency(totalCumulative)}
         </span>
       </div>
+      <p className="text-[11px] text-blue-600 mb-2 lg:hidden">
+        ← גלול אופקית להצגת כל הנתונים
+      </p>
       <div className="overflow-x-auto bg-white rounded-lg">
         <table className="w-full text-xs">
           <thead className="bg-slate-100 border-b">

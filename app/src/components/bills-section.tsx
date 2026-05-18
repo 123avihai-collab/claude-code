@@ -47,24 +47,24 @@ export function BillsSection({
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 mb-6">
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-        <div>
-          <h3 className="font-bold text-slate-800">
+    <div className="bg-white rounded-2xl p-3 sm:p-5 mb-6">
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-2 sm:gap-3">
+        <div className="min-w-0">
+          <h3 className="font-bold text-slate-800 text-sm sm:text-base flex items-center gap-2 flex-wrap">
             פירוט {allBills.length} החשבונות
             {mounted && localBills.length > 0 && (
-              <span className="mr-2 text-xs font-normal text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-normal text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                 💾 {localBills.length} מקומיים
               </span>
             )}
           </h3>
-          <p className="text-xs text-slate-500 mt-1">
-            לחץ על שורה ▾ להצגת סעיפי כתב הכמויות שנכללו בחשבון
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-1">
+            לחץ על חשבון להצגת סעיפי כתב הכמויות
           </p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="text-xs bg-[#1F3864] text-white px-3 py-2 rounded-lg hover:bg-[#2F5597]"
+          className="text-xs bg-[#1F3864] text-white px-3 py-2 rounded-lg hover:bg-[#2F5597] whitespace-nowrap shrink-0"
         >
           + חשבון חלקי חדש
         </button>

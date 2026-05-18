@@ -244,8 +244,23 @@ function ConsolidatedSummary({
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 overflow-x-auto">
-      <div className="flex items-stretch gap-1 min-w-max">
+    <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 mb-6">
+      {/* Mobile: 2-col grid. Desktop: single horizontal row */}
+      <div className="grid grid-cols-2 gap-2 lg:hidden">
+        {cells.map((cell, idx) => (
+          <div
+            key={idx}
+            className={`px-2 py-2 rounded-lg ${cell.highlight ? "bg-slate-100" : "bg-slate-50/50"}`}
+          >
+            <p className="text-[11px] text-slate-500 truncate">{cell.label}</p>
+            <p className={`text-sm font-bold ${cell.color} mt-0.5 truncate`}>
+              {cell.value < 0 ? "−" : ""}{formatCurrencyExact(Math.abs(cell.value))}
+            </p>
+            {cell.sub && <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{cell.sub}</p>}
+          </div>
+        ))}
+      </div>
+      <div className="hidden lg:flex items-stretch gap-1 overflow-x-auto min-w-0">
         {cells.map((cell, idx) => (
           <div
             key={idx}

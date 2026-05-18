@@ -32,28 +32,28 @@ export default async function ProjectOverviewPage({
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
-        <div className="card-hover bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-2xl p-5 border-r-4 border-slate-800">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 mb-6">
+        <div className="card-hover bg-gradient-to-br from-slate-700 to-slate-900 text-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border-r-4 border-slate-800">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-300 text-sm">היקף החוזה</p>
-              <p className="text-2xl font-bold text-white mt-1">{formatCurrency(project.contractAmount)}</p>
+              <p className="text-base sm:text-2xl font-bold text-white mt-1">{formatCurrency(project.contractAmount)}</p>
             </div>
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">📜</div>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 shrink-0 rounded-lg flex items-center justify-center">📜</div>
           </div>
           <p className="text-xs text-slate-300 mt-2">סך החוזה החתום מול המזמין</p>
         </div>
 
         <Link
           href={`/projects/${project.id}/partial-bills`}
-          className="card-hover bg-white rounded-2xl p-5 border-r-4 border-blue-600 block hover:shadow-lg transition-shadow"
+          className="card-hover bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border-r-4 border-blue-600 block hover:shadow-lg transition-shadow"
         >
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-500 text-sm">הכנסות מהחוזה</p>
-              <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(project.revenue)}</p>
+              <p className="text-base sm:text-2xl font-bold text-slate-800 mt-1">{formatCurrency(project.revenue)}</p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">💰</div>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center">💰</div>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3">
             <div
@@ -68,16 +68,16 @@ export default async function ProjectOverviewPage({
 
         <Link
           href={`/projects/${project.id}/finance`}
-          className="card-hover bg-white rounded-2xl p-5 border-r-4 border-orange-500 block hover:shadow-lg transition-shadow"
+          className="card-hover bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border-r-4 border-orange-500 block hover:shadow-lg transition-shadow"
         >
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-500 text-sm">הוצאות בפועל</p>
-              <p className="text-2xl font-bold text-slate-800 mt-1">
+              <p className="text-base sm:text-2xl font-bold text-slate-800 mt-1">
                 {formatCurrency(project.actualSpent)}
               </p>
             </div>
-            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">💸</div>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center">💸</div>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3">
             <div
@@ -88,15 +88,15 @@ export default async function ProjectOverviewPage({
           <p className="text-xs text-orange-600 mt-1">לחץ לפירוט הוצאות פר קטגוריה ←</p>
         </Link>
 
-        <div className={`card-hover bg-white rounded-2xl p-5 border-r-4 ${profit >= 0 ? "border-green-600" : "border-red-600"}`}>
+        <div className={`card-hover bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border-r-4 ${profit >= 0 ? "border-green-600" : "border-red-600"}`}>
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-500 text-sm">רווח גולמי</p>
-              <p className={`text-2xl font-bold mt-1 ${profit >= 0 ? "text-green-700" : "text-red-700"}`}>
+              <p className={`text-base sm:text-2xl font-bold mt-1 ${profit >= 0 ? "text-green-700" : "text-red-700"}`}>
                 {formatCurrency(profit)}
               </p>
             </div>
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${profit >= 0 ? "bg-green-100" : "bg-red-100"}`}>
+            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${profit >= 0 ? "bg-green-100" : "bg-red-100"}`}>
               {profit >= 0 ? "📈" : "📉"}
             </div>
           </div>
@@ -105,13 +105,13 @@ export default async function ProjectOverviewPage({
           </p>
         </div>
 
-        <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-purple-600">
+        <div className="card-hover bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border-r-4 border-purple-600">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-500 text-sm">התקדמות פיזית</p>
-              <p className="text-2xl font-bold text-slate-800 mt-1">{project.progressPercent}%</p>
+              <p className="text-base sm:text-2xl font-bold text-slate-800 mt-1">{project.progressPercent}%</p>
             </div>
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">📊</div>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg flex items-center justify-center">📊</div>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3">
             <div
