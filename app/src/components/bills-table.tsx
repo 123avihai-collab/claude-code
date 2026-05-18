@@ -298,20 +298,23 @@ function BillCalculationBox({
   bill: PartialBill;
   grossThisBill: number;
 }) {
-  // Use actual data from file if available, otherwise compute from sum of items
-  const gross = bill.grossAmountThisBill ?? grossThisBill;
-  const iaiRetention = bill.iaiCurrentRetention ?? 0;
+  // grossThisBill here is actually the sum of NET item amounts (after IAI retention per-item).
+  // The "gross before IAI" must come from the bill's grossAmountThisBill field.
+  const sumItemsNet = grossThisBill;  // already net of per-item IAI retention
+  const grossBeforeIai = bill.grossAmountThisBill ?? sumItemsNet;
+  const iaiRetention = bill.iaiCurrentRetention ?? (grossBeforeIai - sumItemsNet);
   const yrnRetention = bill.yrnCurrentRetention ?? 0;
-  const expectedNet = gross - iaiRetention - yrnRetention;
+  const expectedNet = sumItemsNet - yrnRetention;
   const actualNet = bill.amountBeforeVat;
 
-  // Sanity check: does the math match the official bill amount?
-  const matches = Math.abs(expectedNet - actualNet) < 1;
-
-  // Calculate effective rates (not always exactly 10/5)
-  const iaiRate = gross > 0 ? (iaiRetention / gross) * 100 : 0;
-  const yrnAfterIai = gross - iaiRetention;
-  const yrnRate = yrnAfterIai > 0 ? (yrnRetention / yrnAfterIai) * 100 : 0;
+  const matches = Math.abs(expectedNet - actualNet) < 5;
+  const iaiRate = grossBeforeIai > 0 ? (iaiRetention / grossBeforeIai) * 100 : 0;
+  const yrnRate = sumItemsNet > 0 ? (yrnRetention / sumItemsNet) * 100 : 0;
+  const iaiNote = iaiRate < 9.5
+    ? "פחות מ-10% — חלק מהסעיפים שולמו ב-100% (לדוגמה: מתקני דלק, רג\"י)"
+    : iaiRate > 10.5
+      ? "יותר מ-10%"
+      : "10% רגיל";
 
   return (
     <div className="mt-3 bg-white rounded-lg border-r-4 border-amber-500 p-3">
@@ -319,29 +322,31 @@ function BillCalculationBox({
         🧮 חישוב סופי של חשבון {bill.billNumber}
         {matches ? (
           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-            ✓ תואם לחשבונית
+            ✓ תואם לחשבונית שיצאה
           </span>
         ) : (
           <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
-            ⚠ הפרש: ₪{(actualNet - expectedNet).toFixed(0)}
+            ⚠ הפרש: ₪{Math.abs(actualNet - expectedNet).toFixed(0)}
           </span>
         )}
       </h5>
       <div className="text-sm space-y-1.5">
         <div className="flex justify-between border-b border-slate-100 pb-1">
-          <span className="text-slate-700">סך הברוטו (סעיפי הכתב כמויות)</span>
-          <span className="font-bold text-slate-800">{formatCurrency(gross)}</span>
+          <span className="text-slate-700">סך ברוטו (לפני עיכבונות)</span>
+          <span className="font-bold text-slate-800">{formatCurrency(grossBeforeIai)}</span>
         </div>
         <div className="flex justify-between text-red-700 border-b border-slate-100 pb-1">
           <span>
             − עיכבון תע&quot;א
-            {iaiRetention === 0 ? (
-              <span className="text-xs text-amber-600 mr-2">(לא נלקח בחשבון זה)</span>
-            ) : (
-              <span className="text-xs text-slate-500 mr-2">({iaiRate.toFixed(1)}%)</span>
-            )}
+            <span className="text-xs text-slate-500 mr-2">
+              ({iaiRate.toFixed(2)}% — {iaiNote})
+            </span>
           </span>
-          <span className="font-mono">{iaiRetention === 0 ? "₪0" : `−${formatCurrency(iaiRetention)}`}</span>
+          <span className="font-mono">−{formatCurrency(iaiRetention)}</span>
+        </div>
+        <div className="flex justify-between bg-slate-50 px-2 py-1 rounded">
+          <span className="text-slate-700 text-xs italic">= סך אחרי תע&quot;א (סכימת סעיפים בטבלה)</span>
+          <span className="text-slate-700 font-mono text-xs">{formatCurrency(sumItemsNet)}</span>
         </div>
         <div className="flex justify-between text-orange-700 border-b border-slate-100 pb-1">
           <span>
@@ -357,7 +362,7 @@ function BillCalculationBox({
         {!matches && (
           <p className="text-xs text-red-700 mt-2 bg-red-50 p-2 rounded">
             ⚠ <strong>הפרש של ₪{Math.abs(actualNet - expectedNet).toFixed(0)}</strong> —
-            ייתכן שיש סעיף שלא נלקח עליו עיכבון, או שהמפקח קיזז אחרת. שווה לבדוק.
+            ייתכן שיש סעיף ספציפי שטופל אחרת. בדוק בטבלה למעלה איזה סעיף לא מסתדר.
           </p>
         )}
       </div>
