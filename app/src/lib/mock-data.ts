@@ -731,7 +731,8 @@ export const partialBills: PartialBill[] = [
     amountWithVat: 942854,
     cumulativeBeforeVat: 10033699,
     paymentDueDate: "14/04/2026",
-    status: "approved",
+    paidDate: "13/04/2026",
+    status: "paid",
     documentURL: "#",
     // עיכבונות:
     grossAmountThisBill: 997697,

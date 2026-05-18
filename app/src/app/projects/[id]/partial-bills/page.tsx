@@ -148,17 +148,19 @@ export default async function PartialBillsPage({
   if (!project) notFound();
   const bills = getPartialBills(id);
 
+  // All calculations BEFORE VAT (apples to apples)
   const totalBeforeVat = bills.reduce((s, b) => s + b.amountBeforeVat, 0);
-  const totalWithVat = bills.reduce((s, b) => s + b.amountWithVat, 0);
   const totalPaid = bills
     .filter((b) => b.status === "paid")
-    .reduce((s, b) => s + b.amountWithVat, 0);
+    .reduce((s, b) => s + b.amountBeforeVat, 0);
   const totalPending = bills
-    .filter((b) => b.status === "approved" || b.status === "submitted")
-    .reduce((s, b) => s + b.amountWithVat, 0);
+    .filter((b) => b.status === "approved" || b.status === "submitted" || b.status === "draft")
+    .reduce((s, b) => s + b.amountBeforeVat, 0);
   const totalOverdue = bills
     .filter((b) => b.status === "overdue")
-    .reduce((s, b) => s + b.amountWithVat, 0);
+    .reduce((s, b) => s + b.amountBeforeVat, 0);
+  // Sanity check: paid + pending + overdue should equal total (drafts not counted toward overdue/pending separately)
+  // Note: file shows bills 1-7 paid, bill 8 in draft.
 
   return (
     <>
