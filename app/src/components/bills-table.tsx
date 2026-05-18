@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { PartialBill, PartialBillStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { billReductionsByBill } from "@/lib/bill-reductions-2253";
 
 // Format quantity / unit price: max 3 decimals, no trailing zeros
 function fmtQty(n: number): string {
@@ -196,6 +197,9 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
           סכום סעיפים: {formatCurrency(totalCurrent)} · מצטבר: {formatCurrency(totalCumulative)}
         </span>
       </div>
+
+      {/* Reductions panel — items that were held or removed in this bill */}
+      <BillReductionsPanel billNumber={bill.billNumber} />
       <div className="overflow-x-auto bg-white rounded-lg">
         <table className="w-full text-xs">
           <thead className="bg-slate-100 border-b">
@@ -366,6 +370,100 @@ function BillCalculationBox({
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+function BillReductionsPanel({ billNumber }: { billNumber: number }) {
+  const reductions = billReductionsByBill[billNumber] ?? [];
+  if (reductions.length === 0) return null;
+
+  const removed = reductions.filter((r) => r.type === "removed");
+  const held = reductions.filter((r) => r.type === "held");
+  const totalRemoved = removed.reduce((s, r) => s + r.grossDrop, 0);
+  const totalHeld = held.reduce((s, r) => s + r.netDrop, 0);
+  const grandTotal = totalRemoved + totalHeld;
+
+  // Generate per-bill explanation
+  let billExplanation = "";
+  if (billNumber === 6) {
+    billExplanation = "המפקח רשם את העבודה (ברוטו נשאר) אבל לא אישר תשלום השבוע (נטו = 0). העבודה בוצעה ועדיין מגיע לך הכסף — יש לעקוב שישולם בחשבון הבא.";
+  } else if (billNumber === 7) {
+    billExplanation = "סעיף ניקוז (V6/V8) הוחזק - המפקח לא אישר את התשלום השבוע. העבודה רשומה אבל הכסף מעוכב.";
+  } else if (billNumber === 8) {
+    billExplanation = "5 סעיפים הוסרו רטרואקטיבית מהחשבון: 1 גדול (V1/V3/V4/V9 - ₪315K) ו-4 סעיפי רג\"י קטנים. עדיין נדרש לבדוק עם המפקח ולדרוש את הכסף.";
+  } else {
+    billExplanation = "סעיפים שהוסרו או הוחזקו בחשבון זה. עדיין יש דרישה לתשלום.";
+  }
+
+  return (
+    <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4 mb-4">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🔻</span>
+          <h5 className="font-bold text-orange-900">
+            קיזוזים בחשבון {billNumber} — &quot;כסף שעדיין מגיע לך&quot;
+          </h5>
+        </div>
+        <div className="text-left">
+          <p className="text-xs text-orange-700">סך קיזוזים</p>
+          <p className="text-lg font-bold text-orange-900">{formatCurrency(grandTotal)}</p>
+        </div>
+      </div>
+
+      <p className="text-xs text-orange-800 mb-3 bg-white/60 rounded p-2">
+        ℹ️ {billExplanation}
+      </p>
+
+      {removed.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs font-bold text-red-700 mb-2">
+            🗑️ {removed.length} סעיפים הוסרו (ברוטו ירד) · ₪{totalRemoved.toLocaleString("he-IL")}
+          </p>
+          <div className="space-y-1.5">
+            {removed.map((r, i) => (
+              <div key={`r-${i}`} className="bg-white rounded p-2 text-xs flex justify-between items-center border-r-2 border-red-500">
+                <div className="flex-1 min-w-0">
+                  <span className="font-mono text-slate-600">{r.itemCode}</span>
+                  <span className="text-slate-800 mr-2">{r.description}</span>
+                </div>
+                <div className="text-left whitespace-nowrap mr-3">
+                  <div className="text-slate-500 line-through">{formatCurrency(r.grossBefore)}</div>
+                  <div className="text-red-700 font-bold">← {formatCurrency(r.grossAfter)}</div>
+                </div>
+                <span className="text-red-700 font-bold whitespace-nowrap text-base">
+                  −{formatCurrency(r.grossDrop)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {held.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-amber-700 mb-2">
+            ⏸️ {held.length} סעיפים שהוחזקו (ברוטו נשאר, נטו = 0) · ₪{totalHeld.toLocaleString("he-IL")}
+          </p>
+          <div className="space-y-1.5">
+            {held.map((r, i) => (
+              <div key={`h-${i}`} className="bg-white rounded p-2 text-xs flex justify-between items-center border-r-2 border-amber-500">
+                <div className="flex-1 min-w-0">
+                  <span className="font-mono text-slate-600">{r.itemCode}</span>
+                  <span className="text-slate-800 mr-2">{r.description}</span>
+                </div>
+                <div className="text-left whitespace-nowrap mr-3">
+                  <div className="text-slate-600">ברוטו: {formatCurrency(r.grossAfter)}</div>
+                  <div className="text-amber-700">נטו −{formatCurrency(r.netDrop)}</div>
+                </div>
+                <span className="text-amber-700 font-bold whitespace-nowrap text-base">
+                  −{formatCurrency(r.netDrop)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
