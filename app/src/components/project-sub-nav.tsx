@@ -23,14 +23,13 @@ import { CSS } from "@dnd-kit/utilities";
 
 type Tab = { id: string; label: string; icon: string; path: string };
 
+// Tabs that have real (or mostly-real) data. Mock-only tabs (tasks,
+// contractors, documents) are hidden until they get real CRUD.
 const DEFAULT_TABS: Tab[] = [
   { id: "overview", label: "סקירה", icon: "🏠", path: "" },
-  { id: "expenses", label: "הוצאות", icon: "💸", path: "/finance" },
   { id: "bills", label: "הכנסות", icon: "🧾", path: "/partial-bills" },
+  { id: "expenses", label: "הוצאות", icon: "💸", path: "/finance" },
   { id: "po", label: "הזמנות רכש", icon: "📦", path: "/purchase-orders" },
-  { id: "tasks", label: "משימות", icon: "📋", path: "/tasks" },
-  { id: "contractors", label: "קבלנים וספקים", icon: "👷", path: "/contractors" },
-  { id: "documents", label: "חוזים ומסמכים", icon: "📁", path: "/documents" },
 ];
 
 const STORAGE_KEY = "pm-atuan-tab-order-v1";

@@ -3,7 +3,6 @@ import { SiteHeader } from "@/components/site-header";
 import { AuthGuard } from "@/components/auth-guard";
 import { alerts, projects, tasks } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/format";
-import { CombinedCashflowChart } from "@/components/charts/combined-cashflow-chart";
 
 const accentBorderMap: Record<string, string> = {
   blue: "border-blue-600",
@@ -22,20 +21,7 @@ const statusBadgeMap = {
   completed: { label: "הושלם", className: "bg-slate-100 text-slate-500" },
 };
 
-const quickActions = [
-  { icon: "💸", label: "הוצאה חדשה" },
-  { icon: "💰", label: "תשלום קבלן" },
-  { icon: "📋", label: "משימה חדשה" },
-  { icon: "📸", label: "צלם חשבונית" },
-  { icon: "📅", label: "תיאום פגישה" },
-  { icon: "📊", label: "דוח חודשי" },
-];
-
 export default function HomePage() {
-  const totalRevenue = projects.reduce((s, p) => s + p.revenue, 0);
-  const totalSpent = projects.reduce((s, p) => s + p.actualSpent, 0);
-  const totalProfit = totalRevenue - totalSpent;
-  const upcomingTasks = tasks.filter((t) => !t.done).slice(0, 5);
   const urgentAlerts = alerts.slice(0, 4);
 
   return (
@@ -63,24 +49,6 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 hidden">
           {/* removed per user request - KPI strip (revenue / monthly expenses / cashflow / action items) — not relevant right now */}
-        </div>
-
-        <div className="card-hover bg-white rounded-2xl p-5 mb-6">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-bold text-slate-800">פעולות מהירות</h3>
-            <span className="text-xs text-slate-400">קיצורי דרך לפעולות שגרתיות</span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-            {quickActions.map((a) => (
-              <button
-                key={a.label}
-                className="card-hover bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-transparent rounded-xl p-3 text-center"
-              >
-                <div className="text-2xl mb-1">{a.icon}</div>
-                <p className="text-xs font-medium text-slate-700">{a.label}</p>
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="card-hover bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-3 mb-6 border border-indigo-200">
@@ -197,53 +165,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="card-hover bg-white rounded-2xl p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800">משימות השבוע - על-פני כל הפרויקטים</h3>
-            <span className="text-xs text-blue-600 hover:underline cursor-pointer">
-              צפה בכל המשימות ←
-            </span>
-          </div>
-          <div className="space-y-2">
-            {upcomingTasks.map((t) => {
-              const project = projects.find((p) => p.id === t.projectId);
-              const projTag =
-                project?.accentColor === "blue"
-                  ? "bg-blue-100 text-blue-700"
-                  : project?.accentColor === "purple"
-                  ? "bg-purple-100 text-purple-700"
-                  : "bg-emerald-100 text-emerald-700";
-              const urgencyColor =
-                t.urgency === "today"
-                  ? "text-red-600"
-                  : t.urgency === "tomorrow"
-                  ? "text-amber-600"
-                  : "text-blue-600";
-              return (
-                <div
-                  key={t.id}
-                  className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg"
-                >
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 accent-blue-600"
-                    defaultChecked={t.done}
-                  />
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${projTag}`}
-                  >
-                    {project?.name}
-                  </span>
-                  <p className="flex-1 text-sm">{t.title}</p>
-                  <span className={`text-xs font-bold ${urgencyColor}`}>{t.dueDate}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </main>
       <footer className="text-center text-xs text-slate-400 py-6">
-        נתוני mock · MVP גרסה ראשונית
+        Beta · בנייה הדרגתית
       </footer>
     </AuthGuard>
   );
