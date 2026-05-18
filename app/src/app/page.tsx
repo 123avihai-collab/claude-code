@@ -169,35 +169,31 @@ export default function HomePage() {
           })}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <div className="card-hover bg-white rounded-2xl p-5 lg:col-span-2">
-            <h3 className="font-bold text-slate-800 mb-4">תזרים כולל - כל הפרויקטים</h3>
-            <CombinedCashflowChart />
+        <div className="card-hover bg-white rounded-2xl p-5 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-slate-800">🚨 דחוף - כל הפרויקטים</h3>
+            <span className="text-xs text-slate-500">{urgentAlerts.length} פריטים שדורשים פעולה</span>
           </div>
-
-          <div className="card-hover bg-white rounded-2xl p-5">
-            <h3 className="font-bold text-slate-800 mb-4">דחוף - כל הפרויקטים</h3>
-            <div className="space-y-2">
-              {urgentAlerts.map((a) => {
-                const bg =
-                  a.type === "critical"
-                    ? "bg-red-50"
-                    : a.type === "warning"
-                    ? "bg-amber-50"
-                    : a.type === "success"
-                    ? "bg-green-50"
-                    : "bg-blue-50";
-                return (
-                  <div key={a.id} className={`flex gap-2 p-2 rounded-lg ${bg}`}>
-                    <span className="text-lg">{a.icon}</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{a.title}</p>
-                      <p className="text-xs text-slate-500">{a.detail}</p>
-                    </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {urgentAlerts.map((a) => {
+              const bg =
+                a.type === "critical"
+                  ? "bg-red-50 border-r-2 border-red-500"
+                  : a.type === "warning"
+                  ? "bg-amber-50 border-r-2 border-amber-500"
+                  : a.type === "success"
+                  ? "bg-green-50 border-r-2 border-green-500"
+                  : "bg-blue-50 border-r-2 border-blue-500";
+              return (
+                <div key={a.id} className={`flex gap-2 p-3 rounded-lg ${bg}`}>
+                  <span className="text-xl">{a.icon}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-800">{a.title}</p>
+                    <p className="text-xs text-slate-500 mt-1">{a.detail}</p>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 

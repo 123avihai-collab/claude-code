@@ -46,9 +46,8 @@ export function ProjectCashflowChart() {
     <ResponsiveContainer width="100%" height={280}>
       <ComposedChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey="month" reversed style={{ fontSize: "11px" }} />
+        <XAxis dataKey="month" style={{ fontSize: "11px" }} />
         <YAxis
-          reversed
           orientation="right"
           style={{ fontSize: "11px" }}
           tickFormatter={(v) => `₪${(v as number) / 1000}K`}

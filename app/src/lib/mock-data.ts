@@ -16,7 +16,7 @@ import type {
 export const projects: Project[] = [
   {
     id: "2253",
-    name: "מערכת דס\"ל - מתחם תחזוקה",
+    name: "מערכת דס\"ל – 2253",
     client: "תע\"א (דרך קבלן ראשי) · באר שבע",
     icon: "⛽",
     status: "active",
@@ -30,7 +30,7 @@ export const projects: Project[] = [
   },
   {
     id: "2288",
-    name: "קבלן משימה - חברת חשמל",
+    name: "קבלן משימה – 2288",
     client: "חברת חשמל לישראל",
     icon: "⚡",
     status: "active",
@@ -44,7 +44,7 @@ export const projects: Project[] = [
   },
   {
     id: "2306",
-    name: "רוטנברג - שיפוץ קולטן",
+    name: "שיפוץ קולטן רוטנברג – 2306",
     client: "חברת חשמל לישראל",
     icon: "🏭",
     status: "almost-done",

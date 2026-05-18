@@ -3,7 +3,16 @@
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { ExpenseCategory } from "@/lib/types";
 
-const colors = ["#1F3864", "#2F5597", "#5B7BC4", "#8FA8DC", "#C5D2EC", "#E8EDF7"];
+// צבעים שונים ובולטים לכל קטגוריה — לזיהוי מהיר
+const colors = [
+  "#2563EB",  // כחול - חומרים
+  "#EA580C",  // כתום - קבלני משנה
+  "#9333EA",  // סגול - שכר
+  "#F59E0B",  // ענבר - רכב
+  "#64748B",  // אפור - אחר
+  "#EF4444",  // אדום - חירום/חריגים
+  "#10B981",  // ירוק - הכנסות/החזרים
+];
 
 export function CategoryChart({ data }: { data: ExpenseCategory[] }) {
   return (

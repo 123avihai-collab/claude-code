@@ -218,37 +218,19 @@ export default async function ProjectOverviewPage({
         </div>
       </div>
 
-      <div className="card-hover bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 mb-6 border-2 border-dashed border-indigo-200">
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🤖</span>
-            <h3 className="font-bold text-slate-800">סוכן AI - שואל כל שאלה על {project.name}</h3>
-          </div>
-          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
-            בפיתוח · פאזה 5
-          </span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-          <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-            💭 &quot;תמצא חשבוניות ממנדלסון&quot;
-          </div>
-          <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-            💭 &quot;מתי תאריך מסירת השלד?&quot;
-          </div>
-          <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-            💭 &quot;מה היתרה לאלי שלד?&quot;
-          </div>
-        </div>
-        <div className="flex gap-2">
+      <div className="card-hover bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-3 mb-6 border border-indigo-200">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🤖</span>
+          <span className="text-sm font-bold text-slate-800 whitespace-nowrap">סוכן AI</span>
           <input
             type="text"
             disabled
-            placeholder="שאל כל שאלה על הפרויקט..."
-            className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white/60 text-sm cursor-not-allowed"
+            placeholder={`שאל כל שאלה על פרויקט ${project.id}...`}
+            className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white/70 text-sm cursor-not-allowed min-w-0"
           />
           <button
             disabled
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm cursor-not-allowed opacity-50"
+            className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm cursor-not-allowed opacity-50 whitespace-nowrap"
           >
             שלח
           </button>
