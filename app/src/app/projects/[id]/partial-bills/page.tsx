@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProject, getPartialBills } from "@/lib/mock-data";
 import { formatCurrency, formatCurrencyExact } from "@/lib/format";
-import { BillsTable } from "@/components/bills-table";
+import { BillsSection } from "@/components/bills-section";
 import type { ExceptionStatus, PartialBill, Project } from "@/lib/types";
 
 const exceptionStatusMap: Record<ExceptionStatus, { label: string; cls: string; emoji: string }> = {
@@ -184,27 +184,12 @@ export default async function PartialBillsPage({
         </div>
       )}
 
-      {/* Bills table — with expandable BoQ rows */}
-      <div className="bg-white rounded-2xl p-5 mb-6">
-        <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-          <div>
-            <h3 className="font-bold text-slate-800">פירוט {bills.length} החשבונות</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              לחץ על שורה ▾ להצגת סעיפי כתב הכמויות שנכללו בחשבון
-            </p>
-          </div>
-          <button className="text-xs bg-[#1F3864] text-white px-3 py-2 rounded-lg hover:bg-[#2F5597]">
-            + חשבון חלקי חדש
-          </button>
-        </div>
-
-        <BillsTable
-          bills={bills}
-          projectRevenue={project.revenue}
-          totalBeforeVat={totalBeforeVat}
-          totalWithVat={totalBeforeVat * 1.18}
-        />
-      </div>
+      {/* Bills table — with expandable BoQ rows + new-bill modal */}
+      <BillsSection
+        projectId={project.id}
+        projectRevenue={project.revenue}
+        serverBills={bills}
+      />
 
       {/* Exceptions / Overage tracking */}
       <ExceptionsPanel bills={bills} totalRevenue={totalBeforeVat} />
