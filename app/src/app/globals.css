@@ -29,3 +29,19 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
+
+/* iOS-style wiggle animation for items in edit mode */
+@keyframes ios-wiggle {
+  0% { transform: rotate(-1.2deg); }
+  50% { transform: rotate(1.2deg); }
+  100% { transform: rotate(-1.2deg); }
+}
+.wiggle-animation {
+  animation: ios-wiggle 0.25s ease-in-out infinite;
+  transform-origin: center center;
+}
+/* Slight delay alternation so they don't all wiggle in sync (more natural) */
+.wiggle-animation:nth-child(2n) {
+  animation-delay: 0.12s;
+  animation-direction: reverse;
+}
