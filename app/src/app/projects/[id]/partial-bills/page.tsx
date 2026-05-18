@@ -162,31 +162,14 @@ export default async function PartialBillsPage({
 
   return (
     <>
-      {/* KPI Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl p-5 border-r-4 border-blue-600">
-          <p className="text-slate-500 text-sm">סך חיובים (לפני מע"מ)</p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(totalBeforeVat, true)}</p>
-          <p className="text-xs text-slate-400 mt-2">{bills.length} חשבונות חלקיים</p>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border-r-4 border-slate-500">
-          <p className="text-slate-500 text-sm">סך כולל מע"מ</p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">{formatCurrency(totalWithVat, true)}</p>
-          <p className="text-xs text-slate-400 mt-2">למזמין לתשלום</p>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border-r-4 border-green-600">
-          <p className="text-slate-500 text-sm">שולם בפועל</p>
-          <p className="text-2xl font-bold text-green-700 mt-1">{formatCurrency(totalPaid, true)}</p>
-          <p className="text-xs text-green-600 mt-2">
-            {Math.round((totalPaid / totalWithVat) * 100)}% מהכולל
-          </p>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border-r-4 border-amber-500">
-          <p className="text-slate-500 text-sm">ממתין לתשלום</p>
-          <p className="text-2xl font-bold text-amber-700 mt-1">{formatCurrency(totalPending, true)}</p>
-          <p className="text-xs text-amber-600 mt-2">לפי תאריכי פירעון</p>
-        </div>
-      </div>
+      {/* Single consolidated summary row */}
+      <ConsolidatedSummary
+        bills={bills}
+        totalBeforeVat={totalBeforeVat}
+        totalWithVat={totalWithVat}
+        totalPaid={totalPaid}
+        totalPending={totalPending}
+      />
 
       {/* Overdue alert */}
       {totalOverdue > 0 && (
@@ -198,9 +181,6 @@ export default async function PartialBillsPage({
           </div>
         </div>
       )}
-
-      {/* Retentions summary — money held back by IAI and YRN */}
-      <RetentionsSummary bills={bills} />
 
       {/* Bills table — with expandable BoQ rows */}
       <div className="bg-white rounded-2xl p-5 mb-6">
@@ -242,8 +222,56 @@ export default async function PartialBillsPage({
   );
 }
 
-function RetentionsSummary({ bills }: { bills: PartialBill[] }) {
-  // Get the LATEST bill (the one with highest billNumber) for cumulative retention figures
+function ConsolidatedSummary({
+  bills,
+  totalBeforeVat,
+  totalWithVat,
+  totalPaid,
+  totalPending,
+}: {
+  bills: PartialBill[];
+  totalBeforeVat: number;
+  totalWithVat: number;
+  totalPaid: number;
+  totalPending: number;
+}) {
+  const latest = bills.length > 0
+    ? bills.reduce((a, b) => (a.billNumber > b.billNumber ? a : b))
+    : null;
+  if (!latest) return null;
+
+  const grossSubmitted = latest.cumulativeGrossAmount ?? totalBeforeVat;
+  const iaiHeld = latest.iaiCumulativeRetention ?? 0;
+  const yrnHeld = latest.yrnCumulativeRetention ?? 0;
+
+  const cells: Array<{ label: string; value: number; color: string; sub?: string }> = [
+    { label: "סך הכל מוגש", value: grossSubmitted, color: "text-slate-800" },
+    { label: 'עיכבון תע"א', value: -iaiHeld, color: "text-red-700", sub: "10% מהמוגש" },
+    { label: 'עיכבון י.ר.ן', value: -yrnHeld, color: "text-orange-700", sub: "5% נוסף" },
+    { label: "סך חיובים", value: totalBeforeVat, color: "text-slate-800", sub: `${bills.length} חשבונות` },
+    { label: 'סך כולל מע"מ', value: totalWithVat, color: "text-slate-800", sub: "למזמין" },
+    { label: "שולם בפועל", value: totalPaid, color: "text-green-700", sub: `${Math.round((totalPaid / totalWithVat) * 100)}% מהכולל` },
+    { label: "ממתין לתשלום", value: totalPending, color: "text-amber-700", sub: "לפי פירעון" },
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 overflow-x-auto">
+      <div className="flex items-stretch gap-1 min-w-max">
+        {cells.map((cell, idx) => (
+          <div key={idx} className={`flex-1 min-w-[110px] px-3 py-2 ${idx < cells.length - 1 ? "border-l border-slate-200" : ""}`}>
+            <p className="text-xs text-slate-500 whitespace-nowrap">{cell.label}</p>
+            <p className={`text-lg font-bold ${cell.color} mt-0.5 whitespace-nowrap`}>
+              {cell.value < 0 ? "−" : ""}{formatCurrency(Math.abs(cell.value), true)}
+            </p>
+            {cell.sub && <p className="text-xs text-slate-400 mt-0.5">{cell.sub}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function _UnusedRetentionsSummary({ bills }: { bills: PartialBill[] }) {
   const latest = bills.length > 0
     ? bills.reduce((a, b) => (a.billNumber > b.billNumber ? a : b))
     : null;
