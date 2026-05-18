@@ -136,6 +136,21 @@ export type BillException = {
   approvedDate?: string;
 };
 
+// סעיף מתוך כתב הכמויות שנכלל בחשבון חלקי
+// (snapshot — הכמויות הן ה-state בעת הגשת אותו חשבון)
+export type BillBoqItem = {
+  itemCode: string;              // "02.38.01.040"
+  description: string;           // "מגוף כדורי 2\""
+  unit: string;                  // "יח'" / "מ\"א" / "מ\"ק" / "קומפ'"
+  contractQuantity: number;      // כמות חוזה
+  unitPrice: number;             // מחיר יחידה
+  previousCumulativeQty: number; // מצטבר בחשבון הקודם
+  currentBillQty: number;        // כמות בחשבון זה
+  cumulativeQtyAfter: number;    // מצטבר אחרי החשבון הזה
+  currentBillAmount: number;     // סכום החשבון הזה (= currentBillQty × unitPrice)
+  cumulativeAmount: number;      // סכום מצטבר (= cumulativeQtyAfter × unitPrice)
+};
+
 export type PartialBill = {
   id: string;
   projectId: string;
@@ -154,6 +169,7 @@ export type PartialBill = {
   documentURL?: string;         // קישור להורדה (Drive / OneDrive / Firebase Storage)
   exceptions?: BillException[]; // חריגים בחשבון זה
   exceptionsTotal?: number;     // סכום מצטבר של חריגים בחשבון (מחושב)
+  boqItems?: BillBoqItem[];     // סעיפי כתב כמויות שנכללו בחשבון
   notes?: string;
 };
 

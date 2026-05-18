@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { getProject, getPartialBills } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/format";
-import type { ExceptionStatus, PartialBill, PartialBillStatus } from "@/lib/types";
+import { BillsTable } from "@/components/bills-table";
+import type { ExceptionStatus, PartialBill } from "@/lib/types";
 
 const exceptionStatusMap: Record<ExceptionStatus, { label: string; cls: string; emoji: string }> = {
   approved: { label: "אושר", cls: "bg-green-100 text-green-700", emoji: "✅" },
@@ -137,15 +138,6 @@ function ExceptionsPanel({ bills, totalRevenue }: { bills: PartialBill[]; totalR
   );
 }
 
-const statusMap: Record<PartialBillStatus, { label: string; cls: string; emoji: string }> = {
-  draft: { label: "טיוטא", cls: "bg-slate-200 text-slate-700", emoji: "📝" },
-  submitted: { label: "הוגש", cls: "bg-blue-100 text-blue-700", emoji: "📤" },
-  approved: { label: "אושר - ממתין לתשלום", cls: "bg-amber-100 text-amber-700", emoji: "⏳" },
-  paid: { label: "שולם", cls: "bg-green-100 text-green-700", emoji: "✅" },
-  rejected: { label: "נדחה", cls: "bg-red-100 text-red-700", emoji: "❌" },
-  overdue: { label: "באיחור", cls: "bg-red-100 text-red-700", emoji: "🚨" },
-};
-
 export default async function PartialBillsPage({
   params,
 }: {
@@ -207,87 +199,26 @@ export default async function PartialBillsPage({
         </div>
       )}
 
-      {/* Bills table */}
+      {/* Bills table — with expandable BoQ rows */}
       <div className="bg-white rounded-2xl p-5 mb-6">
         <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
-          <h3 className="font-bold text-slate-800">פירוט {bills.length} החשבונות החלקיים</h3>
+          <div>
+            <h3 className="font-bold text-slate-800">פירוט {bills.length} החשבונות</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              לחץ על שורה ▾ להצגת סעיפי כתב הכמויות שנכללו בחשבון
+            </p>
+          </div>
           <button className="text-xs bg-[#1F3864] text-white px-3 py-2 rounded-lg hover:bg-[#2F5597]">
             + חשבון חלקי חדש
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b">
-              <tr>
-                <th className="p-3 text-right font-medium text-slate-600">#</th>
-                <th className="p-3 text-right font-medium text-slate-600">תקופה</th>
-                <th className="p-3 text-right font-medium text-slate-600">מס׳ חשבונית</th>
-                <th className="p-3 text-right font-medium text-slate-600">תאריך</th>
-                <th className="p-3 text-right font-medium text-slate-600">לפני מע"מ</th>
-                <th className="p-3 text-right font-medium text-slate-600">כולל מע"מ</th>
-                <th className="p-3 text-right font-medium text-slate-600">מצטבר</th>
-                <th className="p-3 text-right font-medium text-slate-600">פירעון</th>
-                <th className="p-3 text-right font-medium text-slate-600">סטטוס</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bills.map((b) => {
-                const s = statusMap[b.status];
-                const cumPct = (b.cumulativeBeforeVat / project.revenue) * 100;
-                return (
-                  <tr key={b.id} className="border-b hover:bg-slate-50">
-                    <td className="p-3 font-bold text-slate-700">{b.billNumber}</td>
-                    <td className="p-3 text-slate-700">{b.periodLabel}</td>
-                    <td className="p-3 text-xs">
-                      <div className="font-mono text-slate-700">{b.invoiceNumber}</div>
-                      {b.documentURL ? (
-                        <a
-                          href={b.documentURL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 mt-1"
-                        >
-                          📥 הורד PDF
-                        </a>
-                      ) : (
-                        <span className="text-slate-400 text-xs mt-1 inline-block">אין קובץ</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-xs text-slate-500">{b.invoiceDate}</td>
-                    <td className="p-3 text-slate-800">{formatCurrency(b.amountBeforeVat)}</td>
-                    <td className="p-3 font-bold text-slate-800">{formatCurrency(b.amountWithVat)}</td>
-                    <td className="p-3 text-xs">
-                      <div className="text-slate-600">{formatCurrency(b.cumulativeBeforeVat)}</div>
-                      <div className="text-slate-400">{cumPct.toFixed(0)}% מהחוזה</div>
-                    </td>
-                    <td className="p-3 text-xs">
-                      <div className="text-slate-700">{b.paymentDueDate}</div>
-                      {b.paidDate && <div className="text-green-600">✓ שולם {b.paidDate}</div>}
-                    </td>
-                    <td className="p-3">
-                      <span className={`text-xs px-2 py-1 rounded-full ${s.cls} whitespace-nowrap`}>
-                        {s.emoji} {s.label}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              <tr className="bg-slate-100 font-bold">
-                <td className="p-3" colSpan={4}>
-                  סה&quot;כ ({bills.length} חשבונות)
-                </td>
-                <td className="p-3 text-slate-800">{formatCurrency(totalBeforeVat)}</td>
-                <td className="p-3 text-slate-800">{formatCurrency(totalWithVat)}</td>
-                <td className="p-3 text-xs text-slate-600">
-                  {((totalBeforeVat / project.revenue) * 100).toFixed(0)}% מהחוזה
-                </td>
-                <td className="p-3"></td>
-                <td className="p-3"></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <BillsTable
+          bills={bills}
+          projectRevenue={project.revenue}
+          totalBeforeVat={totalBeforeVat}
+          totalWithVat={totalWithVat}
+        />
       </div>
 
       {/* Exceptions / Overage tracking */}

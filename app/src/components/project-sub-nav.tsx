@@ -26,7 +26,7 @@ type Tab = { id: string; label: string; icon: string; path: string };
 const DEFAULT_TABS: Tab[] = [
   { id: "overview", label: "סקירה", icon: "🏠", path: "" },
   { id: "expenses", label: "הוצאות", icon: "💸", path: "/finance" },
-  { id: "bills", label: "חשבונות חלקיים", icon: "🧾", path: "/partial-bills" },
+  { id: "bills", label: "הכנסות", icon: "🧾", path: "/partial-bills" },
   { id: "po", label: "הזמנות רכש", icon: "📦", path: "/purchase-orders" },
   { id: "tasks", label: "משימות", icon: "📋", path: "/tasks" },
   { id: "contractors", label: "קבלנים וספקים", icon: "👷", path: "/contractors" },
