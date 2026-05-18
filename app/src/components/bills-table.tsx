@@ -204,13 +204,14 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
           <tbody>
             {items.map((item, idx) => {
               const isNote = item.unit === "הערה";
+              const isReduction = item.currentBillAmount < -0.5;  // קיזוז (סעיף שהוסר/הוקטן)
               const cumPct = item.contractQuantity > 0
                 ? (item.cumulativeQtyAfter / item.contractQuantity) * 100
                 : 0;
               return (
                 <tr
                   key={idx}
-                  className={`border-b last:border-0 hover:bg-slate-50 ${isNote ? "bg-amber-50" : ""}`}
+                  className={`border-b last:border-0 hover:bg-slate-50 ${isNote ? "bg-amber-50" : ""} ${isReduction ? "bg-red-50" : ""}`}
                 >
                   <td className="p-2 font-mono text-xs text-slate-600 whitespace-nowrap">
                     {item.itemCode}

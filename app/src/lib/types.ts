@@ -158,14 +158,24 @@ export type PartialBill = {
   periodLabel: string;          // "נובמבר 2024"
   invoiceNumber: string;        // "IV250000191" (מלא)
   invoiceDate: string;
-  amountBeforeVat: number;
+  amountBeforeVat: number;      // סכום החשבון הזה (נטו, אחרי עיכבונות)
   vatRate: number;              // 0.18
   amountWithVat: number;
-  cumulativeBeforeVat: number;
+  cumulativeBeforeVat: number;  // מצטבר נטו עד החשבון הזה
   paymentDueDate: string;       // שוטף + 45
   paidDate?: string;
   status: PartialBillStatus;
   daysOverdue?: number;
+
+  // עיכבונות (חדש - גרסת אמיתי 2253):
+  grossAmountThisBill?: number;            // סכום ברוטו של החשבון לפני עיכבונות
+  cumulativeGrossAmount?: number;          // מצטבר ברוטו עד החשבון הזה
+  iaiCurrentRetention?: number;            // עיכבון תע"א בחשבון הזה (10%)
+  iaiCumulativeRetention?: number;         // עיכבון תע"א מצטבר עד החשבון הזה
+  yrnCurrentRetention?: number;            // עיכבון י.ר.ן בחשבון הזה (5%)
+  yrnCumulativeRetention?: number;         // עיכבון י.ר.ן מצטבר עד החשבון הזה
+  netAfterRetentions?: number;             // נטו אחרי כל העיכבונות (= cumulative paid + balance)
+
   documentURL?: string;         // קישור להורדה (Drive / OneDrive / Firebase Storage)
   exceptions?: BillException[]; // חריגים בחשבון זה
   exceptionsTotal?: number;     // סכום מצטבר של חריגים בחשבון (מחושב)

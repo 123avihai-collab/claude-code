@@ -199,6 +199,9 @@ export default async function PartialBillsPage({
         </div>
       )}
 
+      {/* Retentions summary — money held back by IAI and YRN */}
+      <RetentionsSummary bills={bills} />
+
       {/* Bills table — with expandable BoQ rows */}
       <div className="bg-white rounded-2xl p-5 mb-6">
         <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
@@ -236,5 +239,67 @@ export default async function PartialBillsPage({
         </ul>
       </div>
     </>
+  );
+}
+
+function RetentionsSummary({ bills }: { bills: PartialBill[] }) {
+  // Get the LATEST bill (the one with highest billNumber) for cumulative retention figures
+  const latest = bills.length > 0
+    ? bills.reduce((a, b) => (a.billNumber > b.billNumber ? a : b))
+    : null;
+  if (!latest) return null;
+
+  const iaiHeld = latest.iaiCumulativeRetention ?? 0;
+  const yrnHeld = latest.yrnCumulativeRetention ?? 0;
+  const totalHeld = iaiHeld + yrnHeld;
+  const grossSoFar = latest.cumulativeGrossAmount ?? 0;
+  const netSoFar = latest.netAfterRetentions ?? latest.cumulativeBeforeVat;
+
+  return (
+    <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5 mb-6">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-3xl">🔒</span>
+        <div>
+          <h3 className="font-bold text-slate-800 text-lg">עיכבונות — כסף שעוד לא הגיע אליך</h3>
+          <p className="text-xs text-slate-600">סך הכסף שלסיכו חתמה עליו אבל עדיין מוחזק אצל תע&quot;א וי.ר.ן (יוחזר בסוף הפרויקט + תקופת בדק)</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className="bg-white rounded-lg p-3 border border-amber-200">
+          <p className="text-xs text-slate-500 mb-1">ברוטו מצטבר</p>
+          <p className="text-lg font-bold text-slate-800">{formatCurrency(grossSoFar, true)}</p>
+          <p className="text-xs text-slate-400 mt-1">סה&quot;כ עבודות שאושרו</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 border-r-4 border-red-500">
+          <p className="text-xs text-slate-500 mb-1">עיכבון תע&quot;א (10%)</p>
+          <p className="text-lg font-bold text-red-700">{formatCurrency(iaiHeld, true)}</p>
+          <p className="text-xs text-slate-400 mt-1">מוחזק ע&quot;י המזמין</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 border-r-4 border-orange-500">
+          <p className="text-xs text-slate-500 mb-1">עיכבון י.ר.ן (5%)</p>
+          <p className="text-lg font-bold text-orange-700">{formatCurrency(yrnHeld, true)}</p>
+          <p className="text-xs text-slate-400 mt-1">מוחזק ע&quot;י הקבלן הראשי</p>
+        </div>
+        <div className="bg-slate-800 text-white rounded-lg p-3">
+          <p className="text-xs text-slate-300 mb-1">סך הכסף שעוד מגיע</p>
+          <p className="text-xl font-bold">{formatCurrency(totalHeld, true)}</p>
+          <p className="text-xs text-slate-400 mt-1">{((totalHeld / grossSoFar) * 100).toFixed(1)}% מהברוטו</p>
+        </div>
+      </div>
+
+      <div className="bg-white/60 rounded-lg p-3 text-xs text-slate-700">
+        <p className="font-bold mb-1">📊 חישוב — חשבון {latest.billNumber}:</p>
+        <p>
+          ברוטו ₪{grossSoFar.toLocaleString("he-IL")}
+          {" − "}
+          עיכבון תע&quot;א ₪{iaiHeld.toLocaleString("he-IL")} (10%)
+          {" − "}
+          עיכבון י.ר.ן ₪{yrnHeld.toLocaleString("he-IL")} (5%)
+          {" = "}
+          <strong>נטו מצטבר ₪{netSoFar.toLocaleString("he-IL")}</strong>
+        </p>
+      </div>
+    </div>
   );
 }
