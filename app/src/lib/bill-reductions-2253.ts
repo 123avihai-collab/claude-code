@@ -1,66 +1,109 @@
-// קיזוזים פר חשבון — מחושב מהקובץ "כתב כמויות מצטבר"
-// סוגים:
-//   - "removed" = הברוטו ירד (הסעיף הוסר רשמית מהחשבון)
-//   - "held" = הנטו ירד אבל הברוטו נשאר (המפקח החזיק תשלום)
+// קיזוזים חריגים פר חשבון — סעיפים שמקבלים עיכבון מעל 10% רגיל
+// או שהוסרו מהחשבון. סעיפים עם עיכבון 10% רגיל מסוכמים בשורת summary.
 
 export type BillReduction = {
   itemCode: string;
   description: string;
-  type: "removed" | "held";
-  grossBefore: number;
-  grossAfter: number;
-  grossDrop: number;
-  netDrop: number;
+  grossCurrent: number;
+  netCurrent: number;
+  heldAmount: number;
+  heldRate: number;          // 0..1 (e.g. 1.0 = 100% held)
+  removedThisBill: number;
+  type: "held" | "removed" | "removed_and_held";
 };
 
-export const billReductionsByBill: Record<number, BillReduction[]> = {
-  2: [],
-  3: [],
-  4: [
-    { itemCode: "01.38.01.000", description: "מתקני דלק", type: "held", grossBefore: 547799.9999999999, grossAfter: 547799.9999999999, grossDrop: 0, netDrop: 54780.0 },
-    { itemCode: "02.38.03.010", description: "ביצוע עבודת צנרת ומגופים בשוחה ראשית - V11  כולל רכישה, אספק", type: "held", grossBefore: 204556.0450354679, grossAfter: 204556.0450354679, grossDrop: 0, netDrop: 20455.604503546783 },
-    { itemCode: "02.38.06.020", description: "8\" PIPE WELDED API 5L-B W.T.-0.5, OUTSIDE P.E. COATED, THREE", type: "held", grossBefore: 3170880, grossAfter: 3170880, grossDrop: 0, netDrop: 317088 },
-  ],
-  5: [],
-  6: [
-    { itemCode: "02.38.07.010", description: "מנהל עבודה", type: "held", grossBefore: 13200, grossAfter: 13200, grossDrop: 0, netDrop: 11880 },
-    { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", type: "held", grossBefore: 18150, grossAfter: 18150, grossDrop: 0, netDrop: 16335 },
-    { itemCode: "02.38.07.030", description: "מסגר או צנר", type: "held", grossBefore: 15600, grossAfter: 15600, grossDrop: 0, netDrop: 14040 },
-    { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", type: "held", grossBefore: 55200, grossAfter: 55200, grossDrop: 0, netDrop: 49680 },
-    { itemCode: "02.38.07.070", description: "מחפרון JCB 3 או שו\"ע", type: "held", grossBefore: 11890, grossAfter: 11890, grossDrop: 0, netDrop: 10701 },
-  ],
-  7: [
-    { itemCode: "02.38.03.030", description: "ביצוע עבודת צנרת ומגופים בתאי ניקוז - V6,V8 כולל רכישה, אספק", type: "held", grossBefore: 75000, grossAfter: 75000, grossDrop: 0, netDrop: 67500 },
-  ],
-  8: [
-    { itemCode: "02.38.03.050", description: "ביצוע עבודת צנרת ומגופים בשוחות מגופים - ,V1,V3,V4,V9 כולל ר", type: "removed", grossBefore: 1575000, grossAfter: 1260000, grossDrop: 315000, netDrop: 283500 },
-    { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", type: "removed", grossBefore: 18150, grossAfter: 8250, grossDrop: 9900, netDrop: 7425 },
-    { itemCode: "02.38.07.030", description: "מסגר או צנר", type: "removed", grossBefore: 15600, grossAfter: 0, grossDrop: 15600, netDrop: 0 },
-    { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", type: "removed", grossBefore: 55200, grossAfter: 27000, grossDrop: 28200, netDrop: 24300 },
-    { itemCode: "02.38.07.070", description: "מחפרון JCB 3 או שו\"ע", type: "removed", grossBefore: 11890, grossAfter: 0, grossDrop: 11890, netDrop: 0 },
-  ],
-  9: [
-    { itemCode: "01.38.01.000", description: "מתקני דלק", type: "removed", grossBefore: 1452000, grossAfter: 0, grossDrop: 1452000, netDrop: 1452000 },
-    { itemCode: "02.01.01.020", description: "ביצוע חפירות גישוש לאיתור תשתיות החוצות את תוואי הצנור (ניקו", type: "removed", grossBefore: 75900, grossAfter: 0, grossDrop: 75900, netDrop: 68310 },
-    { itemCode: "02.01.01.030", description: "חפירת תעלה לצורך הטמנת הצינור, על פי העומקים המסומנים בתוכני", type: "removed", grossBefore: 550560, grossAfter: 0, grossDrop: 550560, netDrop: 495504 },
-    { itemCode: "02.01.01.040", description: "חפירה באזורי חציית תשתיות וצנרת קיימת - חפירה תבוצע עד לעומק", type: "removed", grossBefore: 900, grossAfter: 0, grossDrop: 900, netDrop: 810 },
-    { itemCode: "02.01.01.050", description: "חפירה באמצעות מחפרון זעיר עד לעומק של 20 ס\"מ מעל הצינור הקיי", type: "removed", grossBefore: 1600, grossAfter: 0, grossDrop: 1600, netDrop: 1440 },
-    { itemCode: "02.01.01.070", description: "חול אינרטי, נקי מכל חומר אורגני, עד לגובה 30 ס\"מ מעל לצנרת. ", type: "removed", grossBefore: 1320600, grossAfter: 0, grossDrop: 1320600, netDrop: 1188540 },
-    { itemCode: "02.01.01.100", description: "פריסת סרט זיהוי לאורך הצינור לאחר השלב הראשון של מילוי חוזר ", type: "removed", grossBefore: 29120, grossAfter: 0, grossDrop: 29120, netDrop: 26208 },
-    { itemCode: "02.38.01.010", description: "טיפול והתקנת צנרת דלק תת קרקעית מרותכת בקוטר \"8, עטופה בציפו", type: "removed", grossBefore: 2200594.5, grossAfter: 0, grossDrop: 2200594.5, netDrop: 1980535.05 },
-    { itemCode: "02.38.01.020", description: "ריתוך צנרת דלק (ריתוכי השקה, חדירה וכו'), כולל צילומי רדיוגר", type: "removed", grossBefore: 913360, grossAfter: 0, grossDrop: 913360, netDrop: 822024 },
-    { itemCode: "02.38.01.070", description: "חיתוך קר", type: "removed", grossBefore: 3680, grossAfter: 0, grossDrop: 3680, netDrop: 3312 },
-    { itemCode: "02.38.01.080", description: "ייצור  מלכודת זמנית ושטיפת קו חדש בקוטר 8\", לרבות רכש חומרים", type: "removed", grossBefore: 40000, grossAfter: 0, grossDrop: 40000, netDrop: 36000 },
-    { itemCode: "02.38.02.050", description: "ביצוע נקיון קו 8\"  חדש ע\"י דחיקת שאריות תכולת הקו באמצעות מו", type: "removed", grossBefore: 50000, grossAfter: 0, grossDrop: 50000, netDrop: 45000 },
-    { itemCode: "02.38.03.010", description: "ביצוע עבודת צנרת ומגופים בשוחה ראשית - V11  כולל רכישה, אספק", type: "removed", grossBefore: 204556.0450354679, grossAfter: 0, grossDrop: 204556.0450354679, netDrop: 184100.4405319211 },
-    { itemCode: "02.38.03.020", description: "ביצוע עבודת צנרת ומגופים בשוחה קיימת - M39  כולל רכישה, אספק", type: "removed", grossBefore: 226690.762767456, grossAfter: 0, grossDrop: 226690.762767456, netDrop: 204021.68649071042 },
-    { itemCode: "02.38.03.030", description: "ביצוע עבודת צנרת ומגופים בתאי ניקוז - V6,V8 כולל רכישה, אספק", type: "removed", grossBefore: 150000, grossAfter: 0, grossDrop: 150000, netDrop: 135000 },
-    { itemCode: "02.38.03.040", description: "ביצוע עבודת צנרת ומגופים בתאי אוורור - V5,V7,V10 כולל רכישה,", type: "removed", grossBefore: 135000, grossAfter: 0, grossDrop: 135000, netDrop: 121500 },
-    { itemCode: "02.38.03.050", description: "ביצוע עבודת צנרת ומגופים בשוחות מגופים - ,V1,V3,V4,V9 כולל ר", type: "removed", grossBefore: 1260000, grossAfter: 0, grossDrop: 1260000, netDrop: 1134000 },
-    { itemCode: "02.38.06.020", description: "8\" PIPE WELDED API 5L-B W.T.-0.5, OUTSIDE P.E. COATED, THREE", type: "removed", grossBefore: 3198024, grossAfter: 0, grossDrop: 3198024, netDrop: 2878221.6 },
-    { itemCode: "02.38.07.010", description: "מנהל עבודה", type: "removed", grossBefore: 22200, grossAfter: 0, grossDrop: 22200, netDrop: 19980 },
-    { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", type: "removed", grossBefore: 8250, grossAfter: 0, grossDrop: 8250, netDrop: 7425 },
-    { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", type: "removed", grossBefore: 27000, grossAfter: 0, grossDrop: 27000, netDrop: 24300 },
-    { itemCode: "03.91.01.014 ק", description: "תוספת חיוצים מונוליטיים למערכת דלק - דרישת חיל האויר", type: "removed", grossBefore: 100798, grossAfter: 0, grossDrop: 100798, netDrop: 90718.2 },
-  ],
+export type BillReductionSummary = {
+  standardRetentionCount: number;     // # of items with normal 10% retention
+  standardRetentionTotal: number;     // total amount in normal retention
+  unusualReductions: BillReduction[];
+};
+
+export const billReductionsByBill: Record<number, BillReductionSummary> = {
+  1: {
+    standardRetentionCount: 0,
+    standardRetentionTotal: 0,
+    unusualReductions: [],
+  },
+  2: {
+    standardRetentionCount: 0,
+    standardRetentionTotal: 0,
+    unusualReductions: [],
+  },
+  3: {
+    standardRetentionCount: 0,
+    standardRetentionTotal: 0,
+    unusualReductions: [],
+  },
+  4: {
+    standardRetentionCount: 14,
+    standardRetentionTotal: 778554,
+    unusualReductions: [],
+  },
+  5: {
+    standardRetentionCount: 15,
+    standardRetentionTotal: 950393,
+    unusualReductions: [],
+  },
+  6: {
+    standardRetentionCount: 10,
+    standardRetentionTotal: 952585,
+    unusualReductions: [
+      { itemCode: "02.38.07.010", description: "מנהל עבודה", grossCurrent: 13200, netCurrent: 0, heldAmount: 13200, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+      { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", grossCurrent: 18150, netCurrent: 0, heldAmount: 18150, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+      { itemCode: "02.38.07.030", description: "מסגר או צנר", grossCurrent: 15600, netCurrent: 0, heldAmount: 15600, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+      { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", grossCurrent: 55200, netCurrent: 0, heldAmount: 55200, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+      { itemCode: "02.38.07.070", description: "מחפרון JCB 3 או שו\"ע", grossCurrent: 11890, netCurrent: 0, heldAmount: 11890, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+    ],
+  },
+  7: {
+    standardRetentionCount: 15,
+    standardRetentionTotal: 1034199,
+    unusualReductions: [
+      { itemCode: "02.38.03.030", description: "ביצוע עבודת צנרת ומגופים בתאי ניקוז - V6,V8 כולל רכישה, אספק", grossCurrent: 75000, netCurrent: 0, heldAmount: 75000, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+      { itemCode: "02.38.07.010", description: "מנהל עבודה", grossCurrent: 13200, netCurrent: 0, heldAmount: 13200, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+      { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", grossCurrent: 18150, netCurrent: 0, heldAmount: 18150, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+      { itemCode: "02.38.07.030", description: "מסגר או צנר", grossCurrent: 15600, netCurrent: 0, heldAmount: 15600, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+      { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", grossCurrent: 55200, netCurrent: 0, heldAmount: 55200, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+      { itemCode: "02.38.07.070", description: "מחפרון JCB 3 או שו\"ע", grossCurrent: 11890, netCurrent: 0, heldAmount: 11890, heldRate: 1.0000, removedThisBill: 0, type: "held" },
+    ],
+  },
+  8: {
+    standardRetentionCount: 21,
+    standardRetentionTotal: 1051883,
+    unusualReductions: [
+      { itemCode: "02.38.03.050", description: "ביצוע עבודת צנרת ומגופים בשוחות מגופים - ,V1,V3,V4,V9 כולל ר", grossCurrent: 1260000, netCurrent: 1134000, heldAmount: 126000, heldRate: 0.1000, removedThisBill: 315000, type: "removed" },
+      { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", grossCurrent: 8250, netCurrent: 7425, heldAmount: 825, heldRate: 0.1000, removedThisBill: 9900, type: "removed" },
+      { itemCode: "02.38.07.030", description: "מסגר או צנר", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 15600, type: "removed" },
+      { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", grossCurrent: 27000, netCurrent: 24300, heldAmount: 2700, heldRate: 0.1000, removedThisBill: 28200, type: "removed" },
+      { itemCode: "02.38.07.070", description: "מחפרון JCB 3 או שו\"ע", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 11890, type: "removed" },
+    ],
+  },
+  9: {
+    standardRetentionCount: 0,
+    standardRetentionTotal: 0,
+    unusualReductions: [
+      { itemCode: "01.38.01.000", description: "מתקני דלק", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 1452000, type: "removed" },
+      { itemCode: "02.01.01.020", description: "ביצוע חפירות גישוש לאיתור תשתיות החוצות את תוואי הצנור (ניקו", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 75900, type: "removed" },
+      { itemCode: "02.01.01.030", description: "חפירת תעלה לצורך הטמנת הצינור, על פי העומקים המסומנים בתוכני", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 550560, type: "removed" },
+      { itemCode: "02.01.01.040", description: "חפירה באזורי חציית תשתיות וצנרת קיימת - חפירה תבוצע עד לעומק", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 900, type: "removed" },
+      { itemCode: "02.01.01.050", description: "חפירה באמצעות מחפרון זעיר עד לעומק של 20 ס\"מ מעל הצינור הקיי", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 1600, type: "removed" },
+      { itemCode: "02.01.01.070", description: "חול אינרטי, נקי מכל חומר אורגני, עד לגובה 30 ס\"מ מעל לצנרת. ", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 1320600, type: "removed" },
+      { itemCode: "02.01.01.100", description: "פריסת סרט זיהוי לאורך הצינור לאחר השלב הראשון של מילוי חוזר ", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 29120, type: "removed" },
+      { itemCode: "02.38.01.010", description: "טיפול והתקנת צנרת דלק תת קרקעית מרותכת בקוטר \"8, עטופה בציפו", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 2200594.5, type: "removed" },
+      { itemCode: "02.38.01.020", description: "ריתוך צנרת דלק (ריתוכי השקה, חדירה וכו'), כולל צילומי רדיוגר", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 913360, type: "removed" },
+      { itemCode: "02.38.01.070", description: "חיתוך קר", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 3680, type: "removed" },
+      { itemCode: "02.38.01.080", description: "ייצור  מלכודת זמנית ושטיפת קו חדש בקוטר 8\", לרבות רכש חומרים", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 40000, type: "removed" },
+      { itemCode: "02.38.02.050", description: "ביצוע נקיון קו 8\"  חדש ע\"י דחיקת שאריות תכולת הקו באמצעות מו", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 50000, type: "removed" },
+      { itemCode: "02.38.03.010", description: "ביצוע עבודת צנרת ומגופים בשוחה ראשית - V11  כולל רכישה, אספק", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 204556.0450354679, type: "removed" },
+      { itemCode: "02.38.03.020", description: "ביצוע עבודת צנרת ומגופים בשוחה קיימת - M39  כולל רכישה, אספק", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 226690.762767456, type: "removed" },
+      { itemCode: "02.38.03.030", description: "ביצוע עבודת צנרת ומגופים בתאי ניקוז - V6,V8 כולל רכישה, אספק", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 150000, type: "removed" },
+      { itemCode: "02.38.03.040", description: "ביצוע עבודת צנרת ומגופים בתאי אוורור - V5,V7,V10 כולל רכישה,", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 135000, type: "removed" },
+      { itemCode: "02.38.03.050", description: "ביצוע עבודת צנרת ומגופים בשוחות מגופים - ,V1,V3,V4,V9 כולל ר", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 1260000, type: "removed" },
+      { itemCode: "02.38.06.020", description: "8\" PIPE WELDED API 5L-B W.T.-0.5, OUTSIDE P.E. COATED, THREE", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 3198024, type: "removed" },
+      { itemCode: "02.38.07.010", description: "מנהל עבודה", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 22200, type: "removed" },
+      { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 8250, type: "removed" },
+      { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 27000, type: "removed" },
+      { itemCode: "03.91.01.014 ק", description: "תוספת חיוצים מונוליטיים למערכת דלק - דרישת חיל האויר", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 100798, type: "removed" },
+    ],
+  },
 };
