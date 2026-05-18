@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { getProject, getPartialBills } from "@/lib/mock-data";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatCurrencyExact } from "@/lib/format";
 import { BillsTable } from "@/components/bills-table";
-import type { ExceptionStatus, PartialBill } from "@/lib/types";
+import type { ExceptionStatus, PartialBill, Project } from "@/lib/types";
 
 const exceptionStatusMap: Record<ExceptionStatus, { label: string; cls: string; emoji: string }> = {
   approved: { label: "אושר", cls: "bg-green-100 text-green-700", emoji: "✅" },
@@ -164,9 +164,9 @@ export default async function PartialBillsPage({
     <>
       {/* Single consolidated summary row */}
       <ConsolidatedSummary
+        project={project}
         bills={bills}
         totalBeforeVat={totalBeforeVat}
-        totalWithVat={totalWithVat}
         totalPaid={totalPaid}
         totalPending={totalPending}
       />
@@ -223,15 +223,15 @@ export default async function PartialBillsPage({
 }
 
 function ConsolidatedSummary({
+  project,
   bills,
   totalBeforeVat,
-  totalWithVat,
   totalPaid,
   totalPending,
 }: {
+  project: Project;
   bills: PartialBill[];
   totalBeforeVat: number;
-  totalWithVat: number;
   totalPaid: number;
   totalPending: number;
 }) {
@@ -243,14 +243,16 @@ function ConsolidatedSummary({
   const grossSubmitted = latest.cumulativeGrossAmount ?? totalBeforeVat;
   const iaiHeld = latest.iaiCumulativeRetention ?? 0;
   const yrnHeld = latest.yrnCumulativeRetention ?? 0;
+  const contractRemaining = project.contractAmount - grossSubmitted;
+  const pctSubmitted = (grossSubmitted / project.contractAmount) * 100;
 
-  const cells: Array<{ label: string; value: number; color: string; sub?: string }> = [
-    { label: "סך הכל מוגש", value: grossSubmitted, color: "text-slate-800" },
+  const cells: Array<{ label: string; value: number; color: string; sub?: string; highlight?: boolean }> = [
+    { label: "היקף החוזה", value: project.contractAmount, color: "text-slate-900", sub: "סך החוזה החתום", highlight: true },
+    { label: "סך הכל מוגש", value: grossSubmitted, color: "text-slate-800", sub: `${pctSubmitted.toFixed(1)}% מהחוזה · נשאר ${formatCurrency(contractRemaining, true)}` },
     { label: 'עיכבון תע"א', value: -iaiHeld, color: "text-red-700", sub: "10% מהמוגש" },
     { label: 'עיכבון י.ר.ן', value: -yrnHeld, color: "text-orange-700", sub: "5% נוסף" },
     { label: "סך חיובים", value: totalBeforeVat, color: "text-slate-800", sub: `${bills.length} חשבונות` },
-    { label: 'סך כולל מע"מ', value: totalWithVat, color: "text-slate-800", sub: "למזמין" },
-    { label: "שולם בפועל", value: totalPaid, color: "text-green-700", sub: `${Math.round((totalPaid / totalWithVat) * 100)}% מהכולל` },
+    { label: "שולם בפועל", value: totalPaid, color: "text-green-700", sub: `${Math.round((totalPaid / totalBeforeVat) * 100)}% מהחיובים` },
     { label: "ממתין לתשלום", value: totalPending, color: "text-amber-700", sub: "לפי פירעון" },
   ];
 
@@ -258,10 +260,13 @@ function ConsolidatedSummary({
     <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-6 overflow-x-auto">
       <div className="flex items-stretch gap-1 min-w-max">
         {cells.map((cell, idx) => (
-          <div key={idx} className={`flex-1 min-w-[110px] px-3 py-2 ${idx < cells.length - 1 ? "border-l border-slate-200" : ""}`}>
+          <div
+            key={idx}
+            className={`flex-1 min-w-[160px] px-3 py-2 rounded-lg ${cell.highlight ? "bg-slate-100" : ""} ${idx < cells.length - 1 ? "border-l border-slate-200" : ""}`}
+          >
             <p className="text-xs text-slate-500 whitespace-nowrap">{cell.label}</p>
-            <p className={`text-lg font-bold ${cell.color} mt-0.5 whitespace-nowrap`}>
-              {cell.value < 0 ? "−" : ""}{formatCurrency(Math.abs(cell.value), true)}
+            <p className={`text-base font-bold ${cell.color} mt-0.5 whitespace-nowrap`}>
+              {cell.value < 0 ? "−" : ""}{formatCurrencyExact(Math.abs(cell.value))}
             </p>
             {cell.sub && <p className="text-xs text-slate-400 mt-0.5">{cell.sub}</p>}
           </div>

@@ -6,6 +6,11 @@ export function formatCurrency(amount: number, compact = false): string {
   return `₪${amount.toLocaleString("he-IL")}`;
 }
 
+// Full number with 2 decimal places (no K/M abbreviation)
+export function formatCurrencyExact(amount: number): string {
+  return `₪${amount.toLocaleString("he-IL", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
 }
