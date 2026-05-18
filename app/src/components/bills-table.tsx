@@ -217,19 +217,27 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
             {items.map((item, idx) => {
               const isNote = item.unit === "הערה";
               const isReduction = item.currentBillAmount < -0.5;  // קיזוז (סעיף שהוסר/הוקטן)
+              const isHeld = item.isHeld === true;  // סעיף מוחזק (gross > net)
               const cumPct = item.contractQuantity > 0
                 ? (item.cumulativeQtyAfter / item.contractQuantity) * 100
                 : 0;
               return (
                 <tr
                   key={idx}
-                  className={`border-b last:border-0 hover:bg-slate-50 ${isNote ? "bg-amber-50" : ""} ${isReduction ? "bg-red-50" : ""}`}
+                  className={`border-b last:border-0 hover:bg-slate-50 ${isNote ? "bg-amber-50" : ""} ${isReduction ? "bg-red-50" : ""} ${isHeld && !isReduction ? "bg-amber-50/70" : ""}`}
                 >
                   <td className="p-2 font-mono text-xs text-slate-600 whitespace-nowrap">
                     {item.itemCode}
                   </td>
                   <td className="p-2 text-slate-800">
-                    {item.description}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>{item.description}</span>
+                      {isHeld && (
+                        <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full whitespace-nowrap font-bold">
+                          🔻 מוחזק ₪{(item.heldAmount ?? 0).toLocaleString("he-IL")}
+                        </span>
+                      )}
+                    </div>
                     {!isNote && item.contractQuantity > 0 && (
                       <div className="mt-1 bg-slate-100 rounded-full h-1 max-w-28">
                         <div
@@ -260,7 +268,16 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
                     {isNote ? "—" : formatCurrency(item.currentBillAmount)}
                   </td>
                   <td className="p-2 text-left text-slate-700 whitespace-nowrap">
-                    {isNote ? "—" : formatCurrency(item.cumulativeAmount)}
+                    {isNote ? "—" : (
+                      <>
+                        {formatCurrency(item.cumulativeAmount)}
+                        {isHeld && item.cumulativeGrossAmount && (
+                          <div className="text-xs text-red-600 mt-0.5">
+                            ברוטו: ₪{item.cumulativeGrossAmount.toLocaleString("he-IL")}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </td>
                 </tr>
               );

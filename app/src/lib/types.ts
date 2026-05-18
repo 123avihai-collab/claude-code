@@ -147,8 +147,12 @@ export type BillBoqItem = {
   previousCumulativeQty: number; // מצטבר בחשבון הקודם
   currentBillQty: number;        // כמות בחשבון זה
   cumulativeQtyAfter: number;    // מצטבר אחרי החשבון הזה
-  currentBillAmount: number;     // סכום החשבון הזה (= currentBillQty × unitPrice)
-  cumulativeAmount: number;      // סכום מצטבר (= cumulativeQtyAfter × unitPrice)
+  currentBillAmount: number;     // סכום נטו בחשבון זה (= currentBillQty × unitPrice × (1 - retention))
+  cumulativeAmount: number;      // סכום נטו מצטבר (= cumulativeQtyAfter × unitPrice × (1 - retention))
+  // ברוטו (לפני עיכבון תע"א) — חשוב כשהסעיף מוחזק (net=0 אבל gross>0)
+  cumulativeGrossAmount?: number; // ברוטו מצטבר — אם > cumulativeAmount → סעיף מוחזק חלקית/מלא
+  isHeld?: boolean;               // true אם cumulativeGrossAmount > cumulativeAmount בצורה משמעותית (>15%)
+  heldAmount?: number;            // סכום מוחזק = cumulativeGrossAmount - cumulativeAmount
 };
 
 export type PartialBill = {
