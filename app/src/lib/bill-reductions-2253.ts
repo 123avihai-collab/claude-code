@@ -1,5 +1,4 @@
-// קיזוזים חריגים פר חשבון — סעיפים שמקבלים עיכבון מעל 10% רגיל
-// או שהוסרו מהחשבון. סעיפים עם עיכבון 10% רגיל מסוכמים בשורת summary.
+// קיזוזים חריגים פר חשבון
 
 export type BillReduction = {
   itemCode: string;
@@ -7,14 +6,14 @@ export type BillReduction = {
   grossCurrent: number;
   netCurrent: number;
   heldAmount: number;
-  heldRate: number;          // 0..1 (e.g. 1.0 = 100% held)
+  heldRate: number;
   removedThisBill: number;
   type: "held" | "removed" | "removed_and_held";
 };
 
 export type BillReductionSummary = {
-  standardRetentionCount: number;     // # of items with normal 10% retention
-  standardRetentionTotal: number;     // total amount in normal retention
+  standardRetentionCount: number;
+  standardRetentionTotal: number;
   unusualReductions: BillReduction[];
 };
 
@@ -71,10 +70,10 @@ export const billReductionsByBill: Record<number, BillReductionSummary> = {
     standardRetentionCount: 21,
     standardRetentionTotal: 1051883,
     unusualReductions: [
-      { itemCode: "02.38.03.050", description: "ביצוע עבודת צנרת ומגופים בשוחות מגופים - ,V1,V3,V4,V9 כולל ר", grossCurrent: 1260000, netCurrent: 1134000, heldAmount: 126000, heldRate: 0.1000, removedThisBill: 315000, type: "removed" },
-      { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", grossCurrent: 8250, netCurrent: 7425, heldAmount: 825, heldRate: 0.1000, removedThisBill: 9900, type: "removed" },
+      { itemCode: "02.38.03.050", description: "ביצוע עבודת צנרת ומגופים בשוחות מגופים - ,V1,V3,V4,V9 כולל ר", grossCurrent: 1260000, netCurrent: 1134000, heldAmount: 0, heldRate: 0.0000, removedThisBill: 315000, type: "removed" },
+      { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", grossCurrent: 8250, netCurrent: 7425, heldAmount: 0, heldRate: 0.0000, removedThisBill: 9900, type: "removed" },
       { itemCode: "02.38.07.030", description: "מסגר או צנר", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 15600, type: "removed" },
-      { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", grossCurrent: 27000, netCurrent: 24300, heldAmount: 2700, heldRate: 0.1000, removedThisBill: 28200, type: "removed" },
+      { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", grossCurrent: 27000, netCurrent: 24300, heldAmount: 0, heldRate: 0.0000, removedThisBill: 28200, type: "removed" },
       { itemCode: "02.38.07.070", description: "מחפרון JCB 3 או שו\"ע", grossCurrent: 0, netCurrent: 0, heldAmount: 0, heldRate: 0.0000, removedThisBill: 11890, type: "removed" },
     ],
   },

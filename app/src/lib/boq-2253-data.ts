@@ -1,6 +1,9 @@
 // Auto-generated from "כתב כמויות מצטבר" 2253
-// Includes items where (currentBillAmount != 0) OR (cumulativeAmount > 0) OR (heldAmount > 0)
-// So items held but with no delta still appear in the bill (so user can see them in red)
+// Items included if any of:
+//   - currentBillAmount != 0 (had activity this bill)
+//   - cumulativeAmount > 0 (has running total)
+//   - isHeld (gross > net by >15% — money currently held)
+//   - wasRemoved (gross dropped from prev bill — officially un-measured)
 
 import type { BillBoqItem } from "./types";
 
@@ -211,11 +214,13 @@ export const billBoqItemsByBill: Record<number, BillBoqItem[]> = {
     { itemCode: "02.38.03.020", description: "ביצוע עבודת צנרת ומגופים בשוחה קיימת - M39  כולל רכישה, אספקה והתקנת כל החומרים לפי פרט M39 בתוכנית MG-FU-000-0-D-010-SRR . כולל אביזרים, ולרבות מבחן לחץ וצביעה במערכת צבע אפוקסי.", unit: "קומפ'", contractQuantity: 1.0, unitPrice: 226690.762767456, previousCumulativeQty: 1, currentBillQty: 0, cumulativeQtyAfter: 1, currentBillAmount: 0.0, cumulativeAmount: 204021.68649071042 },
     { itemCode: "02.38.03.030", description: "ביצוע עבודת צנרת ומגופים בתאי ניקוז - V6,V8 כולל רכישה, אספקה והתקנת כל החומרים לפי פרט תא ניקוז בתוכנית MG-FU-000-0-D-010-SRR . כולל אביזרים, ולרבות מבחן לחץ וצביעה במערכת צבע אפוקסי.", unit: "קומפ'", contractQuantity: 2.0, unitPrice: 75000.0, previousCumulativeQty: 1, currentBillQty: 1, cumulativeQtyAfter: 2, currentBillAmount: 135000, cumulativeAmount: 135000 },
     { itemCode: "02.38.03.040", description: "ביצוע עבודת צנרת ומגופים בתאי אוורור - V5,V7,V10 כולל רכישה, אספקה והתקנת כל החומרים לפי פרט תא אוורור בתוכנית MG-FU-000-0-D-010-SRR . כולל אביזרים, ולרבות מבחן לחץ וצביעה במערכת צבע אפוקסי.", unit: "קומפ'", contractQuantity: 3.0, unitPrice: 45000.0, previousCumulativeQty: 1.5, currentBillQty: 1.5, cumulativeQtyAfter: 3, currentBillAmount: 60750, cumulativeAmount: 121500 },
-    { itemCode: "02.38.03.050", description: "ביצוע עבודת צנרת ומגופים בשוחות מגופים - ,V1,V3,V4,V9 כולל רכישה, אספקה והתקנת כל החומרים לפי פרט של שוחות מגופים בתוכנית MG-FU-000-0-D-010-SRR . כולל אביזרים, ולרבות מבחן לחץ וצביעה במערכת צבע אפוקסי.", unit: "קומפ'", contractQuantity: 5.0, unitPrice: 315000.0, previousCumulativeQty: 5, currentBillQty: -1, cumulativeQtyAfter: 4, currentBillAmount: -283500, cumulativeAmount: 1134000 },
+    { itemCode: "02.38.03.050", description: "ביצוע עבודת צנרת ומגופים בשוחות מגופים - ,V1,V3,V4,V9 כולל רכישה, אספקה והתקנת כל החומרים לפי פרט של שוחות מגופים בתוכנית MG-FU-000-0-D-010-SRR . כולל אביזרים, ולרבות מבחן לחץ וצביעה במערכת צבע אפוקסי.", unit: "קומפ'", contractQuantity: 5.0, unitPrice: 315000.0, previousCumulativeQty: 5, currentBillQty: -1, cumulativeQtyAfter: 4, currentBillAmount: -283500, cumulativeAmount: 1134000, wasRemoved: true, removedAmount: 315000, cumulativeGrossAmount: 1260000 },
     { itemCode: "02.38.06.020", description: "8\" PIPE WELDED API 5L-B W.T.-0.5, OUTSIDE P.E. COATED, THREE LAYERS, TYPE \"TRIO\" THK.3mm, INTERNALLY EPOXY LINED", unit: "מטר", contractQuantity: 4416.0, unitPrice: 720.0, previousCumulativeQty: 4404, currentBillQty: 37.69999999999982, cumulativeQtyAfter: 4441.7, currentBillAmount: 24429.600000000093, cumulativeAmount: 2878221.6 },
     { itemCode: "02.38.07.010", description: "מנהל עבודה", unit: "ש\"ע", contractQuantity: 250.0, unitPrice: 300.0, previousCumulativeQty: 44, currentBillQty: 30, cumulativeQtyAfter: 74, currentBillAmount: 19980, cumulativeAmount: 19980 },
-    { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", unit: "ש\"ע", contractQuantity: 50.0, unitPrice: 330.0, previousCumulativeQty: 55, currentBillQty: -30, cumulativeQtyAfter: 25, currentBillAmount: 7425, cumulativeAmount: 7425 },
-    { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", unit: "ש\"ע", contractQuantity: 50.0, unitPrice: 600.0, previousCumulativeQty: 92, currentBillQty: -47, cumulativeQtyAfter: 45, currentBillAmount: 24300, cumulativeAmount: 24300 },
+    { itemCode: "02.38.07.020", description: "רתך כולל רתכת או מתקן לחיתוך", unit: "ש\"ע", contractQuantity: 50.0, unitPrice: 330.0, previousCumulativeQty: 55, currentBillQty: -30, cumulativeQtyAfter: 25, currentBillAmount: 7425, cumulativeAmount: 7425, wasRemoved: true, removedAmount: 9900, cumulativeGrossAmount: 8250 },
+    { itemCode: "02.38.07.030", description: "מסגר או צנר", unit: "ש\"ע", contractQuantity: 50.0, unitPrice: 240.0, previousCumulativeQty: 65, currentBillQty: -65, cumulativeQtyAfter: 0, currentBillAmount: 0, cumulativeAmount: 0, wasRemoved: true, removedAmount: 15600, cumulativeGrossAmount: 0 },
+    { itemCode: "02.38.07.060", description: "מחפר CATERPILLER 229 או שו\"ע", unit: "ש\"ע", contractQuantity: 50.0, unitPrice: 600.0, previousCumulativeQty: 92, currentBillQty: -47, cumulativeQtyAfter: 45, currentBillAmount: 24300, cumulativeAmount: 24300, wasRemoved: true, removedAmount: 28200, cumulativeGrossAmount: 27000 },
+    { itemCode: "02.38.07.070", description: "מחפרון JCB 3 או שו\"ע", unit: "ש\"ע", contractQuantity: 50.0, unitPrice: 290.0, previousCumulativeQty: 41, currentBillQty: -41, cumulativeQtyAfter: 0, currentBillAmount: 0, cumulativeAmount: 0, wasRemoved: true, removedAmount: 11890, cumulativeGrossAmount: 0 },
     { itemCode: "03.91.01.014 ק", description: "תוספת חיוצים מונוליטיים למערכת דלק - דרישת חיל האויר", unit: "קומפ'", contractQuantity: 1.0, unitPrice: 100798.0, previousCumulativeQty: 0, currentBillQty: 1, cumulativeQtyAfter: 1, currentBillAmount: 90718.2, cumulativeAmount: 90718.2 },
   ],
 };

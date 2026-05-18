@@ -139,20 +139,21 @@ export type BillException = {
 // סעיף מתוך כתב הכמויות שנכלל בחשבון חלקי
 // (snapshot — הכמויות הן ה-state בעת הגשת אותו חשבון)
 export type BillBoqItem = {
-  itemCode: string;              // "02.38.01.040"
-  description: string;           // "מגוף כדורי 2\""
-  unit: string;                  // "יח'" / "מ\"א" / "מ\"ק" / "קומפ'"
-  contractQuantity: number;      // כמות חוזה
-  unitPrice: number;             // מחיר יחידה
-  previousCumulativeQty: number; // מצטבר בחשבון הקודם
-  currentBillQty: number;        // כמות בחשבון זה
-  cumulativeQtyAfter: number;    // מצטבר אחרי החשבון הזה
-  currentBillAmount: number;     // סכום נטו בחשבון זה (= currentBillQty × unitPrice × (1 - retention))
-  cumulativeAmount: number;      // סכום נטו מצטבר (= cumulativeQtyAfter × unitPrice × (1 - retention))
-  // ברוטו (לפני עיכבון תע"א) — חשוב כשהסעיף מוחזק (net=0 אבל gross>0)
-  cumulativeGrossAmount?: number; // ברוטו מצטבר — אם > cumulativeAmount → סעיף מוחזק חלקית/מלא
-  isHeld?: boolean;               // true אם cumulativeGrossAmount > cumulativeAmount בצורה משמעותית (>15%)
-  heldAmount?: number;            // סכום מוחזק = cumulativeGrossAmount - cumulativeAmount
+  itemCode: string;
+  description: string;
+  unit: string;
+  contractQuantity: number;
+  unitPrice: number;
+  previousCumulativeQty: number;
+  currentBillQty: number;
+  cumulativeQtyAfter: number;
+  currentBillAmount: number;     // נטו בחשבון זה
+  cumulativeAmount: number;      // נטו מצטבר
+  cumulativeGrossAmount?: number; // ברוטו מצטבר (אם > net → סעיף מוחזק)
+  isHeld?: boolean;               // gross > net בצורה משמעותית (>15%)
+  heldAmount?: number;            // gross - net
+  wasRemoved?: boolean;           // ברוטו ירד מהחשבון הקודם
+  removedAmount?: number;         // כמה ירד הברוטו השבוע
 };
 
 export type PartialBill = {

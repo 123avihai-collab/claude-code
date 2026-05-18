@@ -216,15 +216,18 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
           <tbody>
             {items.map((item, idx) => {
               const isNote = item.unit === "הערה";
-              const isReduction = item.currentBillAmount < -0.5;  // קיזוז (סעיף שהוסר/הוקטן)
-              const isHeld = item.isHeld === true;  // סעיף מוחזק (gross > net)
+              const isReduction = item.currentBillAmount < -0.5;
+              const isHeld = item.isHeld === true;
+              const wasRemoved = item.wasRemoved === true;
+              // Any "money problem" → red background (consistent color)
+              const hasMoneyIssue = isReduction || isHeld || wasRemoved;
               const cumPct = item.contractQuantity > 0
                 ? (item.cumulativeQtyAfter / item.contractQuantity) * 100
                 : 0;
               return (
                 <tr
                   key={idx}
-                  className={`border-b last:border-0 hover:bg-slate-50 ${isNote ? "bg-amber-50" : ""} ${isReduction ? "bg-red-50" : ""} ${isHeld && !isReduction ? "bg-amber-50/70" : ""}`}
+                  className={`border-b last:border-0 hover:bg-slate-50 ${isNote ? "bg-amber-50" : ""} ${hasMoneyIssue ? "bg-red-50" : ""}`}
                 >
                   <td className="p-2 font-mono text-xs text-slate-600 whitespace-nowrap">
                     {item.itemCode}
@@ -235,6 +238,11 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
                       {isHeld && (
                         <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full whitespace-nowrap font-bold">
                           🔻 מוחזק ₪{(item.heldAmount ?? 0).toLocaleString("he-IL")}
+                        </span>
+                      )}
+                      {wasRemoved && (
+                        <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full whitespace-nowrap font-bold">
+                          🗑️ הוסר ₪{(item.removedAmount ?? 0).toLocaleString("he-IL")}
                         </span>
                       )}
                     </div>
@@ -393,6 +401,7 @@ function BillCalculationBox({
 
 function BillReductionsPanel({ billNumber }: { billNumber: number }) {
   const data = billReductionsByBill[billNumber];
+  const [expanded, setExpanded] = useState(false);
   if (!data) return null;
   const { unusualReductions, standardRetentionCount, standardRetentionTotal } = data;
   if (unusualReductions.length === 0 && standardRetentionCount === 0) return null;
@@ -407,91 +416,118 @@ function BillReductionsPanel({ billNumber }: { billNumber: number }) {
 
   let billExplanation = "";
   if (billNumber === 6) {
-    billExplanation = "5 סעיפי רג\"י הוחזקו ב-100% (לא שולמו כלל) — המפקח רשם את העבודה אבל לא אישר תשלום. עדיין מגיע לך הכסף.";
+    billExplanation = "5 סעיפי רג\"י הוחזקו ב-100% — המפקח רשם את העבודה אבל לא אישר תשלום. עדיין מגיע לך הכסף.";
   } else if (billNumber === 7) {
-    billExplanation = "אותם 5 סעיפי רג\"י של חשבון 6 — עדיין מוחזקים. בנוסף: סעיף ניקוז V6/V8 הוחזק. סה\"כ ~₪189K מעוכבים.";
+    billExplanation = "אותם 5 רג\"י של חשבון 6 — עדיין מוחזקים. בנוסף: ניקוז V6/V8 הוחזק. ~₪189K מעוכבים.";
   } else if (billNumber === 8) {
-    billExplanation = "5 סעיפים הוסרו רטרואקטיבית: V1/V3/V4/V9 valves -₪315K + 4 רג\"י -₪65.6K. עדיין נדרש לבדוק ולדרוש.";
+    billExplanation = "5 סעיפים הוסרו רטרואקטיבית (V1/V3/V4/V9 valves -₪315K + 4 רג\"י -₪65.6K). דרוש לדרוש מחדש.";
   } else {
-    billExplanation = "סעיפים עם עיכבון חריג (מעל 10% רגיל) או שהוסרו בחשבון זה.";
+    billExplanation = "סעיפים חריגים בחשבון זה.";
   }
 
-  return (
-    <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4 mt-4">
-      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🔻</span>
-          <h5 className="font-bold text-orange-900">
-            קיזוזים חריגים בחשבון {billNumber} — &quot;כסף שעדיין מגיע לך&quot;
-          </h5>
-        </div>
-        <div className="text-left">
-          <p className="text-xs text-orange-700">סך קיזוזים חריגים</p>
-          <p className="text-lg font-bold text-orange-900">{formatCurrency(grandTotalUnusual)}</p>
-        </div>
+  if (unusualReductions.length === 0) {
+    // Only standard retention — show as a small line
+    return (
+      <div className="mt-3 bg-slate-50 rounded-lg p-2 text-xs text-slate-600 flex justify-between items-center">
+        <span>ℹ️ {standardRetentionCount} סעיפים עם עיכבון 10% רגיל</span>
+        <span className="font-mono">₪{standardRetentionTotal.toLocaleString("he-IL")}</span>
       </div>
+    );
+  }
 
-      {unusualReductions.length > 0 && (
-        <p className="text-xs text-orange-800 mb-3 bg-white/60 rounded p-2">
-          ℹ️ {billExplanation}
-        </p>
-      )}
-
-      {removed.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs font-bold text-red-700 mb-2">
-            🗑️ {removed.length} סעיפים הוסרו / הוקטנו (ברוטו ירד) · ₪{totalRemoved.toLocaleString("he-IL")}
-          </p>
-          <div className="space-y-1.5">
-            {removed.map((r, i) => (
-              <div key={`r-${i}`} className="bg-white rounded p-2 text-xs flex justify-between items-center border-r-2 border-red-500">
-                <div className="flex-1 min-w-0">
-                  <span className="font-mono text-slate-600">{r.itemCode}</span>
-                  <span className="text-slate-800 mr-2">{r.description}</span>
-                </div>
-                <span className="text-red-700 font-bold whitespace-nowrap text-base">
-                  −{formatCurrency(r.removedThisBill)}
-                </span>
-              </div>
-            ))}
+  // Collapsible summary view — click to expand
+  return (
+    <div className="bg-red-50 border-2 border-red-300 rounded-lg mt-4">
+      {/* Always-visible summary header */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full p-4 flex justify-between items-center hover:bg-red-100 transition-colors rounded-lg"
+      >
+        <div className="flex items-center gap-3 text-right">
+          <span className="text-2xl">🔻</span>
+          <div>
+            <p className="font-bold text-red-900">
+              קיזוזים חריגים בחשבון {billNumber}
+            </p>
+            <p className="text-xs text-red-700 mt-0.5">
+              {removed.length > 0 && `${removed.length} הוסרו`}
+              {removed.length > 0 && heldOnly.length > 0 && " · "}
+              {heldOnly.length > 0 && `${heldOnly.length} מוחזקים`}
+              {" · לחץ לפירוט"}
+            </p>
           </div>
         </div>
-      )}
-
-      {heldOnly.length > 0 && (
-        <div>
-          <p className="text-xs font-bold text-amber-700 mb-2">
-            ⏸️ {heldOnly.length} סעיפים מוחזקים בעיכבון חריג (מעל 10%) · ₪{totalHeldUnusual.toLocaleString("he-IL")}
-          </p>
-          <div className="space-y-1.5">
-            {heldOnly.map((r, i) => (
-              <div key={`h-${i}`} className="bg-white rounded p-2 text-xs flex justify-between items-center border-r-2 border-amber-500">
-                <div className="flex-1 min-w-0">
-                  <span className="font-mono text-slate-600">{r.itemCode}</span>
-                  <span className="text-slate-800 mr-2">{r.description}</span>
-                  <span className={`text-xs ml-2 px-1.5 py-0.5 rounded ${r.heldRate >= 0.99 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
-                    {(r.heldRate * 100).toFixed(0)}% מוחזק
-                  </span>
-                </div>
-                <div className="text-left whitespace-nowrap mr-3">
-                  <div className="text-slate-500 text-xs">ברוטו ₪{r.grossCurrent.toLocaleString("he-IL")}</div>
-                  <div className="text-slate-600 text-xs">נטו ₪{r.netCurrent.toLocaleString("he-IL")}</div>
-                </div>
-                <span className="text-amber-700 font-bold whitespace-nowrap text-base">
-                  −{formatCurrency(r.heldAmount)}
-                </span>
-              </div>
-            ))}
+        <div className="text-left flex items-center gap-3">
+          <div>
+            <p className="text-xs text-red-700">סך קיזוזים</p>
+            <p className="text-2xl font-bold text-red-900">{formatCurrency(grandTotalUnusual)}</p>
           </div>
+          <span className="text-red-700 text-xl">{expanded ? "▾" : "◂"}</span>
         </div>
-      )}
+      </button>
 
-      {standardRetentionCount > 0 && (
-        <div className="mt-3 pt-3 border-t border-orange-200 flex justify-between items-center text-xs text-slate-600">
-          <span>
-            ℹ️ בנוסף: {standardRetentionCount} סעיפים נוספים עם עיכבון 10% רגיל
-          </span>
-          <span className="font-mono">₪{standardRetentionTotal.toLocaleString("he-IL")}</span>
+      {/* Expanded details */}
+      {expanded && (
+        <div className="px-4 pb-4">
+          <p className="text-xs text-red-800 mb-3 bg-white/60 rounded p-2">
+            ℹ️ {billExplanation}
+          </p>
+
+          {removed.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-bold text-red-700 mb-2">
+                🗑️ {removed.length} סעיפים הוסרו / הוקטנו · ₪{totalRemoved.toLocaleString("he-IL")}
+              </p>
+              <div className="space-y-1.5">
+                {removed.map((r, i) => (
+                  <div key={`r-${i}`} className="bg-white rounded p-2 text-xs flex justify-between items-center border-r-2 border-red-500">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-mono text-slate-600">{r.itemCode}</span>
+                      <span className="text-slate-800 mr-2">{r.description}</span>
+                    </div>
+                    <span className="text-red-700 font-bold whitespace-nowrap text-base">
+                      −{formatCurrency(r.removedThisBill)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {heldOnly.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-red-700 mb-2">
+                ⏸️ {heldOnly.length} סעיפים מוחזקים · ₪{totalHeldUnusual.toLocaleString("he-IL")}
+              </p>
+              <div className="space-y-1.5">
+                {heldOnly.map((r, i) => (
+                  <div key={`h-${i}`} className="bg-white rounded p-2 text-xs flex justify-between items-center border-r-2 border-red-500">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-mono text-slate-600">{r.itemCode}</span>
+                      <span className="text-slate-800 mr-2">{r.description}</span>
+                      <span className="text-xs ml-2 px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold">
+                        {(r.heldRate * 100).toFixed(0)}% מוחזק
+                      </span>
+                    </div>
+                    <div className="text-left whitespace-nowrap mr-3">
+                      <div className="text-slate-500 text-xs">ברוטו ₪{r.grossCurrent.toLocaleString("he-IL")}</div>
+                      <div className="text-slate-600 text-xs">נטו ₪{r.netCurrent.toLocaleString("he-IL")}</div>
+                    </div>
+                    <span className="text-red-700 font-bold whitespace-nowrap text-base">
+                      −{formatCurrency(r.heldAmount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {standardRetentionCount > 0 && (
+            <div className="mt-3 pt-3 border-t border-red-200 flex justify-between items-center text-xs text-slate-600">
+              <span>ℹ️ בנוסף: {standardRetentionCount} סעיפים עם עיכבון 10% רגיל</span>
+              <span className="font-mono">₪{standardRetentionTotal.toLocaleString("he-IL")}</span>
+            </div>
+          )}
         </div>
       )}
     </div>
