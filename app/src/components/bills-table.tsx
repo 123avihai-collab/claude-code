@@ -4,6 +4,17 @@ import { useState } from "react";
 import type { PartialBill, PartialBillStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
+// Format quantity / unit price: max 3 decimals, no trailing zeros
+function fmtQty(n: number): string {
+  if (n === null || n === undefined) return "—";
+  return new Intl.NumberFormat("he-IL", { maximumFractionDigits: 3 }).format(n);
+}
+
+function fmtPrice(n: number): string {
+  if (n === null || n === undefined) return "—";
+  return new Intl.NumberFormat("he-IL", { maximumFractionDigits: 2 }).format(n);
+}
+
 const statusMap: Record<PartialBillStatus, { label: string; cls: string; emoji: string }> = {
   draft: { label: "טיוטא", cls: "bg-slate-200 text-slate-700", emoji: "📝" },
   submitted: { label: "הוגש", cls: "bg-blue-100 text-blue-700", emoji: "📤" },
@@ -230,21 +241,21 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
                   </td>
                   <td className="p-2 text-center text-slate-600">{item.unit}</td>
                   <td className="p-2 text-left text-slate-600 whitespace-nowrap">
-                    {isNote ? "—" : `₪${item.unitPrice.toLocaleString("he-IL")}`}
+                    {isNote ? "—" : `₪${fmtPrice(item.unitPrice)}`}
                   </td>
                   <td className="p-2 text-left text-slate-600">
-                    {isNote ? "—" : item.contractQuantity}
+                    {isNote ? "—" : fmtQty(item.contractQuantity)}
                   </td>
                   <td className="p-2 text-left text-slate-500">
-                    {isNote ? "—" : item.previousCumulativeQty}
+                    {isNote ? "—" : fmtQty(item.previousCumulativeQty)}
                   </td>
-                  <td className="p-2 text-left font-bold text-slate-800 bg-blue-50/50">
-                    {isNote ? "—" : item.currentBillQty}
+                  <td className={`p-2 text-left font-bold bg-blue-50/50 ${isReduction ? "text-red-700" : "text-slate-800"}`}>
+                    {isNote ? "—" : fmtQty(item.currentBillQty)}
                   </td>
                   <td className="p-2 text-left text-slate-700">
-                    {isNote ? "—" : item.cumulativeQtyAfter}
+                    {isNote ? "—" : fmtQty(item.cumulativeQtyAfter)}
                   </td>
-                  <td className="p-2 text-left font-bold text-blue-800 bg-blue-50/50 whitespace-nowrap">
+                  <td className={`p-2 text-left font-bold bg-blue-50/50 whitespace-nowrap ${isReduction ? "text-red-700" : "text-blue-800"}`}>
                     {isNote ? "—" : formatCurrency(item.currentBillAmount)}
                   </td>
                   <td className="p-2 text-left text-slate-700 whitespace-nowrap">
@@ -267,11 +278,89 @@ function BoqItemsExpansion({ bill }: { bill: PartialBill }) {
           </tbody>
         </table>
       </div>
+
+      {/* Bill calculation: gross → after IAI → after YRN = net invoice */}
+      <BillCalculationBox bill={bill} grossThisBill={totalCurrent} />
+
       <p className="text-xs text-blue-700 mt-3 bg-white/60 rounded p-2">
         💡 <strong>כך זה עובד</strong>: כל חשבון חלקי כולל רק את הסעיפים שעליהם
         חויב/הוגש באותו חודש. הכמויות הן <strong>מצטברות</strong> — &quot;כמות בחשבון&quot;
         זו ההוספה לעומת החשבון הקודם.
       </p>
+    </div>
+  );
+}
+
+function BillCalculationBox({
+  bill,
+  grossThisBill,
+}: {
+  bill: PartialBill;
+  grossThisBill: number;
+}) {
+  // Use actual data from file if available, otherwise compute from sum of items
+  const gross = bill.grossAmountThisBill ?? grossThisBill;
+  const iaiRetention = bill.iaiCurrentRetention ?? 0;
+  const yrnRetention = bill.yrnCurrentRetention ?? 0;
+  const expectedNet = gross - iaiRetention - yrnRetention;
+  const actualNet = bill.amountBeforeVat;
+
+  // Sanity check: does the math match the official bill amount?
+  const matches = Math.abs(expectedNet - actualNet) < 1;
+
+  // Calculate effective rates (not always exactly 10/5)
+  const iaiRate = gross > 0 ? (iaiRetention / gross) * 100 : 0;
+  const yrnAfterIai = gross - iaiRetention;
+  const yrnRate = yrnAfterIai > 0 ? (yrnRetention / yrnAfterIai) * 100 : 0;
+
+  return (
+    <div className="mt-3 bg-white rounded-lg border-r-4 border-amber-500 p-3">
+      <h5 className="font-bold text-slate-800 mb-2 text-sm flex items-center gap-2">
+        🧮 חישוב סופי של חשבון {bill.billNumber}
+        {matches ? (
+          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+            ✓ תואם לחשבונית
+          </span>
+        ) : (
+          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+            ⚠ הפרש: ₪{(actualNet - expectedNet).toFixed(0)}
+          </span>
+        )}
+      </h5>
+      <div className="text-sm space-y-1.5">
+        <div className="flex justify-between border-b border-slate-100 pb-1">
+          <span className="text-slate-700">סך הברוטו (סעיפי הכתב כמויות)</span>
+          <span className="font-bold text-slate-800">{formatCurrency(gross)}</span>
+        </div>
+        <div className="flex justify-between text-red-700 border-b border-slate-100 pb-1">
+          <span>
+            − עיכבון תע&quot;א
+            {iaiRetention === 0 ? (
+              <span className="text-xs text-amber-600 mr-2">(לא נלקח בחשבון זה)</span>
+            ) : (
+              <span className="text-xs text-slate-500 mr-2">({iaiRate.toFixed(1)}%)</span>
+            )}
+          </span>
+          <span className="font-mono">{iaiRetention === 0 ? "₪0" : `−${formatCurrency(iaiRetention)}`}</span>
+        </div>
+        <div className="flex justify-between text-orange-700 border-b border-slate-100 pb-1">
+          <span>
+            − עיכבון י.ר.ן
+            <span className="text-xs text-slate-500 mr-2">({yrnRate.toFixed(1)}%)</span>
+          </span>
+          <span className="font-mono">−{formatCurrency(yrnRetention)}</span>
+        </div>
+        <div className="flex justify-between font-bold bg-slate-800 text-white rounded p-2 mt-2">
+          <span>= סך החשבון לתשלום (נטו, לפני מע&quot;מ)</span>
+          <span>{formatCurrency(actualNet)}</span>
+        </div>
+        {!matches && (
+          <p className="text-xs text-red-700 mt-2 bg-red-50 p-2 rounded">
+            ⚠ <strong>הפרש של ₪{Math.abs(actualNet - expectedNet).toFixed(0)}</strong> —
+            ייתכן שיש סעיף שלא נלקח עליו עיכבון, או שהמפקח קיזז אחרת. שווה לבדוק.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
