@@ -48,7 +48,10 @@ export default async function ProjectOverviewPage({
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-blue-600">
+        <Link
+          href={`/projects/${project.id}/partial-bills`}
+          className="card-hover bg-white rounded-2xl p-5 border-r-4 border-blue-600 block hover:shadow-lg transition-shadow"
+        >
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-500 text-sm">הכנסות מהחוזה</p>
@@ -56,12 +59,16 @@ export default async function ProjectOverviewPage({
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">💰</div>
           </div>
-          <p className="text-xs text-slate-400 mt-2">מצטבר עד היום (7 חשבונות חלקיים)</p>
-        </div>
-        <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-orange-500">
+          <p className="text-xs text-blue-600 mt-2">לחץ לפירוט 7 החשבונות החלקיים ←</p>
+        </Link>
+
+        <Link
+          href={`/projects/${project.id}/finance`}
+          className="card-hover bg-white rounded-2xl p-5 border-r-4 border-orange-500 block hover:shadow-lg transition-shadow"
+        >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-sm">הוצא בפועל</p>
+              <p className="text-slate-500 text-sm">הוצאות בפועל</p>
               <p className="text-2xl font-bold text-slate-800 mt-1">
                 {formatCurrency(project.actualSpent)}
               </p>
@@ -74,8 +81,9 @@ export default async function ProjectOverviewPage({
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-xs text-slate-400 mt-1">{formatPercent(pct)} מההכנסות</p>
-        </div>
+          <p className="text-xs text-orange-600 mt-1">לחץ לפירוט הוצאות פר קטגוריה ←</p>
+        </Link>
+
         <div className={`card-hover bg-white rounded-2xl p-5 border-r-4 ${profit >= 0 ? "border-green-600" : "border-red-600"}`}>
           <div className="flex justify-between items-start">
             <div>
@@ -92,6 +100,7 @@ export default async function ProjectOverviewPage({
             {profit >= 0 ? `✓ רווחיות ${profitMargin}%` : `⚠ הפסד ${Math.abs(profitMargin)}%`}
           </p>
         </div>
+
         <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-purple-600">
           <div className="flex justify-between items-start">
             <div>

@@ -44,7 +44,7 @@ export default function HomePage() {
       <main className="container mx-auto px-6 py-6">
         <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">שלום, אבי 👋</h1>
+            <h1 className="text-2xl font-bold text-slate-800">שלום, אביחי 👋</h1>
             <p className="text-slate-500 text-sm mt-1">
               יש לך {projects.filter((p) => p.status === "active").length} פרויקטים פעילים ·{" "}
               {tasks.filter((t) => !t.done && (t.urgency === "today" || t.urgency === "tomorrow")).length}{" "}
@@ -61,27 +61,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="card-hover bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl p-5">
-            <p className="text-blue-100 text-sm">סך הכנסות (מצטבר)</p>
-            <p className="text-2xl font-bold mt-1">{formatCurrency(totalRevenue, true)}</p>
-            <p className="text-xs text-blue-100 mt-2">על-פני {projects.length} פרויקטים</p>
-          </div>
-          <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-orange-500">
-            <p className="text-slate-500 text-sm">סך הוצאות החודש</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">₪412K</p>
-            <p className="text-xs text-orange-600 mt-2">↑ 8% מהחודש שעבר</p>
-          </div>
-          <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-green-600">
-            <p className="text-slate-500 text-sm">תזרים נטו</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">+₪183K</p>
-            <p className="text-xs text-green-600 mt-2">חיובי החודש</p>
-          </div>
-          <div className="card-hover bg-white rounded-2xl p-5 border-r-4 border-red-500">
-            <p className="text-slate-500 text-sm">דורש פעולה</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">8</p>
-            <p className="text-xs text-red-600 mt-2">תשלומים + משימות</p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 hidden">
+          {/* removed per user request - KPI strip (revenue / monthly expenses / cashflow / action items) — not relevant right now */}
         </div>
 
         <div className="card-hover bg-white rounded-2xl p-5 mb-6">
@@ -102,37 +83,19 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="card-hover bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 mb-6 border-2 border-dashed border-indigo-200">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🤖</span>
-              <h3 className="font-bold text-slate-800">סוכן AI - שאל על כל הפרויקטים</h3>
-            </div>
-            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
-              בפיתוח · פאזה 5
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-            <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-              💭 &quot;כמה הוצאתי החודש בכל הפרויקטים?&quot;
-            </div>
-            <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-              💭 &quot;השווה בין 2253 ל-2288&quot;
-            </div>
-            <div className="bg-white rounded-lg p-2 text-xs text-slate-700 border border-slate-200">
-              💭 &quot;תמצא חשבוניות ממנדלסון בכל הפרויקטים&quot;
-            </div>
-          </div>
-          <div className="flex gap-2">
+        <div className="card-hover bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-3 mb-6 border border-indigo-200">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🤖</span>
+            <span className="text-sm font-bold text-slate-800 whitespace-nowrap">סוכן AI</span>
             <input
               type="text"
               disabled
-              placeholder="שאל כל שאלה על כל הפרויקטים..."
-              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white/60 text-sm cursor-not-allowed"
+              placeholder="שאל כל שאלה על הפרויקטים..."
+              className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white/70 text-sm cursor-not-allowed min-w-0"
             />
             <button
               disabled
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm cursor-not-allowed opacity-50"
+              className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm cursor-not-allowed opacity-50 whitespace-nowrap"
             >
               שלח
             </button>
