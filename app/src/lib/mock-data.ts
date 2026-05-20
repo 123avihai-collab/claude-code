@@ -1,6 +1,7 @@
 import type {
   Alert,
   Contractor,
+  CumulativeSubcontractor,
   ExpenseCategory,
   ExpenseCategoryNode,
   InventoryItem,
@@ -425,12 +426,41 @@ export const topSuppliersByProject: Record<string, TopSupplier[]> = {
   "2306": [],
 };
 
+// קבלני משנה בשיטת חשבון מצטבר (לפי סעיפי חוזה).
+// billedCumulative יתעדכן כשאביחי יעלה את החשבון המצטבר של כל אחד.
+export const cumulativeSubcontractorsByProject: Record<string, CumulativeSubcontractor[]> = {
+  "2253": [
+    {
+      id: "yamit-tzurit",
+      name: "ימית צורית פיתוח וכבישים בע\"מ",
+      specialty: "עבודות עפר וכבישים",
+      paidByUs: 1_115_352,
+      rowCount: 6,
+      note: "עבד בשיטת חשבון מצטבר · ממתין לחשבון המצטבר לבדיקת התאמה",
+    },
+    {
+      id: "ah-misgarot",
+      name: "ע.ח עבודות מסגרות",
+      specialty: "מסגרות וריתוך + לינת עובדים",
+      paidByUs: 948_790,
+      rowCount: 5,
+      note: "עבד בשיטת חשבון מצטבר · ממתין לחשבון המצטבר לבדיקת התאמה",
+    },
+  ],
+  "2288": [],
+  "2306": [],
+};
+
 export function getExpenseCategoryTree(projectId: string): ExpenseCategoryNode[] {
   return expenseCategoryTreeByProject[projectId] ?? [];
 }
 
 export function getTopSuppliers(projectId: string): TopSupplier[] {
   return topSuppliersByProject[projectId] ?? [];
+}
+
+export function getCumulativeSubcontractors(projectId: string): CumulativeSubcontractor[] {
+  return cumulativeSubcontractorsByProject[projectId] ?? [];
 }
 
 export const monthlyCashflowByProject: Record<string, number[]> = {

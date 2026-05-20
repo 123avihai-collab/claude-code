@@ -73,6 +73,29 @@ export type ExpenseSubItem = {
   amount: number;
   rowCount?: number;     // כמה תנועות תרמו לסכום (אם זמין)
   note?: string;
+  lineItems?: SupplierLineItem[]; // פירוט שורות (הזמנת רכש + סטטוס חשבונית) — מהקובץ
+};
+
+// שורת הוצאה בודדת של ספק — נכנס מקובץ ההוצאות/הכנסות
+export type SupplierLineItem = {
+  poNumber?: string;          // מספר הזמנת רכש
+  description?: string;       // תיאור / פריט
+  amount: number;             // סכום
+  date?: string;              // תאריך
+  invoiceReceived: boolean;   // האם נקלטה חשבונית
+  invoiceNumber?: string;     // מספר חשבונית (אם נקלטה)
+};
+
+// קבלן משנה שעובד בשיטת חשבון מצטבר (לפי סעיפי חוזה)
+export type CumulativeSubcontractor = {
+  id: string;
+  name: string;
+  specialty: string;          // "עבודות מסגרות" / "עבודות עפר וכבישים"
+  contractTotal?: number;     // היקף החוזה (אם ידוע)
+  paidByUs: number;           // מה ששילמנו בפועל לפי קובץ ההוצאות
+  rowCount: number;
+  billedCumulative?: number;  // החשבון המצטבר שהוא הגיש (מהקובץ שיועלה)
+  note?: string;
 };
 
 export type ExpenseCategoryNode = {
