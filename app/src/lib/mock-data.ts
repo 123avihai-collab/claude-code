@@ -14,6 +14,7 @@ import type {
   Transaction,
 } from "./types";
 import { billBoqItemsByBill } from "./boq-2253-data";
+import { expenseTree2253, cumulativeSubs2253 } from "./expenses-2253-data";
 
 export const projects: Project[] = [
   {
@@ -28,7 +29,7 @@ export const projects: Project[] = [
     // החוזה המקורי היה ~₪13M; ההפרש (~₪1.78M) הוא עבודות חריגות שאושרו.
     contractAmount: 14_782_679,
     revenue: 10_033_699,         // = "סה"כ לחשבון נוכחי" בחשבון 7 (אחרי שני העיכבונות)
-    actualSpent: 5_939_320,      // הוצאות בפועל (לא משתנה — מתבוסס על תזרים פריוריטי)
+    actualSpent: 6_756_096,      // הוצאות בפועל — אומת מול פלט פריורטי (R02)
     progressPercent: 80,         // 80% מההיקף לפי המצטבר (לפי חשבון 8)
     urgentCount: 2,
     tasksCount: 6,
@@ -261,9 +262,9 @@ export const alerts: Alert[] = [
 // סכום הכל פר פרויקט = project.actualSpent.
 export const expenseCategoriesByProject: Record<string, ExpenseCategory[]> = {
   "2253": [
-    { label: "חומרים", amount: 3_200_000 },
-    { label: "קבלני משנה", amount: 2_000_000 },
-    { label: "תקורות", amount: 739_320 },
+    { label: "חומרים", amount: 3_764_127 },
+    { label: "קבלני משנה", amount: 2_175_193 },
+    { label: "תקורות", amount: 816_776 },
   ],
   "2288": [
     { label: "תכנון הנדסי", amount: 285_000 },
@@ -283,68 +284,7 @@ export const expenseCategoriesByProject: Record<string, ExpenseCategory[]> = {
 // סך כל ה-amount של הצמתים העליונים = project.actualSpent.
 // תקורות מאוחדות לקטגוריה אחת עם 3 תת-קטגוריות.
 export const expenseCategoryTreeByProject: Record<string, ExpenseCategoryNode[]> = {
-  "2253": [
-    {
-      id: "materials",
-      label: "חומרים",
-      icon: "📦",
-      color: "blue",
-      amount: 3_200_000,
-      children: [
-        { label: "מנדלסון תשתיות ותעשיות בע\"מ", amount: 1_550_000, rowCount: 23, note: "ספק עיקרי - צנרת ואביזרים" },
-        { label: "PLIDCO THE PIPE LINE DEVE (יבוא)", amount: 380_000, rowCount: 8, note: "יבוא ישיר" },
-        { label: "אל.בי.אל טריידינג בע\"מ", amount: 280_000, rowCount: 9 },
-        { label: "קבוצת סקופ מתכות בע\"מ", amount: 245_000, rowCount: 10 },
-        { label: "יחדיו שילוח בינלאומי ועמילות מכס", amount: 215_000, rowCount: 9 },
-        { label: "ניטטק בע\"מ", amount: 180_000, rowCount: 5 },
-        { label: "ג.ברקוביץ ייבוא וסחר בע\"מ", amount: 130_000, rowCount: 7 },
-        { label: "ליר הנדסה ומסחר בע\"מ", amount: 95_000, rowCount: 4 },
-        { label: "שב-טל בע\"מ", amount: 50_000, rowCount: 4 },
-        { label: "פקר פלדות וגילוון בע\"מ", amount: 32_000, rowCount: 3 },
-        { label: "עמידן ענתות בע\"מ", amount: 18_000, rowCount: 2 },
-        { label: "מסגריית שטיל נאמן בע\"מ", amount: 12_000, rowCount: 2 },
-        { label: "ג.ש.נדיר שיווק בע\"מ", amount: 8_000, rowCount: 1 },
-        { label: "ספקים נוספים", amount: 5_000, rowCount: 3 },
-      ],
-    },
-    {
-      id: "subcontractors",
-      label: "קבלני משנה",
-      icon: "👷",
-      color: "orange",
-      amount: 2_000_000,
-      children: [
-        { label: "ימית צורית פיתוח וכבישים בע\"מ", amount: 1_115_352, rowCount: 6, note: "עבודות עפר וכבישים - חוזה הושלם" },
-        { label: "ע.ח עבודות מסגרות + לינת עובדים", amount: 948_790, rowCount: 5, note: "מסגרות וריתוך" },
-        { label: "טכנובר בע\"מ", amount: 45_000, rowCount: 6, note: "השכרת ציוד וכלים" },
-        { label: "קבלני משנה קטנים", amount: -109_142, rowCount: 4, note: "כולל קיזוזים/החזרים" },
-      ],
-    },
-    {
-      id: "overheads",
-      label: "תקורות (שכר + רכב + אחר)",
-      icon: "💼",
-      color: "purple",
-      amount: 739_320,
-      children: [
-        // === שכר (600K) ===
-        { label: "👨‍💼 שכר - עובד 1511", amount: 195_000, rowCount: 18, note: "שכר ריכוז" },
-        { label: "👨‍💼 שכר - עובד 2385", amount: 175_000, rowCount: 16, note: "שכר ריכוז + הנהלה" },
-        { label: "👨‍💼 שכר - עובד 9593", amount: 145_000, rowCount: 15, note: "שכר ריכוז" },
-        { label: "👨‍💼 שכר - עובד 6197", amount: 85_000, rowCount: 11, note: "החזר מילואים: -₪8,500" },
-        // === רכב (90K) ===
-        { label: "🚗 אלבר ציי רכב - ליסינג", amount: 50_000, rowCount: 14, note: "לא ניתן להפריד פר רכב" },
-        { label: "🚗 סונול ישראל - דלק", amount: 18_000, rowCount: 15, note: "לא ניתן להפריד פר עובד" },
-        { label: "🚗 דלק חברת הדלק הישראלית", amount: 14_000, rowCount: 15, note: "לא ניתן להפריד פר עובד" },
-        { label: "🚗 איתוראן איתור ושליטה", amount: 4_500, rowCount: 19, note: "מערכת איתור לרכבים" },
-        { label: "🚗 דרך ארץ הייווייז - אגרות", amount: 3_500, rowCount: 19 },
-        // === אחר (49K) ===
-        { label: "🍽️ פלאקסי ישראל - סיבוס", amount: 25_000, rowCount: 10, note: "ארוחות עובדים" },
-        { label: "🛏️ לינת עובדים", amount: 15_000, rowCount: 5 },
-        { label: "🔧 אחזקת כלי צמ\"ה ומשאיות", amount: 9_320, rowCount: 23 },
-      ],
-    },
-  ],
+  "2253": expenseTree2253,
   "2288": [
     {
       id: "engineering",
@@ -429,24 +369,7 @@ export const topSuppliersByProject: Record<string, TopSupplier[]> = {
 // קבלני משנה בשיטת חשבון מצטבר (לפי סעיפי חוזה).
 // billedCumulative יתעדכן כשאביחי יעלה את החשבון המצטבר של כל אחד.
 export const cumulativeSubcontractorsByProject: Record<string, CumulativeSubcontractor[]> = {
-  "2253": [
-    {
-      id: "yamit-tzurit",
-      name: "ימית צורית פיתוח וכבישים בע\"מ",
-      specialty: "עבודות עפר וכבישים",
-      paidByUs: 1_115_352,
-      rowCount: 6,
-      note: "עבד בשיטת חשבון מצטבר · ממתין לחשבון המצטבר לבדיקת התאמה",
-    },
-    {
-      id: "ah-misgarot",
-      name: "ע.ח עבודות מסגרות",
-      specialty: "מסגרות וריתוך + לינת עובדים",
-      paidByUs: 948_790,
-      rowCount: 5,
-      note: "עבד בשיטת חשבון מצטבר · ממתין לחשבון המצטבר לבדיקת התאמה",
-    },
-  ],
+  "2253": cumulativeSubs2253,
   "2288": [],
   "2306": [],
 };
