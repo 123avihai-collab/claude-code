@@ -7,6 +7,13 @@ import type {
   ExpenseSubItem,
 } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
+import { applyOverrides, useExpenseOverrides } from "@/lib/expense-overrides-store";
+
+const CATEGORY_OPTIONS: { id: string; label: string }[] = [
+  { id: "materials", label: "חומרים" },
+  { id: "subs-other", label: "קבלני משנה" },
+  { id: "overheads", label: "תקורות" },
+];
 
 const colorClasses: Record<string, { bg: string; border: string; text: string; barBg: string }> = {
   blue: { bg: "bg-blue-50", border: "border-blue-500", text: "text-blue-700", barBg: "bg-blue-500" },
@@ -28,32 +35,42 @@ function SupplierRow({
   child,
   categoryAmount,
   barColor,
+  currentCatId,
+  isOverridden,
+  onMove,
+  onReset,
 }: {
   child: ExpenseSubItem;
   categoryAmount: number;
   barColor: string;
+  currentCatId: string;
+  isOverridden: boolean;
+  onMove: (label: string, categoryId: string) => void;
+  onReset: (label: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const childPct = categoryAmount !== 0 ? (child.amount / categoryAmount) * 100 : 0;
-  const hasDetail = (child.lineItems && child.lineItems.length > 0) || !!child.rowCount;
 
   return (
     <div className="bg-white rounded-lg border border-slate-100">
       <button
-        onClick={() => hasDetail && setOpen(!open)}
-        className={`w-full text-right p-3 flex items-center justify-between gap-3 ${hasDetail ? "hover:bg-slate-50 cursor-pointer" : "cursor-default"}`}
+        onClick={() => setOpen(!open)}
+        className="w-full text-right p-3 flex items-center justify-between gap-3 hover:bg-slate-50 cursor-pointer"
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            {hasDetail && (
-              <span className="text-slate-400 text-xs shrink-0">{open ? "▾" : "◂"}</span>
-            )}
+            <span className="text-slate-400 text-xs shrink-0">{open ? "▾" : "◂"}</span>
             <span className="text-sm text-slate-700 truncate">{child.label}</span>
             {child.rowCount ? (
               <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
                 {child.rowCount} תנועות
               </span>
             ) : null}
+            {isOverridden && (
+              <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+                ✎ סווג ידנית
+              </span>
+            )}
           </div>
           <div className="bg-slate-100 rounded-full h-1 mt-1.5">
             <div
@@ -70,6 +87,26 @@ function SupplierRow({
 
       {open && (
         <div className="border-t border-slate-100 p-3 bg-slate-50/50">
+          <div className="flex items-center flex-wrap gap-2 mb-3 pb-3 border-b border-dashed border-slate-200">
+            <span className="text-xs text-slate-500">סווג מחדש ל:</span>
+            {CATEGORY_OPTIONS.filter((o) => o.id !== currentCatId).map((o) => (
+              <button
+                key={o.id}
+                onClick={() => onMove(child.label, o.id)}
+                className="text-xs bg-white border border-slate-300 text-slate-700 px-2.5 py-1 rounded-full hover:bg-slate-800 hover:text-white hover:border-slate-800 transition-colors"
+              >
+                ↪ {o.label}
+              </button>
+            ))}
+            {isOverridden && (
+              <button
+                onClick={() => onReset(child.label)}
+                className="text-xs text-slate-400 hover:text-red-600 px-1"
+              >
+                בטל סיווג ידני ↺
+              </button>
+            )}
+          </div>
           {child.lineItems && child.lineItems.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -125,10 +162,16 @@ function CategoryCard({
   cat,
   projectRevenue,
   totalCategorized,
+  overrides,
+  onMove,
+  onReset,
 }: {
   cat: ExpenseCategoryNode;
   projectRevenue: number;
   totalCategorized: number;
+  overrides: Record<string, string>;
+  onMove: (label: string, categoryId: string) => void;
+  onReset: (label: string) => void;
 }) {
   const c = colorClasses[cat.color] ?? colorClasses.slate;
   // סנן קבלנים בשיטת חשבון מצטבר (מוצגים בסקציה נפרדת)
@@ -165,6 +208,10 @@ function CategoryCard({
               child={child}
               categoryAmount={displayAmount}
               barColor={c.barBg}
+              currentCatId={cat.id}
+              isOverridden={overrides[child.label] !== undefined}
+              onMove={onMove}
+              onReset={onReset}
             />
           ))}
         </div>
@@ -246,29 +293,50 @@ function CumulativeSubsSection({ subs }: { subs: CumulativeSubcontractor[] }) {
 }
 
 export function ExpenseBreakdown({
+  projectId,
   categoryTree,
   cumulativeSubs,
   projectRevenue,
 }: {
+  projectId: string;
   categoryTree: ExpenseCategoryNode[];
   cumulativeSubs: CumulativeSubcontractor[];
   projectRevenue: number;
 }) {
+  const { overrides, mounted, count, move, reset, clearAll } =
+    useExpenseOverrides(projectId);
+  const effectiveTree = mounted ? applyOverrides(categoryTree, overrides) : categoryTree;
+
   const cumulativePaid = cumulativeSubs.reduce((s, x) => s + x.paidByUs, 0);
-  // סך הוצאות כולל הכל (גם הקבלנים המצטברים)
-  const totalCategorized =
-    categoryTree.reduce((s, c) => s + c.amount, 0);
-  // לחישוב אחוזים בכרטיסים נשתמש בסך ללא כפילות
+  // סך הוצאות כולל הכל (גם הקבלנים המצטברים) — קבוע, התיקונים רק מעבירים בין קטגוריות
+  const totalCategorized = effectiveTree.reduce((s, c) => s + c.amount, 0);
   const totalForShare = totalCategorized;
 
   return (
     <div className="space-y-4">
-      {categoryTree.map((cat) => (
+      {mounted && count > 0 && (
+        <div className="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs">
+          <span className="text-amber-800">
+            ✎ {count} סיווגים ידניים פעילים · יחולו אוטומטית גם על קבצים שתעלה בעתיד
+          </span>
+          <button
+            onClick={clearAll}
+            className="text-amber-700 hover:text-red-600 font-medium whitespace-nowrap"
+          >
+            אפס הכל ↺
+          </button>
+        </div>
+      )}
+
+      {effectiveTree.map((cat) => (
         <CategoryCard
           key={cat.id}
           cat={cat}
           projectRevenue={projectRevenue}
           totalCategorized={totalForShare}
+          overrides={overrides}
+          onMove={move}
+          onReset={reset}
         />
       ))}
 

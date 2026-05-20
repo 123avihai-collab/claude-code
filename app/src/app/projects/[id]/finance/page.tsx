@@ -6,6 +6,7 @@ import {
 } from "@/lib/mock-data";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { ExpenseBreakdown } from "@/components/expense-breakdown";
+import { ExpenseCategorySummary } from "@/components/expense-category-summary";
 
 export default async function ProjectFinancePage({
   params,
@@ -20,21 +21,7 @@ export default async function ProjectFinancePage({
   const categoryTree = getExpenseCategoryTree(project.id);
   const cumulativeSubs = getCumulativeSubcontractors(project.id);
 
-  // סיכומי קטגוריות לשורת ה-header
-  const catAmount = (id: string) =>
-    categoryTree.find((c) => c.id === id)?.amount ?? 0;
-  const cumulativePaid = cumulativeSubs.reduce((s, x) => s + x.paidByUs, 0);
-  const materialsTotal = catAmount("materials");
-  const overheadsTotal = catAmount("overheads");
-  const contractorsTotal = catAmount("subs-other") + cumulativePaid;
   const expensesTotal = categoryTree.reduce((s, c) => s + c.amount, 0);
-
-  const summaryCells = [
-    { label: "חומרים", value: materialsTotal, color: "text-blue-700" },
-    { label: "קבלני משנה", value: contractorsTotal, color: "text-orange-700" },
-    { label: "תקורות", value: overheadsTotal, color: "text-purple-700" },
-    { label: "הכנסות מהחוזה", value: project.revenue, color: "text-green-700" },
-  ];
 
   return (
     <>
@@ -52,16 +39,12 @@ export default async function ProjectFinancePage({
             + הוצאה חדשה
           </button>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-4 border-t border-slate-100">
-          {summaryCells.map((cell) => (
-            <div key={cell.label} className="bg-slate-50 rounded-lg p-2.5 text-center">
-              <p className="text-[11px] text-slate-500">{cell.label}</p>
-              <p className={`text-sm sm:text-base font-bold mt-0.5 ${cell.color}`}>
-                {formatCurrency(cell.value, true)}
-              </p>
-            </div>
-          ))}
-        </div>
+        <ExpenseCategorySummary
+          projectId={project.id}
+          categoryTree={categoryTree}
+          cumulativeSubs={cumulativeSubs}
+          revenue={project.revenue}
+        />
       </div>
 
       {/* Hierarchical expense breakdown — suppliers collapsible */}
@@ -74,6 +57,7 @@ export default async function ProjectFinancePage({
         </div>
 
         <ExpenseBreakdown
+          projectId={project.id}
           categoryTree={categoryTree}
           cumulativeSubs={cumulativeSubs}
           projectRevenue={project.revenue}
