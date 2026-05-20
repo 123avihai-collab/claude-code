@@ -79,7 +79,7 @@ function SupplierRow({
                     <th className="p-2 text-right font-medium">תיאור</th>
                     <th className="p-2 text-right font-medium">תאריך</th>
                     <th className="p-2 text-left font-medium">סכום</th>
-                    <th className="p-2 text-center font-medium">חשבונית</th>
+                    <th className="p-2 text-center font-medium">חשבונית / אסמכתא</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -93,8 +93,9 @@ function SupplierRow({
                       </td>
                       <td className="p-2 text-center">
                         {li.invoiceReceived ? (
-                          <span className="text-green-700 bg-green-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                            ✓ נקלטה
+                          <span className="inline-flex items-center gap-1 text-green-700 bg-green-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            <span>✓</span>
+                            <span className="font-mono">{li.invoiceNumber ?? "נקלטה"}</span>
                           </span>
                         ) : (
                           <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full whitespace-nowrap">
