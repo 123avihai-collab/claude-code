@@ -43,7 +43,6 @@ export default async function ProjectFinancePage({
           projectId={project.id}
           categoryTree={categoryTree}
           cumulativeSubs={cumulativeSubs}
-          revenue={project.revenue}
         />
       </div>
 
