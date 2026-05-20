@@ -5,6 +5,7 @@ import type {
   CumulativeSubcontractor,
   ExpenseCategoryNode,
   ExpenseSubItem,
+  SupplierLineItem,
 } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 import { applyOverrides, useExpenseOverrides } from "@/lib/expense-overrides-store";
@@ -29,6 +30,48 @@ const CUMULATIVE_NAMES = ["ימית צורית", "עבודות מסגרות"];
 
 function isCumulativeSub(label: string): boolean {
   return CUMULATIVE_NAMES.some((n) => label.includes(n));
+}
+
+function LineItemsTable({ items }: { items: SupplierLineItem[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="text-slate-500 border-b">
+          <tr>
+            <th className="p-2 text-right font-medium">הזמנת רכש</th>
+            <th className="p-2 text-right font-medium">תיאור</th>
+            <th className="p-2 text-right font-medium">תאריך</th>
+            <th className="p-2 text-left font-medium">סכום</th>
+            <th className="p-2 text-center font-medium">חשבונית / אסמכתא</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((li, i) => (
+            <tr key={i} className="border-b last:border-0">
+              <td className="p-2 font-mono text-slate-600">{li.poNumber ?? "—"}</td>
+              <td className="p-2 text-slate-700">{li.description ?? "—"}</td>
+              <td className="p-2 text-slate-500">{li.date ?? "—"}</td>
+              <td className="p-2 text-left font-bold text-slate-800 whitespace-nowrap">
+                {formatCurrency(li.amount)}
+              </td>
+              <td className="p-2 text-center">
+                {li.invoiceReceived ? (
+                  <span className="inline-flex items-center gap-1 text-green-700 bg-green-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                    <span>✓</span>
+                    <span className="font-mono">{li.invoiceNumber ?? "נקלטה"}</span>
+                  </span>
+                ) : (
+                  <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                    ⏳ חסרה
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function SupplierRow({
@@ -108,43 +151,7 @@ function SupplierRow({
             )}
           </div>
           {child.lineItems && child.lineItems.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="text-slate-500 border-b">
-                  <tr>
-                    <th className="p-2 text-right font-medium">הזמנת רכש</th>
-                    <th className="p-2 text-right font-medium">תיאור</th>
-                    <th className="p-2 text-right font-medium">תאריך</th>
-                    <th className="p-2 text-left font-medium">סכום</th>
-                    <th className="p-2 text-center font-medium">חשבונית / אסמכתא</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {child.lineItems.map((li, i) => (
-                    <tr key={i} className="border-b last:border-0">
-                      <td className="p-2 font-mono text-slate-600">{li.poNumber ?? "—"}</td>
-                      <td className="p-2 text-slate-700">{li.description ?? "—"}</td>
-                      <td className="p-2 text-slate-500">{li.date ?? "—"}</td>
-                      <td className="p-2 text-left font-bold text-slate-800 whitespace-nowrap">
-                        {formatCurrency(li.amount)}
-                      </td>
-                      <td className="p-2 text-center">
-                        {li.invoiceReceived ? (
-                          <span className="inline-flex items-center gap-1 text-green-700 bg-green-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                            <span>✓</span>
-                            <span className="font-mono">{li.invoiceNumber ?? "נקלטה"}</span>
-                          </span>
-                        ) : (
-                          <span className="text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                            ⏳ חסרה
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <LineItemsTable items={child.lineItems} />
           ) : (
             <div className="text-xs text-slate-500 bg-amber-50 border border-amber-200 rounded p-2">
               📂 יש {child.rowCount} תנועות לספק זה. כדי לראות פירוט{" "}
@@ -245,49 +252,70 @@ function CumulativeSubsSection({ subs }: { subs: CumulativeSubcontractor[] }) {
       </p>
 
       <div className="space-y-2">
-        {subs.map((sub) => {
-          const billed = sub.billedCumulative;
-          const diff = billed !== undefined ? sub.paidByUs - billed : undefined;
-          return (
-            <div key={sub.id} className="bg-white rounded-lg border border-slate-100 p-3">
-              <div className="flex justify-between items-start gap-3 flex-wrap">
-                <div className="min-w-0">
-                  <p className="font-medium text-slate-800">{sub.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {sub.specialty} · {sub.rowCount} תנועות
-                  </p>
-                  {sub.note && <p className="text-xs text-amber-600 mt-1">⏳ {sub.note}</p>}
-                </div>
-                <div className="text-left">
-                  <p className="text-xs text-slate-500">שילמנו בפועל</p>
-                  <p className="font-bold text-slate-800">{formatCurrency(sub.paidByUs)}</p>
-                </div>
-              </div>
-
-              {billed !== undefined && (
-                <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
-                  <div>
-                    <p className="text-slate-500">חשבון מצטבר שהוגש</p>
-                    <p className="font-bold text-slate-800">{formatCurrency(billed)}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">הפרש</p>
-                    <p className={`font-bold ${Math.abs(diff ?? 0) < 1000 ? "text-green-700" : "text-red-700"}`}>
-                      {formatCurrency(diff ?? 0)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">סטטוס</p>
-                    <p className={`font-bold ${Math.abs(diff ?? 0) < 1000 ? "text-green-700" : "text-red-700"}`}>
-                      {Math.abs(diff ?? 0) < 1000 ? "✓ תואם" : "⚠ לבדוק"}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {subs.map((sub) => (
+          <CumulativeSubRow key={sub.id} sub={sub} />
+        ))}
       </div>
+    </div>
+  );
+}
+
+function CumulativeSubRow({ sub }: { sub: CumulativeSubcontractor }) {
+  const [open, setOpen] = useState(false);
+  const billed = sub.billedCumulative;
+  const diff = billed !== undefined ? sub.paidByUs - billed : undefined;
+  const hasItems = (sub.lineItems?.length ?? 0) > 0;
+
+  return (
+    <div className="bg-white rounded-lg border border-slate-100">
+      <button
+        onClick={() => hasItems && setOpen(!open)}
+        className={`w-full text-right p-3 flex justify-between items-start gap-3 ${hasItems ? "hover:bg-slate-50 cursor-pointer" : "cursor-default"}`}
+      >
+        <div className="min-w-0 flex items-start gap-2">
+          {hasItems && (
+            <span className="text-slate-400 text-xs mt-1 shrink-0">{open ? "▾" : "◂"}</span>
+          )}
+          <div className="min-w-0">
+            <p className="font-medium text-slate-800">{sub.name}</p>
+            <p className="text-xs text-slate-500">
+              {sub.specialty} · {sub.rowCount} תנועות
+            </p>
+            {sub.note && <p className="text-xs text-amber-600 mt-1">⏳ {sub.note}</p>}
+          </div>
+        </div>
+        <div className="text-left whitespace-nowrap">
+          <p className="text-xs text-slate-500">שילמנו בפועל</p>
+          <p className="font-bold text-slate-800">{formatCurrency(sub.paidByUs)}</p>
+        </div>
+      </button>
+
+      {billed !== undefined && (
+        <div className="px-3 pb-3 grid grid-cols-3 gap-2 text-center text-xs">
+          <div>
+            <p className="text-slate-500">חשבון מצטבר שהוגש</p>
+            <p className="font-bold text-slate-800">{formatCurrency(billed)}</p>
+          </div>
+          <div>
+            <p className="text-slate-500">הפרש</p>
+            <p className={`font-bold ${Math.abs(diff ?? 0) < 1000 ? "text-green-700" : "text-red-700"}`}>
+              {formatCurrency(diff ?? 0)}
+            </p>
+          </div>
+          <div>
+            <p className="text-slate-500">סטטוס</p>
+            <p className={`font-bold ${Math.abs(diff ?? 0) < 1000 ? "text-green-700" : "text-red-700"}`}>
+              {Math.abs(diff ?? 0) < 1000 ? "✓ תואם" : "⚠ לבדוק"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {open && hasItems && (
+        <div className="border-t border-slate-100 p-3 bg-slate-50/50">
+          <LineItemsTable items={sub.lineItems!} />
+        </div>
+      )}
     </div>
   );
 }

@@ -96,6 +96,7 @@ export type CumulativeSubcontractor = {
   rowCount: number;
   billedCumulative?: number;  // החשבון המצטבר שהוא הגיש (מהקובץ שיועלה)
   note?: string;
+  lineItems?: SupplierLineItem[]; // פירוט שורות החשבוניות/תנועות — מקובץ פריורטי
 };
 
 export type ExpenseCategoryNode = {

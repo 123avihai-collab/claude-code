@@ -495,6 +495,14 @@ export const cumulativeSubs2253: CumulativeSubcontractor[] = [
     paidByUs: 1115352.03,
     rowCount: 6,
     note: "עבד בשיטת חשבון מצטבר · ממתין לחשבון המצטבר לבדיקת התאמה",
+    lineItems: [
+      { description: "י.ר.נ בניה ופיתוח-ביצוע 5", amount: 57600, date: "23/02/2025", invoiceReceived: true, invoiceNumber: "SI25000659" },
+      { description: "י.ר.נ בניה ופיתוח-ביצוע 5", amount: 420952.03, date: "03/03/2025", invoiceReceived: true, invoiceNumber: "SI25000983" },
+      { description: "י.ר.נ בניה ופיתוח-ביצוע 5", amount: 424800, date: "10/04/2025", invoiceReceived: true, invoiceNumber: "SI25001655" },
+      { description: "י.ר.נ בניה ופיתוח-ביצוע 5", amount: 138400, date: "19/05/2025", invoiceReceived: true, invoiceNumber: "SI25002256" },
+      { description: "י.ר.נ בניה ופיתוח-ביצוע 5", amount: 111840, date: "06/08/2025", invoiceReceived: true, invoiceNumber: "SI25004377" },
+      { description: "י.ר.נ בניה ופיתוח ביצוע 5 (זיכוי)", amount: -38240, date: "31/08/2025", invoiceReceived: true, invoiceNumber: "CV25000079" },
+    ],
   },
   {
     id: "ah",
@@ -503,5 +511,16 @@ export const cumulativeSubs2253: CumulativeSubcontractor[] = [
     paidByUs: 948790.51,
     rowCount: 9,
     note: "עבד בשיטת חשבון מצטבר · ממתין לחשבון המצטבר לבדיקת התאמה",
+    lineItems: [
+      { description: "י.ר.נ בניה ופיתוח-ביצוע 5", amount: 326680, date: "28/02/2025", invoiceReceived: true, invoiceNumber: "SI25000932" },
+      { description: "י.ר.נ בניה ופיתוח-ביצוע 5", amount: 263539.83, date: "23/03/2025", invoiceReceived: true, invoiceNumber: "SI25001085" },
+      { description: "י.ר.נ בניה ופיתוח-ביצוע 5", amount: 146890.68, date: "23/04/2025", invoiceReceived: true, invoiceNumber: "SI25001683" },
+      { description: "י.ר.נ בניה ופיתוח-ביצוע 5", amount: 180000, date: "20/08/2025", invoiceReceived: true, invoiceNumber: "SI25004062" },
+      { description: "לינת עובדי בסיס חיל האויר (ויזה ערן סידי)", amount: 4492.8, date: "05/01/2025", invoiceReceived: false },
+      { description: "לינת עובדי בסיס חיל האויר (ויזה ערן סידי)", amount: 16992, date: "02/02/2025", invoiceReceived: false },
+      { description: "לינת עובדי חוסאם (הדס תיירות)", amount: 10195.2, date: "26/03/2025", invoiceReceived: false },
+      { description: "לינת עובדי חוסאם (הדס תיירות)", amount: 10195.2, date: "02/04/2025", invoiceReceived: false },
+      { description: "ביטול לינה — הדס תיירות (זיכוי)", amount: -10195.2, date: "02/04/2025", invoiceReceived: false },
+    ],
   },
 ];
