@@ -38,6 +38,9 @@ export default function HomePage() {
             </p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
+            <Link href="/roadmap" className="flex-1 sm:flex-initial bg-white border border-slate-200 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm hover:bg-slate-50 whitespace-nowrap text-center">
+              📋 מפת דרכים
+            </Link>
             <button className="flex-1 sm:flex-initial bg-white border border-slate-200 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm hover:bg-slate-50 whitespace-nowrap">
               📥 ייבא מ-Excel
             </button>
