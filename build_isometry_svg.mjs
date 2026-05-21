@@ -51,9 +51,9 @@ const floor = [project(0,0,0), project(FX,0,0), project(FX,FY,0), project(0,FY,0
 floor.forEach(track);
 gfrag.push(`<polygon points="${floor.map(p=>`${p.x},${p.y}`).join(" ")}" fill="#eaf1f8"/>`);
 for (let gx=0; gx<=FX; gx++){ const a=project(gx,0,0),b=project(gx,FY,0);track(a);track(b);
-  gfrag.push(`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="grid-line"/>`); }
+  gfrag.push(`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#bcd0e2" stroke-width="1"/>`); }
 for (let gy=0; gy<=FY; gy++){ const a=project(0,gy,0),b=project(FX,gy,0);track(a);track(b);
-  gfrag.push(`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="grid-line"/>`); }
+  gfrag.push(`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#bcd0e2" stroke-width="1"/>`); }
 
 addBox(X0-0.3, YC-0.18, H_SUS+0.6, RUN+0.6, 0.36, 0.34, "#8a939c");
 const beamTopZ = H_SUS + 0.6;
@@ -97,13 +97,13 @@ const isoDim = (A,B,off,text,tdx,tdy) => {
   const a2=project(A[0]+off[0],A[1]+off[1],A[2]+off[2]);
   const b2=project(B[0]+off[0],B[1]+off[1],B[2]+off[2]);
   [a,b,a2,b2].forEach(track);
-  dimFrag.push(`<line x1="${a.x}" y1="${a.y}" x2="${a2.x}" y2="${a2.y}" class="dim-wit"/>`);
-  dimFrag.push(`<line x1="${b.x}" y1="${b.y}" x2="${b2.x}" y2="${b2.y}" class="dim-wit"/>`);
-  dimFrag.push(`<line x1="${a2.x}" y1="${a2.y}" x2="${b2.x}" y2="${b2.y}" class="dim-line"/>`);
+  dimFrag.push(`<line x1="${a.x}" y1="${a.y}" x2="${a2.x}" y2="${a2.y}" stroke="#1f3550" stroke-width="0.9" opacity="0.7"/>`);
+  dimFrag.push(`<line x1="${b.x}" y1="${b.y}" x2="${b2.x}" y2="${b2.y}" stroke="#1f3550" stroke-width="0.9" opacity="0.7"/>`);
+  dimFrag.push(`<line x1="${a2.x}" y1="${a2.y}" x2="${b2.x}" y2="${b2.y}" stroke="#1f3550" stroke-width="1.2"/>`);
   dimFrag.push(arrow(a2,b2)); dimFrag.push(arrow(b2,a2));
   const mx=(a2.x+b2.x)/2+(tdx||0), my=(a2.y+b2.y)/2+(tdy||0);
   track({x:mx-26,y:my-12}); track({x:mx+26,y:my+4});
-  dimFrag.push(`<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" text-anchor="middle" class="iso-dim">${text}</text>`);
+  dimFrag.push(`<text x="${mx.toFixed(1)}" y="${my.toFixed(1)}" text-anchor="middle" font-family="FreeSans, Arial, sans-serif" font-size="13" font-weight="700" fill="#1f3550" paint-order="stroke" stroke="#fff" stroke-width="3">${text}</text>`);
 };
 isoDim([X0,YC,H_SUS],[X1,YC,H_SUS],[0,0,1.7],"5.00 מ'",0,-6);
 isoDim([X0,YC,0],[X0,YC,H_SUS],[-1.4,0,0],"4.00 מ'",-10,0);
@@ -119,10 +119,10 @@ const labelFrag = [];
 for (const L of labels) {
   const tx=L.p.x+L.dx, ty=L.p.y+L.dy;
   track({x:tx-46,y:ty-16}); track({x:tx+46,y:ty+8});
-  labelFrag.push(`<circle cx="${L.p.x.toFixed(1)}" cy="${L.p.y.toFixed(1)}" r="2.5" class="leader-dot"/>`);
-  labelFrag.push(`<path d="M ${L.p.x.toFixed(1)} ${L.p.y.toFixed(1)} L ${tx.toFixed(1)} ${ty.toFixed(1)}" class="leader"/>`);
-  labelFrag.push(`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" class="iso-label">${L.t}</text>`);
-  labelFrag.push(`<text x="${tx.toFixed(1)}" y="${(ty+15).toFixed(1)}" text-anchor="middle" class="iso-sub">${L.s}</text>`);
+  labelFrag.push(`<circle cx="${L.p.x.toFixed(1)}" cy="${L.p.y.toFixed(1)}" r="2.5" fill="#7d8b99"/>`);
+  labelFrag.push(`<path d="M ${L.p.x.toFixed(1)} ${L.p.y.toFixed(1)} L ${tx.toFixed(1)} ${ty.toFixed(1)}" fill="none" stroke="#7d8b99" stroke-width="1" stroke-dasharray="3 3"/>`);
+  labelFrag.push(`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-family="FreeSans, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2d3d">${L.t}</text>`);
+  labelFrag.push(`<text x="${tx.toFixed(1)}" y="${(ty+15).toFixed(1)}" text-anchor="middle" font-family="FreeSans, Arial, sans-serif" font-size="11" fill="#5b6b7b">${L.s}</text>`);
 }
 
 const pad = 60;
@@ -133,17 +133,7 @@ const outW = 1000, outH = Math.round(outW * vbH / vbW);
 const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${outW}" height="${outH}"
      viewBox="${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}"
-     font-family="Segoe UI, Arial, sans-serif" direction="rtl">
-  <style>
-    .grid-line{stroke:#bcd0e2;stroke-width:1}
-    .dim-line{stroke:#1f3550;stroke-width:1.2;fill:none}
-    .dim-wit{stroke:#1f3550;stroke-width:0.9;fill:none;opacity:.7}
-    .iso-label{font-size:13px;font-weight:600;fill:#1f2d3d}
-    .iso-sub{font-size:11px;fill:#5b6b7b}
-    .iso-dim{font-size:13px;font-weight:700;fill:#1f3550;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
-    .leader{stroke:#7d8b99;stroke-width:1;stroke-dasharray:3 3;fill:none}
-    .leader-dot{fill:#7d8b99}
-  </style>
+     font-family="FreeSans, Arial, sans-serif" direction="rtl">
   <rect x="${vbX.toFixed(1)}" y="${vbY.toFixed(1)}" width="${vbW.toFixed(1)}" height="${vbH.toFixed(1)}" fill="#f3f7fb"/>
   <g>${frag.join("")}</g>
   <g>${dimFrag.join("")}</g>
