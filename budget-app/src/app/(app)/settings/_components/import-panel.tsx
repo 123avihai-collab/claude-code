@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { parseImportFile, type ParsedRow } from "@/lib/excel/import";
+import { parseImportFile, type ParseResult } from "@/lib/excel/import";
 import { downloadTemplate } from "@/lib/excel/export";
 import { bulkInsertTransactions } from "@/app/actions/transactions";
 import { Money } from "@/components/money";
@@ -10,7 +10,7 @@ import { t } from "@/lib/strings";
 import type { Category } from "@/lib/db/types";
 
 export function ImportPanel({ categories }: { categories: Category[] }) {
-  const [rows, setRows] = useState<ParsedRow[] | null>(null);
+  const [parsed, setParsed] = useState<ParseResult | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -18,14 +18,16 @@ export function ImportPanel({ categories }: { categories: Category[] }) {
     categories.map((c) => [`${c.type}:${c.name}`, c.id]),
   );
 
+  const rows = parsed?.rows ?? null;
   const valid = rows?.filter((r) => r.data) ?? [];
   const invalid = rows?.filter((r) => r.error) ?? [];
+  const autoCount = valid.filter((r) => r.autoCategorized).length;
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setResult(null);
-    setRows(await parseImportFile(file));
+    setParsed(await parseImportFile(file));
   }
 
   async function onConfirm() {
@@ -47,7 +49,7 @@ export function ImportPanel({ categories }: { categories: Category[] }) {
       });
       const { inserted } = await bulkInsertTransactions(payload);
       setResult(`יובאו ${inserted} תנועות בהצלחה.`);
-      setRows(null);
+      setParsed(null);
     } finally {
       setBusy(false);
     }
@@ -75,8 +77,14 @@ export function ImportPanel({ categories }: { categories: Category[] }) {
 
       {result && <p className="text-sm text-income">{result}</p>}
 
-      {rows && (
+      {parsed && (
         <div className="space-y-3">
+          {parsed.format === "cal" && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-2 text-sm text-primary">
+              🟦 זוהה דוח אשראי (כאל). {autoCount} מתוך {valid.length} העסקאות
+              קוטלגו אוטומטית לפי בית העסק — אפשר לתקן ידנית אחרי הייבוא.
+            </div>
+          )}
           <p className="text-sm">
             נמצאו <strong>{valid.length}</strong> שורות תקינות
             {invalid.length > 0 && (
@@ -94,21 +102,30 @@ export function ImportPanel({ categories }: { categories: Category[] }) {
                 <thead className="bg-background text-muted">
                   <tr>
                     <th className="px-3 py-1.5 text-start">{t.common.date}</th>
-                    <th className="px-3 py-1.5 text-start">{t.common.type}</th>
+                    <th className="px-3 py-1.5 text-start">בית העסק / הערה</th>
                     <th className="px-3 py-1.5 text-start">{t.common.category}</th>
                     <th className="px-3 py-1.5 text-start">{t.common.amount}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {valid.slice(0, 50).map((r) => (
+                  {valid.slice(0, 80).map((r) => (
                     <tr key={r.row} className="border-t border-border">
-                      <td className="px-3 py-1.5">{formatDate(r.data!.occurred_on)}</td>
-                      <td className="px-3 py-1.5">
-                        {r.data!.type === "income" ? t.common.income : t.common.expense}
+                      <td className="px-3 py-1.5 whitespace-nowrap">
+                        {formatDate(r.data!.occurred_on)}
                       </td>
-                      <td className="px-3 py-1.5">{r.data!.category || t.common.none}</td>
+                      <td className="px-3 py-1.5">{r.data!.note || t.common.none}</td>
                       <td className="px-3 py-1.5">
-                        <Money value={r.data!.amount} />
+                        {r.data!.category ? (
+                          <span>{r.data!.category}</span>
+                        ) : (
+                          <span className="text-muted">— ללא קטגוריה</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <Money
+                          value={r.data!.amount}
+                          type={r.data!.type === "income" ? "income" : "expense"}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -136,7 +153,7 @@ export function ImportPanel({ categories }: { categories: Category[] }) {
               {busy ? t.common.loading : `ייבא ${valid.length} תנועות`}
             </button>
             <button
-              onClick={() => setRows(null)}
+              onClick={() => setParsed(null)}
               className="rounded-lg border border-border px-4 py-2 text-sm"
             >
               {t.common.cancel}
