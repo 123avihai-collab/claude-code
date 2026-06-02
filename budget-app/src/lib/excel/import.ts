@@ -1,16 +1,16 @@
 import * as XLSX from "xlsx";
 import { importRowSchema, type ImportRow } from "@/lib/validation/schemas";
-import { categorizeMerchant } from "@/lib/categorize";
+import { categorizeMerchant, mapMaxCategory } from "@/lib/categorize";
 
 export interface ParsedRow {
   row: number; // מספר שורה בקובץ (1-based, לא כולל כותרת)
   data?: ImportRow;
   error?: string;
-  autoCategorized?: boolean; // האם הקטגוריה זוהתה אוטומטית מבית העסק
+  autoCategorized?: boolean; // האם הקטגוריה זוהתה אוטומטית
 }
 
 export interface ParseResult {
-  format: "cal" | "generic";
+  format: "cal" | "max" | "generic";
   rows: ParsedRow[];
 }
 
@@ -97,6 +97,65 @@ function parseCal(grid: unknown[][], headerRow: number): ParsedRow[] {
   return out;
 }
 
+// ---------- פורמט מקס (Max) ----------
+function findMaxHeader(grid: unknown[][]): number {
+  for (let i = 0; i < Math.min(grid.length, 6); i++) {
+    const joined = grid[i].map((c) => String(c ?? "")).join("|");
+    if (joined.includes("שם בית העסק") && joined.includes("סכום חיוב")) return i;
+  }
+  return -1;
+}
+
+function parseMax(grid: unknown[][], headerRow: number, rowOffset = 0): ParsedRow[] {
+  const header = grid[headerRow].map((c) => String(c ?? "").trim());
+  const idxDate = header.findIndex((h) => h.includes("תאריך עסקה"));
+  const idxMerchant = header.findIndex((h) => h.includes("שם בית העסק"));
+  const idxMaxCat = header.findIndex((h) => h === "קטגוריה");
+  const idxCharge = header.findIndex((h) => h.includes("סכום חיוב"));
+
+  const out: ParsedRow[] = [];
+  for (let i = headerRow + 1; i < grid.length; i++) {
+    const r = grid[i];
+    const merchant = String(r[idxMerchant] ?? "").trim();
+    if (!merchant) continue;
+    if (merchant.startsWith("סך")) continue; // שורת "סך הכל"
+
+    const charge = toNumber(r[idxCharge]);
+    const date = normalizeDate(r[idxDate]);
+    if (charge === undefined || charge === 0 || !date) {
+      if (charge === 0 || !merchant) continue;
+      out.push({ row: rowOffset + i, error: "סכום או תאריך חסר/לא תקין" });
+      continue;
+    }
+
+    const isRefund = charge < 0;
+    const maxCat = idxMaxCat >= 0 ? String(r[idxMaxCat] ?? "") : "";
+    // קודם הקטגוריה של מקס, אחר כך זיהוי לפי בית העסק
+    const cat = isRefund
+      ? "הכנסה אחרת"
+      : mapMaxCategory(maxCat) ?? categorizeMerchant(merchant);
+
+    const candidate = {
+      type: isRefund ? "income" : "expense",
+      amount: Math.abs(charge),
+      category: cat,
+      occurred_on: date,
+      note: merchant,
+    };
+    const parsed = importRowSchema.safeParse(candidate);
+    if (!parsed.success) {
+      out.push({ row: rowOffset + i, error: parsed.error.issues[0]?.message ?? "שורה לא תקינה" });
+    } else {
+      out.push({
+        row: rowOffset + i,
+        data: parsed.data,
+        autoCategorized: !!cat && !isRefund,
+      });
+    }
+  }
+  return out;
+}
+
 // ---------- פרסור פורמט גנרי (5 עמודות) ----------
 const HEADER_MAP: Record<string, keyof ImportRow> = {
   תאריך: "occurred_on", date: "occurred_on",
@@ -144,14 +203,32 @@ function parseGeneric(ws: XLSX.WorkSheet): ParsedRow[] {
 export async function parseImportFile(file: File): Promise<ParseResult> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array", cellDates: true });
-  // הגיליון הראשון שאינו ריק
-  const sheetName = wb.SheetNames.find((n) => wb.Sheets[n]["!ref"]) ?? wb.SheetNames[0];
-  const ws = wb.Sheets[sheetName];
-  const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, blankrows: false });
+  const sheets = wb.SheetNames.filter((n) => wb.Sheets[n]["!ref"]);
 
-  const calHeader = findCalHeader(grid);
-  if (calHeader >= 0) {
-    return { format: "cal", rows: parseCal(grid, calHeader) };
+  // מקס מפצל לעיתים לשני גיליונות (בארץ + חו"ל) — מאחדים את כולם.
+  const maxRows: ParsedRow[] = [];
+  let isMax = false;
+  let sheetIdx = 0;
+  for (const n of sheets) {
+    const grid = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[n], {
+      header: 1,
+      blankrows: false,
+    });
+    const h = findMaxHeader(grid);
+    if (h >= 0) {
+      isMax = true;
+      maxRows.push(...parseMax(grid, h, ++sheetIdx * 1000));
+    }
   }
-  return { format: "generic", rows: parseGeneric(ws) };
+  if (isMax) return { format: "max", rows: maxRows };
+
+  // כאל / גנרי — מהגיליון הראשון שאינו ריק
+  const first = sheets[0] ?? wb.SheetNames[0];
+  const grid = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[first], {
+    header: 1,
+    blankrows: false,
+  });
+  const calHeader = findCalHeader(grid);
+  if (calHeader >= 0) return { format: "cal", rows: parseCal(grid, calHeader) };
+  return { format: "generic", rows: parseGeneric(wb.Sheets[first]) };
 }

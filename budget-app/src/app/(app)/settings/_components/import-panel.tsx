@@ -79,10 +79,11 @@ export function ImportPanel({ categories }: { categories: Category[] }) {
 
       {parsed && (
         <div className="space-y-3">
-          {parsed.format === "cal" && (
+          {(parsed.format === "cal" || parsed.format === "max") && (
             <div className="rounded-lg border border-primary/30 bg-primary/5 p-2 text-sm text-primary">
-              🟦 זוהה דוח אשראי (כאל). {autoCount} מתוך {valid.length} העסקאות
-              קוטלגו אוטומטית לפי בית העסק — אפשר לתקן ידנית אחרי הייבוא.
+              🟦 זוהה דוח אשראי ({parsed.format === "cal" ? "כאל" : "מקס"}).{" "}
+              {autoCount} מתוך {valid.length} העסקאות קוטלגו אוטומטית — אפשר לתקן
+              ידנית אחרי הייבוא.
             </div>
           )}
           <p className="text-sm">
