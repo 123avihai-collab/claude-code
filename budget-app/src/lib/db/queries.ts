@@ -90,6 +90,33 @@ export async function getCategorySpend(month: string): Promise<CategorySpend[]> 
   }));
 }
 
+export interface ForecastBaseline {
+  avgIncome: number;
+  avgExpense: number;
+  monthsAnalyzed: number;
+}
+
+/**
+ * בסיס לצפי עתידי: ממוצע הכנסות/הוצאות חודשי מתוך עד 6 החודשים האחרונים
+ * שבהם הייתה פעילות (מתעלם מחודשים ריקים כדי לא להטות את הממוצע כלפי מטה).
+ */
+export async function getForecastBaseline(
+  fromMonth: string,
+  lookback = 6,
+): Promise<ForecastBaseline> {
+  const series = await getMonthlySeries(fromMonth, lookback);
+  const active = series.filter((s) => s.income > 0 || s.expense > 0);
+  const n = active.length;
+  if (n === 0) return { avgIncome: 0, avgExpense: 0, monthsAnalyzed: 0 };
+  const avgIncome = active.reduce((s, p) => s + p.income, 0) / n;
+  const avgExpense = active.reduce((s, p) => s + p.expense, 0) / n;
+  return {
+    avgIncome: Math.round(avgIncome),
+    avgExpense: Math.round(avgExpense),
+    monthsAnalyzed: n,
+  };
+}
+
 export interface MonthlySeriesPoint {
   month: string;
   income: number;

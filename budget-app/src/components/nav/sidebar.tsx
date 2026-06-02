@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/transactions", label: t.nav.transactions, icon: "💸" },
   { href: "/budgets", label: t.nav.budgets, icon: "🎯" },
   { href: "/reports", label: t.nav.reports, icon: "📈" },
+  { href: "/forecast", label: t.nav.forecast, icon: "🔮" },
   { href: "/settings", label: t.nav.settings, icon: "⚙️" },
 ];
 

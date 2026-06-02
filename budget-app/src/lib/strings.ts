@@ -10,6 +10,7 @@ export const t = {
     transactions: "תנועות",
     budgets: "תקציב",
     reports: "דוחות",
+    forecast: "צפי",
     settings: "הגדרות",
     logout: "התנתקות",
   },
