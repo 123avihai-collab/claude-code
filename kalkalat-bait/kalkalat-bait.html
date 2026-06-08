@@ -292,8 +292,9 @@ let importMonth = null;     // שיוך ידני של חודש בייבוא: nul
 let catTab = 'expense';
 const PALETTE=['#ef4444','#f97316','#eab308','#3b82f6','#a855f7','#ec4899','#14b8a6','#6b7280','#22c55e','#0ea5e9'];
 /* מצב חשבונות — מקור אמת אחד (סקירה ⇄ חסכונות): עו"ש ידני, חיסכון מסונכרן, פנוי להעברה */
-let ACCOUNTS={checking:0, savings:0, free:0};
+let ACCOUNTS={checking:0, savings:0, free:0, savingsOpening:0};
 function setAcct(f,v){ ACCOUNTS[f]=+v||0; persist(); render(); }
+function setCheckingAuto(v){ ACCOUNTS.checking=Math.round(v*100)/100; persist(); render(); }
 
 /* ===== ייבוא Excel אמיתי (SheetJS גלובלי) + קיטלוג ===== */
 const MAX_CAT_MAP={'מזון וצריכה':'אוכל','סופרמרקטים':'אוכל','מסעדות ובתי קפה':'אוכל','מסעדות':'אוכל','פנאי, בידור וספורט':'אורח חיים','בידור ופנאי':'אורח חיים','רפואה ובתי מרקחת':'בריאות','בריאות':'בריאות','דלק ותחבורה':'אורח חיים','תחבורה ודלק':'אורח חיים','רכב ותחבורה':'אורח חיים','ביגוד והנעלה':'אורח חיים','אופנה':'אורח חיים','חשמל ואלקטרוניקה':'אורח חיים','מחשבים ותוכנה':'אורח חיים','תקשורת':'מנויים','ביטוח ופיננסים':'ביטוחים','ביטוח':'ביטוחים','שירותים ותשתיות':'דיור','בית ותחזוקה':'אורח חיים','ריהוט ועיצוב הבית':'אורח חיים','חינוך':'ילדים','חינוך ופנאי':'ילדים'};
@@ -802,7 +803,7 @@ function screenDashboard(){
     <h2 style="font-size:16px;margin:4px 0 10px">מצב חשבונות</h2>
     <div class="cards">
       <div class="card help" data-help="יתרת חשבון העובר ושב — הזן ידנית"><div class="lbl">יתרת עו״ש (ידני)</div>${acctInput('checking','0')}</div>
-      <div class="card help" data-help="יתרת החיסכון בבנק — מסונכרן עם מסך 'חסכונות'"><div class="lbl">חיסכון בבנק ⇄</div>${acctInput('savings','0')}</div>
+      <div class="card help" data-help="יתרת פתיחה + סך ההעברות החודשיות לחיסכון. מתעדכן אוטומטית, נערך במסך 'חסכונות'"><div class="lbl">חיסכון בבנק (מחושב) ⇄</div><div class="val income" style="font-size:22px;font-weight:bold;padding:2px 0">${fmt(currentSavings())}</div></div>
       <div class="card help" data-help="כמה כסף פנוי להעברה לחיסכון — תצוגה/הזנה ידנית, אתה מעביר בעצמך"><div class="lbl">פנוי להעברה לחיסכון</div>${acctInput('free','0')}</div>
     </div>
     ${alerts||'<div class="note">💡 אין חריגות תקציב החודש (או שלא הוגדר תקציב). הגדר תקציבים במסך "תקציב".</div>'}
@@ -867,10 +868,18 @@ function screenTransactions(){
       <div class="row" style="justify-content:space-between"><div class="lbl">${label}</div><span class="muted" style="font-size:11px">${sumOpen===k?'▾ פירוט':'▸ פירוט'}</span></div>
       <div class="val ${cls}">${fmt(val)}</div>
       ${sumOpen===k?`<div style="margin-top:4px">${detail}</div>`:''}</div>`;
+  // כרטיס "העברה לחיסכון" — מבוסס על מאזן החודש (לא על הסינון), מסונכרן עם חסכונות/צפי/סקירה
+  const monthBal=totals(curMonth).balance, tr=+SAVE_PLAN[curMonth]||0, leftAuto=Math.round((monthBal-tr)*100)/100;
+  const saveCard=`<div class="sumcard">
+      <div class="lbl">העברה לחיסכון (${heMonth(curMonth).split(' ')[0]})</div>
+      <input type="number" value="${SAVE_PLAN[curMonth]||''}" placeholder="0" onchange="setSavePlan('${curMonth}',this.value)" style="font-size:20px;font-weight:bold;width:100%;border:none;background:none;color:var(--primary);outline:none">
+      <div class="muted" style="font-size:11px;margin-top:3px">נשאר בעו״ש: <input type="number" value="${ACCOUNTS.checking||''}" placeholder="${leftAuto}" onchange="setAcct('checking',this.value)" style="width:84px;font-size:12px;padding:2px 5px"> <a href="#" onclick="setCheckingAuto(${leftAuto});return false" style="font-size:11px" title="חשב: מאזן − העברה">↺ אוטו</a></div>
+    </div>`;
   const summary=`<div class="sumrow">
       ${card('expense','סך הוצאות ('+scope+')',sumEx,'expense',breakRows('expense'))}
       ${card('income','סך הכנסות ('+scope+')',sumIn,'income',incDetail)}
       ${card('balance','מאזן ('+scope+')',sumIn-sumEx,(sumIn-sumEx>=0?'income':'expense'),balBreak())}
+      ${saveCard}
     </div>`;
   const rows=list.map(t=>`<tr>
      <td style="white-space:nowrap">${t.date}</td>
@@ -974,13 +983,17 @@ function fcShiftYear(n){ fcYear=String(+fcYearVal()+n); render(); }
 function setOvr(m,f,v){ if(!FORECAST_OVR[m])FORECAST_OVR[m]={}; if(v===''||v==null)delete FORECAST_OVR[m][f]; else FORECAST_OVR[m][f]=+v||0; if(!Object.keys(FORECAST_OVR[m]).length)delete FORECAST_OVR[m]; persist(); render(); }
 function setSavePlan(m,v){ const n=+v||0; if(n)SAVE_PLAN[m]=n; else delete SAVE_PLAN[m]; persist(); render(); }
 function cumSaveBefore(ym){ let s=0; for(const k in SAVE_PLAN){ if(k<ym)s+=(+SAVE_PLAN[k]||0); } return s; }
+/* חיסכון מחושב: יתרת פתיחה + סך ההעברות החודשיות (SAVE_PLAN) — מקור אמת לסקירה/חסכונות/צפי */
+function saveOpening(){ return +ACCOUNTS.savingsOpening||0; }
+function savingsCumTo(ym){ let s=saveOpening(); for(const k in SAVE_PLAN){ if(k<=ym)s+=(+SAVE_PLAN[k]||0); } return s; }
+function currentSavings(){ return savingsCumTo(NOW_MONTH); }
 function yearMonths(y){ return Array.from({length:12},(_,i)=>y+'-'+String(i+1).padStart(2,'0')); }
 function screenForecast(){
   const year=fcYearVal();
   const yms=yearMonths(year);
   const budgetTotal=CATS.filter(c=>c.type==='expense').reduce((a,c)=>a+catBudget(c.name),0);
   const projInc=fIncome;
-  let cum=ACCOUNTS.savings + cumSaveBefore(year+'-01');   // חיסכון מצטבר פתיחה לשנה (מסונכרן עם חסכונות + שנים קודמות)
+  let cum=saveOpening() + cumSaveBefore(year+'-01');   // חיסכון מצטבר פתיחה לשנה = יתרת פתיחה + העברות שנים קודמות
   let yIn=0,yEx=0,yTransfer=0,deficit=0;
   const rows=yms.map(ym=>{
     const hasData=txOfMonth(ym).length>0;   // "בפועל" רק אם יש תנועות אמיתיות בחודש (לא רק רישום ב-months)
@@ -1015,7 +1028,7 @@ function screenForecast(){
     </div>
     <div class="sumrow">
       <div class="sumcard"><div class="lbl">הועבר לחיסכון ${year}</div><div class="val" style="color:var(--primary)">${fmt(yTransfer)}</div></div>
-      <div class="sumcard help" data-help="יתרת החיסכון הנוכחית בבנק (מסונכרן עם מסך חסכונות)"><div class="lbl">חיסכון בבנק נוכחי ⇄</div><div class="val income">${fmt(ACCOUNTS.savings)}</div></div>
+      <div class="sumcard help" data-help="יתרת החיסכון הנוכחית = פתיחה + העברות עד החודש הנוכחי (מסונכרן עם מסך חסכונות)"><div class="lbl">חיסכון בבנק נוכחי ⇄</div><div class="val income">${fmt(currentSavings())}</div></div>
       <div class="sumcard help" data-help="כמה צפוי להצטבר בחיסכון עד סוף השנה"><div class="lbl">חיסכון צפוי סוף ${year}</div><div class="val">${fmt(cumEnd)}</div></div>
     </div>
     <div class="row" style="margin:14px 0 6px;gap:18px;flex-wrap:wrap">
@@ -1112,18 +1125,34 @@ function screenSettings(){
 
 
 function screenSavings(){
-  return `<div><h1>חסכונות</h1><p class="sub">יתרת החיסכון בבנק</p></div>
+  const year=fcYearVal();
+  const yms=yearMonths(year);
+  let cum=saveOpening()+cumSaveBefore(year+'-01'); let yearTransfers=0;
+  const rows=yms.map(ym=>{ const tr=+SAVE_PLAN[ym]||0; cum+=tr; yearTransfers+=tr;
+    return `<tr style="${ym>NOW_MONTH?'opacity:.7':''}">
+      <td style="white-space:nowrap">${heMonth(ym).split(' ')[0]}${ym===NOW_MONTH?' <span style="color:var(--primary)">•</span>':''}</td>
+      <td style="text-align:start"><input type="number" value="${tr||''}" placeholder="0" style="width:90px;font-size:13px" onchange="setSavePlan('${ym}',this.value)"></td>
+      <td style="text-align:start"><b>${fmt(cum)}</b></td></tr>`; }).join('');
+  return `<div class="row" style="justify-content:space-between"><div><h1>חסכונות</h1><p class="sub">יתרת פתיחה + העברות חודשיות = יתרת חיסכון מתעדכנת</p></div>
+      <div class="row help" style="direction:ltr" data-help="מעבר בין שנים — החיסכון המצטבר ממשיך משנה לשנה">
+        <button class="btn ghost" onclick="fcShiftYear(1)" title="שנה הבאה">‹</button>
+        <b style="min-width:70px;text-align:center;font-size:18px">${fcYearVal()}</b>
+        <button class="btn ghost" onclick="fcShiftYear(-1)" title="שנה קודמת">›</button></div></div>
     ${toast?`<div class="note" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857">${toast} <a href="#" onclick="toast='';render();return false" class="muted">סגור</a></div>`:''}
-    <div class="panel" style="background:linear-gradient(135deg,#065f46,#10b981);color:#fff;border:none;max-width:480px;margin-bottom:16px">
-      <div style="font-size:13px;opacity:.9">יתרת חיסכון בבנק</div>
-      <div style="font-size:34px;font-weight:bold;margin-top:4px">${fmt(ACCOUNTS.savings)}</div>
+    <div class="panel" style="background:linear-gradient(135deg,#065f46,#10b981);color:#fff;border:none;max-width:520px;margin-bottom:16px">
+      <div style="font-size:13px;opacity:.9">יתרת חיסכון נוכחית (פתיחה + העברות עד ${heMonth(NOW_MONTH).split(' ')[0]})</div>
+      <div style="font-size:34px;font-weight:bold;margin-top:4px">${fmt(currentSavings())}</div>
     </div>
-    <div class="panel" style="max-width:480px">
-      <h2>עדכון יתרת החיסכון</h2>
-      <div class="row" style="align-items:center;gap:10px">
-        <input type="number" value="${ACCOUNTS.savings||''}" onchange="setAcct('savings',this.value)" placeholder="0" style="font-size:24px;font-weight:bold;width:220px"><span class="muted">₪</span>
+    <div class="panel" style="max-width:520px;margin-bottom:16px">
+      <div class="row" style="align-items:center;gap:10px;justify-content:space-between">
+        <span><b>יתרת פתיחה</b> <span class="muted" style="font-size:12px">(כמה היה בחיסכון בתחילה)</span></span>
+        <span class="row"><input type="number" value="${ACCOUNTS.savingsOpening||''}" onchange="setAcct('savingsOpening',this.value)" placeholder="0" style="font-size:20px;font-weight:bold;width:150px"><span class="muted">₪</span></span>
       </div>
-      <p class="muted" style="font-size:13px;margin-top:12px">💡 עדכן כאן את סכום החיסכון שיש לך בבנק. הערך מסונכרן אוטומטית עם שורת "מצב חשבונות" במסך הסקירה — שינוי כאן או שם מתעדכן בשני המקומות.</p>
+    </div>
+    <div class="panel" style="max-width:520px"><h2>העברות לחיסכון — ${fcYearVal()}</h2>
+      <table><thead><tr><th>חודש</th><th>הועבר לחיסכון</th><th>יתרה מצטברת</th></tr></thead><tbody>${rows}
+        <tr style="border-top:2px solid var(--text);font-weight:bold"><td>סה"כ ${fcYearVal()}</td><td style="text-align:start">${fmt(yearTransfers)}</td><td style="text-align:start">${fmt(cum)}</td></tr></tbody></table>
+      <p class="muted" style="font-size:13px;margin-top:10px">💡 "הועבר לחיסכון" בכל חודש מסונכרן עם כרטיס "העברה לחיסכון" במסך התנועות, עם הצפי, ועם הסקירה. שינוי בכל מקום מתעדכן בכולם.</p>
     </div>`;
 }
 
@@ -1243,8 +1272,9 @@ function loadSaved(){ try{
     CATS.length=0; (d.CATS||[]).forEach(c=>CATS.push(c));
     Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); Object.assign(SUBCATS, d.SUBCATS||{});
     BUDGETS=d.BUDGETS||{}; SUBBUDGETS=d.SUBBUDGETS||{}; MEMORY=d.MEMORY||{};
-    if(d.ACCOUNTS)ACCOUNTS=Object.assign({checking:0,savings:0,free:0},d.ACCOUNTS);
-    else if(d.SAVINGS&&d.SAVINGS.length){ ACCOUNTS.savings=d.SAVINGS.reduce((s,v)=>s+(+v.opening||0)+(d.ALLOC||[]).filter(a=>a.vehicle===v.name).reduce((x,a)=>x+a.amount,0),0); } // מיגרציה מנתוני חיסכון ישנים
+    if(d.ACCOUNTS){ ACCOUNTS=Object.assign({checking:0,savings:0,free:0,savingsOpening:0},d.ACCOUNTS);
+      if(d.ACCOUNTS.savingsOpening===undefined && ACCOUNTS.savings)ACCOUNTS.savingsOpening=ACCOUNTS.savings; } // מיגרציה: יתרת חיסכון ידנית → יתרת פתיחה
+    else if(d.SAVINGS&&d.SAVINGS.length){ ACCOUNTS.savingsOpening=d.SAVINGS.reduce((s,v)=>s+(+v.opening||0)+(d.ALLOC||[]).filter(a=>a.vehicle===v.name).reduce((x,a)=>x+a.amount,0),0); } // מיגרציה מנתוני חיסכון ישנים
     if(d.PAYSLIPS)PAYSLIPS=d.PAYSLIPS; if(Array.isArray(d.NAV_ORDER))NAV_ORDER=d.NAV_ORDER;
     if(d.FORECAST_OVR)FORECAST_OVR=d.FORECAST_OVR; if(d.SAVE_PLAN)SAVE_PLAN=d.SAVE_PLAN;
     months.length=0; (d.months||[]).forEach(m=>months.push(m)); if(d.curMonth)curMonth=d.curMonth;
