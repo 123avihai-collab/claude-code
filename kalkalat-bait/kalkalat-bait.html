@@ -607,7 +607,7 @@ function payslipPanel(m){
         <span class="muted" style="font-size:12px">או הדבק טקסט מהתלוש למטה ⬇️ (הכי אמין)</span>
       </div>
       <textarea id="psPaste" rows="3" placeholder="פתח את התלוש, סמן הכל (Ctrl+A), העתק, והדבק כאן — ואז '🔍 חלץ ומלא שדות'..." style="width:100%;margin-top:6px;font-size:12px;font-family:inherit;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--card);color:var(--text)"></textarea>
-      <div class="row" style="margin-top:6px"><button class="btn" style="font-size:13px" onclick="parsePayslipText('${m}',document.getElementById('psPaste').value)">🔍 חלץ ומלא שדות</button>
+      <div class="row" style="margin-top:6px"><button class="btn" style="font-size:13px" onclick="extractPayslipFields('${m}',document.getElementById('psPaste').value)">🔍 חלץ ומלא שדות</button>
         ${p.fileName?`<span class="muted" style="font-size:12px">📎 ${p.fileName}</span>`:''}</div>
       <p class="muted" style="font-size:11px;margin:6px 0 0">⚠️ חילוץ ראשוני בלבד — תמיד בדוק ותקן כל שדה מול התלוש. PDF עם גופן מקודד עלול להיכשל; אז השתמש בהדבקת טקסט.</p>
     </div>
@@ -698,6 +698,34 @@ function parsePayslipText(m,text){
   toast = filled? `🔍 חולצו ${filled} שדות מהתלוש — ⚠️ בדוק ותקן כל שדה מול המקור לפני הסתמכות.` : 'לא זוהו שדות בטקסט. ודא שהדבקת טקסט מהתלוש (לא תמונה), או הזן ידנית.';
   payslipOpen=true; render();
 }
+/* פענוח Windows-1255 (תלושי חילן מאחסנים עברית כך, ו-pdf.js מחזיר אותה כ-Latin1) */
+function deWin1255(s){ return String(s||'').replace(/[à-ú]/g,c=>String.fromCharCode(0x05D0+(c.charCodeAt(0)-0x00E0))); }
+/* פרסר ייעודי לתלוש חילן (עברית הפוכה Win1255 + מבנה קודים) */
+function parsePayslipPdfText(m,raw){
+  const t=deWin1255(raw); if(!/[א-ת]/.test(t)) return 0;
+  const rev=s=>s.split('').reverse().join(''), esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), N=s=>parseFloat(String(s).replace(/,/g,''))||0;
+  const numBefore=lab=>{ const mm=t.match(new RegExp('([\\d,]+(?:\\.\\d+)?)\\s+(?:\\d{1,2}\\/\\d{2}\\s+)?'+esc(rev(lab)))); return mm?N(mm[1]):null; };
+  const byCode=code=>{ const mm=t.match(new RegExp('([\\d,]+\\.\\d{2})(?:\\s+\\d{1,2}\\/\\d{2})?\\s+[^\\d\\n]{1,32}?\\s+'+code+'(?=\\s|$)')); return mm?N(mm[1]):null; };
+  const base=byCode('001'),global=byCode('151'),ml333=byCode('333'),ml202=byCode('202');
+  if(base==null&&global==null) return 0;   // לא תלוש חילן מזוהה
+  const bruto1=numBefore('התשלומים'), bruto2=numBefore('חייבת במס'), net=numBefore('נטו לתשלום'), points=numBefore('נקודות זיכוי');
+  const dm=t.match(new RegExp(esc(rev('מס הכנסה'))+'\\s+([\\d,.]+)\\s+([\\d,.]+)\\s+([\\d,.]+)\\s+([\\d,.]+)\\s+([\\d,.]+)\\s+([\\d,.]+)'));
+  const p=psGet(m), R=x=>Math.round(x*100)/100; let n=0;
+  if(base!=null){p.base=R(base);n++;} if(global!=null){p.global=R(global);n++;} if(ml333!=null){p.ml333=R(ml333);n++;} if(ml202!=null){p.ml202=R(ml202);n++;}
+  const inc=(base||0)+(global||0)+(ml333||0)+(ml202||0);
+  if(bruto1!=null){ p.guHealth=0;p.guCar=0;p.guOther=R(bruto1-inc); n++; }            // סך הגילום (להתאמת ברוטו 1)
+  if(bruto1!=null&&bruto2!=null){ p.impHealth=0;p.impCell=0;p.impCar=0;p.impMeals=0; p.impOther=R(bruto2-bruto1); n++; } // סך הזקיפות (להתאמת ברוטו 2)
+  if(points!=null){p.points=points;n++;}
+  if(dm){ p.actTax=String(N(dm[6])); p.actNI=String(N(dm[5])); p.actHealth=String(N(dm[3])); n+=3; }
+  if(net!=null){ p.actNet=String(net); n++; }
+  persist(); return n;
+}
+/* ניתוב חילוץ: קודם חילן (PDF/טקסט מקודד), אחרת הפרסר הכללי (טקסט מודבק נקי) */
+function extractPayslipFields(m,text){
+  const n=parsePayslipPdfText(m,text);
+  if(n>0){ toast=`✅ חולצו ${n} שדות מהתלוש — ⚠️ בדוק ותקן מול המקור.`; payslipOpen=true; render(); return; }
+  parsePayslipText(m,text);
+}
 async function extractPdfText(arrayBuffer){
   if(typeof pdfjsLib==='undefined') throw new Error('מנוע ה-PDF (pdf.js) לא נטען בדפדפן');
   if(!pdfjsLib.GlobalWorkerOptions.workerSrc){ const w=document.getElementById('pdfWorker'); if(w) pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([w.textContent],{type:'text/javascript'})); }
@@ -709,11 +737,13 @@ async function extractPdfText(arrayBuffer){
 function importPayslipPdf(m,file){ if(!file)return; psGet(m).fileName=file.name;
   if(/^image\//.test(file.type)){ toast='🖼️ תמונה אינה נתמכת לקריאה אוטומטית באפליקציה אופליין. ייצא את התלוש כ-PDF, או הדבק את הטקסט.'; payslipOpen=true; render(); return; }
   const reader=new FileReader();
-  reader.onload=async e=>{ try{ const text=await extractPdfText(e.target.result); const chars=(text||'').trim().length;
-      const box=document.getElementById('psPaste'); if(box) box.value=text||'';
-      if(chars>40 && /[֐-׿]/.test(text)){ parsePayslipText(m,text); }
-      else if(chars>0){ toast=`ℹ️ ה-PDF נקרא (${chars} תווים) אך ללא עברית מזוהה (ייתכן גופן מקודד). הטקסט הוכנס לתיבה למטה — בדוק/הדבק או הזן ידנית.`; payslipOpen=true; render(); }
-      else { toast='⚠️ ה-PDF נקרא אך לא נמצא בו טקסט — כנראה סרוק/תמונה. הדבק את הטקסט מהתלוש (מתוך צופה PDF: Ctrl+A → העתק), או הזן ידנית.'; payslipOpen=true; render(); }
+  reader.onload=async e=>{ try{ const text=await extractPdfText(e.target.result); const dec=deWin1255(text||''); const chars=dec.trim().length;
+      const box=document.getElementById('psPaste'); if(box) box.value=dec;
+      const n=parsePayslipPdfText(m,text);
+      if(n>0){ toast=`✅ חולצו ${n} שדות מהתלוש (חילן) — בדוק ותקן מול המקור.`; payslipOpen=true; render(); }
+      else if(chars>40 && /[א-ת]/.test(dec)){ parsePayslipText(m,dec); }
+      else if(chars>0){ toast=`ℹ️ ה-PDF נקרא (${chars} תווים) אך לא זוהה כתלוש מוכר. הטקסט הוכנס לתיבה — הזן ידנית, או שלח לי את הפורמט ואכייל.`; payslipOpen=true; render(); }
+      else { toast='⚠️ ה-PDF נקרא אך לא נמצא בו טקסט — כנראה סרוק/תמונה. הדבק את הטקסט מהתלוש, או הזן ידנית.'; payslipOpen=true; render(); }
     }catch(err){ toast='⚠️ שגיאה בקריאת ה-PDF: '+(err&&err.message?err.message:err)+'. נסה הדבקת טקסט או הזנה ידנית.'; payslipOpen=true; render(); } };
   reader.readAsArrayBuffer(file);
 }
