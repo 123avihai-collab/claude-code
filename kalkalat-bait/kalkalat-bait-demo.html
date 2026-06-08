@@ -699,23 +699,22 @@ function parsePayslipText(m,text){
   payslipOpen=true; render();
 }
 async function extractPdfText(arrayBuffer){
-  if(typeof pdfjsLib==='undefined') return '';
-  try{
-    if(!pdfjsLib.GlobalWorkerOptions.workerSrc){ const w=document.getElementById('pdfWorker'); if(w) pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([w.textContent],{type:'text/javascript'})); }
-    const doc=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer)}).promise;
-    let all='';
-    for(let i=1;i<=doc.numPages;i++){ const pg=await doc.getPage(i); const tc=await pg.getTextContent(); all+=tc.items.map(x=>x.str).join(' ')+'\n'; }
-    return all;
-  }catch(e){ console.warn('pdf extract',e); return ''; }
+  if(typeof pdfjsLib==='undefined') throw new Error('מנוע ה-PDF (pdf.js) לא נטען בדפדפן');
+  if(!pdfjsLib.GlobalWorkerOptions.workerSrc){ const w=document.getElementById('pdfWorker'); if(w) pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([w.textContent],{type:'text/javascript'})); }
+  const doc=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer)}).promise;
+  let all='';
+  for(let i=1;i<=doc.numPages;i++){ const pg=await doc.getPage(i); const tc=await pg.getTextContent(); all+=tc.items.map(x=>x.str).join(' ')+'\n'; }
+  return all;
 }
 function importPayslipPdf(m,file){ if(!file)return; psGet(m).fileName=file.name;
   if(/^image\//.test(file.type)){ toast='🖼️ תמונה אינה נתמכת לקריאה אוטומטית באפליקציה אופליין. ייצא את התלוש כ-PDF, או הדבק את הטקסט.'; payslipOpen=true; render(); return; }
   const reader=new FileReader();
-  reader.onload=async e=>{ try{ const text=await extractPdfText(e.target.result);
-      if(text && /[֐-׿]/.test(text) && /(שכר|מס|ביטוח|נטו|מילואים|ברוטו|פנסיה)/.test(text)){ parsePayslipText(m,text); }
-      else if(text && text.trim().length>40){ document.getElementById('psPaste')&&(document.getElementById('psPaste').value=text); toast='ה-PDF נקרא אך לא זוהו תוויות תלוש מוכרות. הטקסט הוכנס לתיבה — לחץ "🔍 חלץ ומלא שדות" או הזן ידנית.'; payslipOpen=true; render(); }
-      else { toast='⚠️ ה-PDF סרוק/תמונה ואין בו טקסט. הדבק את הטקסט מהתלוש, או הזן ידנית.'; payslipOpen=true; render(); }
-    }catch(err){ toast='⚠️ שגיאה בקריאת ה-PDF: '+err.message+'. נסה הדבקת טקסט.'; payslipOpen=true; render(); } };
+  reader.onload=async e=>{ try{ const text=await extractPdfText(e.target.result); const chars=(text||'').trim().length;
+      const box=document.getElementById('psPaste'); if(box) box.value=text||'';
+      if(chars>40 && /[֐-׿]/.test(text)){ parsePayslipText(m,text); }
+      else if(chars>0){ toast=`ℹ️ ה-PDF נקרא (${chars} תווים) אך ללא עברית מזוהה (ייתכן גופן מקודד). הטקסט הוכנס לתיבה למטה — בדוק/הדבק או הזן ידנית.`; payslipOpen=true; render(); }
+      else { toast='⚠️ ה-PDF נקרא אך לא נמצא בו טקסט — כנראה סרוק/תמונה. הדבק את הטקסט מהתלוש (מתוך צופה PDF: Ctrl+A → העתק), או הזן ידנית.'; payslipOpen=true; render(); }
+    }catch(err){ toast='⚠️ שגיאה בקריאת ה-PDF: '+(err&&err.message?err.message:err)+'. נסה הדבקת טקסט או הזנה ידנית.'; payslipOpen=true; render(); } };
   reader.readAsArrayBuffer(file);
 }
 /* ===== utilities ===== */
