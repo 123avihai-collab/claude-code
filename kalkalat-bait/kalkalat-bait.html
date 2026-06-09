@@ -132,6 +132,7 @@
     </div>
     <label>סכום (₪)</label><input type="number" id="mAmount" placeholder="0">
     <label>קטגוריה</label><select id="mCat"></select>
+    <label>מקור</label><select id="mSource"></select>
     <label>תאריך</label><input type="date" id="mDate">
     <label>הערה</label><input type="text" id="mNote" placeholder="לדוגמה: קניות בסופר">
     <div class="row" style="margin-top:16px">
@@ -1448,14 +1449,17 @@ function initNavDnd(){ const sb=document.querySelector('.sidebar'); if(!sb)retur
     item.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'&&e.button!==0)return; dragEl=item; sx=e.clientX; sy=e.clientY;
       document.addEventListener('pointermove',preMove); document.addEventListener('pointerup',preUp); timer=setTimeout(begin,350); }); }); }
 let mType='expense';
-function openModal(){ mType='expense'; setType('expense'); document.getElementById('mDate').value=curMonth+'-15'; fillCats(); document.getElementById('modalBg').classList.add('show'); }
+let lastSource='עו״ש';      // המקור שנבחר לאחרונה בהוספה ידנית — נשמר לנוחות
+function openModal(){ mType='expense'; setType('expense'); document.getElementById('mDate').value=curMonth+'-15'; fillCats(); fillSources(); document.getElementById('modalBg').classList.add('show'); }
 function closeModal(){ document.getElementById('modalBg').classList.remove('show'); }
 function setType(t){ mType=t; document.getElementById('mExpense').classList.toggle('on',t==='expense'); document.getElementById('mIncome').classList.toggle('on',t==='income'); fillCats(); }
 function fillCats(){ document.getElementById('mCat').innerHTML=CATS.filter(c=>c.type===mType).map(c=>`<option>${c.name}</option>`).join(''); }
+function fillSources(){ const el=document.getElementById('mSource'); if(!el)return; el.innerHTML=SOURCES.map(s=>`<option ${s===lastSource?'selected':''}>${s}</option>`).join(''); }
 function saveTx(){ const a=+document.getElementById('mAmount').value; if(!a){alert('הזן סכום');return;}
   const d=document.getElementById('mDate').value||curMonth+'-15'; const bm=monthOf(d);
   if(isLocked(bm)){ alert(`🔒 ${heMonth(bm)} נעול — לא ניתן להוסיף תנועה. פתח קודם את הנעילה.`); return; }
-  TX.push({id:Date.now(),type:mType,amount:a,cat:document.getElementById('mCat').value,sub:null,date:d,bm,note:document.getElementById('mNote').value,source:'עו״ש'});
+  const src=(document.getElementById('mSource')||{}).value||'עו״ש'; lastSource=src;
+  TX.push({id:Date.now(),type:mType,amount:a,cat:document.getElementById('mCat').value,sub:null,date:d,bm,note:document.getElementById('mNote').value,source:src});
   if(!months.includes(bm)){months.push(bm);months.sort();}
   closeModal(); document.getElementById('mAmount').value=''; document.getElementById('mNote').value=''; render(); }
 
