@@ -700,21 +700,27 @@ function parsePayslipText(m,text){
 }
 /* פענוח Windows-1255 (תלושי חילן מאחסנים עברית כך, ו-pdf.js מחזיר אותה כ-Latin1) */
 function deWin1255(s){ return String(s||'').replace(/[à-ú]/g,c=>String.fromCharCode(0x05D0+(c.charCodeAt(0)-0x00E0))); }
-/* פרסר ייעודי לתלוש חילן (עברית הפוכה Win1255 + מבנה קודים) */
+/* פרסר ייעודי לתלוש חילן (עברית הפוכה Win1255 + מבנה קודים) — מחלץ כל סעיף בנפרד */
 function parsePayslipPdfText(m,raw){
   const t=deWin1255(raw); if(!/[א-ת]/.test(t)) return 0;
   const rev=s=>s.split('').reverse().join(''), esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), N=s=>parseFloat(String(s).replace(/,/g,''))||0;
   const numBefore=lab=>{ const mm=t.match(new RegExp('([\\d,]+(?:\\.\\d+)?)\\s+(?:\\d{1,2}\\/\\d{2}\\s+)?'+esc(rev(lab)))); return mm?N(mm[1]):null; };
-  const byCode=code=>{ const mm=t.match(new RegExp('([\\d,]+\\.\\d{2})(?:\\s+\\d{1,2}\\/\\d{2})?\\s+[^\\d\\n]{1,32}?\\s+'+code+'(?=\\s|$)')); return mm?N(mm[1]):null; };
-  const base=byCode('001'),global=byCode('151'),ml333=byCode('333'),ml202=byCode('202');
+  const codeNums=code=>{ const mm=t.match(new RegExp('((?:[\\d,]+\\.\\d{2}\\s+){1,3})(?:\\d{1,2}\\/\\d{2}\\s+)?[^\\d\\n]{1,32}?\\s+'+code+'(?=\\s|$)')); return mm?mm[1].trim().split(/\s+/).map(N):[]; };
+  const base=codeNums('001')[0], global=codeNums('151')[0], ml333=codeNums('333')[0], ml202=codeNums('202')[0];
   if(base==null&&global==null) return 0;   // לא תלוש חילן מזוהה
+  const g190=codeNums('190'), guHealth=g190[0]||0, impHealth=g190[1]||0;
+  const guCar=codeNums('300')[0]||0, impCell=codeNums('295')[0]||0, impMeals=codeNums('303')[0]||0, impCar=codeNums('304')[0]||0;
+  const tot=t.match(new RegExp('([\\d,]+\\.\\d{2})\\s+([\\d,]+\\.\\d{2})\\s+'+esc(rev('זקיפות שכר')))); const gilumTotal=tot?N(tot[1]):null;
   const bruto1=numBefore('התשלומים'), bruto2=numBefore('חייבת במס'), net=numBefore('נטו לתשלום'), points=numBefore('נקודות זיכוי');
   const dm=t.match(new RegExp(esc(rev('מס הכנסה'))+'\\s+([\\d,.]+)\\s+([\\d,.]+)\\s+([\\d,.]+)\\s+([\\d,.]+)\\s+([\\d,.]+)\\s+([\\d,.]+)'));
   const p=psGet(m), R=x=>Math.round(x*100)/100; let n=0;
   if(base!=null){p.base=R(base);n++;} if(global!=null){p.global=R(global);n++;} if(ml333!=null){p.ml333=R(ml333);n++;} if(ml202!=null){p.ml202=R(ml202);n++;}
-  const inc=(base||0)+(global||0)+(ml333||0)+(ml202||0);
-  if(bruto1!=null){ p.guHealth=0;p.guCar=0;p.guOther=R(bruto1-inc); n++; }            // סך הגילום (להתאמת ברוטו 1)
-  if(bruto1!=null&&bruto2!=null){ p.impHealth=0;p.impCell=0;p.impCar=0;p.impMeals=0; p.impOther=R(bruto2-bruto1); n++; } // סך הזקיפות (להתאמת ברוטו 2)
+  p.guHealth=R(guHealth); p.guCar=R(guCar); p.impHealth=R(impHealth); p.impCell=R(impCell); p.impCar=R(impCar); p.impMeals=R(impMeals);
+  if(guHealth||guCar)n++; if(impHealth||impCell||impCar||impMeals)n++;
+  const incNamed=(base||0)+(global||0)+(ml333||0)+(ml202||0);
+  if(bruto1!=null&&gilumTotal!=null){ p.otherInc=R((bruto1-gilumTotal)-incNamed); p.guOther=R(gilumTotal-(guHealth+guCar)); }
+  else if(bruto1!=null){ p.otherInc=0; p.guOther=R(bruto1-incNamed-(guHealth+guCar)); }   // התאמת ברוטו 1
+  if(bruto1!=null&&bruto2!=null){ p.impOther=R((bruto2-bruto1)-(impHealth+impCell+impCar+impMeals)); n++; }   // התאמת ברוטו 2
   if(points!=null){p.points=points;n++;}
   if(dm){ p.actTax=String(N(dm[6])); p.actNI=String(N(dm[5])); p.actHealth=String(N(dm[3])); n+=3; }
   if(net!=null){ p.actNet=String(net); n++; }
