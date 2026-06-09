@@ -283,8 +283,11 @@ let txSort = 'none';        // מיון לפי שם בית עסק: none | name-a
 let txSearch = '';          // חיפוש חופשי לפי בית עסק / הערה (סעיף 18)
 let sumOpen = null;         // אקורדיון כרטיסי הסיכום בתנועות: 'expense'|'income'|'balance'|null
 let lastDeleted = null;     // {tx,idx} לשחזור מחיקה אחרונה (Undo)
+let txSel = new Set();       // בחירה מרובה של תנועות (מזהים) למחיקה
+let txShownIds = [];         // מזהי התנועות המוצגות כעת (לכפתור "בחר הכל")
+let lastBatch = null;        // [{tx}] לשחזור מחיקה מרובה (Undo)
 let budgetOpen = {};        // אקורדיון מסך התקציב: {קטגוריה: פתוח?}
-let payslipOpen = false;    // הצגת מנתח תלוש השכר במסך ההכנסות
+let psExpanded = {};        // אקורדיון מנתח תלוש: {YYYY-MM: true} — אילו חודשים פתוחים
 let PAYSLIPS = {};          // ניתוח תלוש לכל חודש: {YYYY-MM: {רכיבים + בפועל}}
 let LOCKED = {};            // נעילת חודש: {YYYY-MM: true} — חודש נעול חסום לעריכה/ייבוא עד פתיחה ידנית
 let toast = '';
@@ -440,11 +443,10 @@ function handleImport(file){
       const flt=filterLockedRows(res.rows);
       if(!flt.allowed.length){ importMsg=`🔒 כל ${res.rows.length} העסקאות שייכות לחודש נעול (${flt.blocked.map(heMonth).join(', ')}) — לא יובא דבר. פתח את הנעילה כדי לייבא.`; render(); return; }
       res.rows=flt.allowed;
-      if(res.fmt==='bank') applyImportedBankRows(res.rows);
-      else { res.rows.forEach(r=>{ TX.push(r); if(!months.includes(r.bm))months.push(r.bm); }); months.sort(); }
+      const dd = res.fmt==='bank' ? applyImportedBankRows(res.rows) : pushDedup(res.rows);
       curMonth=fm||months[months.length-1];
       const name={max:'מקס',cal:'כאל',generic:'כללי',bank:'עו״ש'}[res.fmt];
-      importMsg=`✅ יובאו ${res.rows.length} עסקאות (פורמט ${name}). ${res.auto} קוטלגו אוטומטית. שויכו לחודש ${heMonth(curMonth)}${fm?' (שיוך ידני)':' (אוטומטי)'}.${flt.blocked.length?` 🔒 דולגו עסקאות לחודש נעול: ${flt.blocked.map(heMonth).join(', ')}.`:''}`;
+      importMsg=`✅ יובאו ${dd.added} עסקאות חדשות (פורמט ${name}). ${res.auto} קוטלגו אוטומטית. שויכו לחודש ${heMonth(curMonth)}${fm?' (שיוך ידני)':' (אוטומטי)'}.${dd.skipped?` ♻️ ${dd.skipped} כפילויות זוהו ודולגו.`:''}${flt.blocked.length?` 🔒 דולגו עסקאות לחודש נעול: ${flt.blocked.map(heMonth).join(', ')}.`:''}`;
       render();
     }catch(err){ importMsg='❌ שגיאה בקריאת הקובץ: '+err.message; render(); }
   };
@@ -503,15 +505,22 @@ function importBankStatement(wb){
   return {rows,fmt:'bank',auto};
 }
 /* הוספת תנועות עו"ש מיובאות — עם החלפה חכמה כדי למנוע כפילות בייבוא חוזר / לתקן ייבוא ישן */
+/* חתימת תנועה לזיהוי כפילות: תאריך + סכום + תיאור + מקור + סוג */
+function txSig(t){ return [t.type, t.date, Math.round((t.amount||0)*100), String(t.note||'').trim().toLowerCase(), t.source].join('|'); }
+/* דחיפת שורות מיובאות תוך דילוג על כפילויות מול הקיים — מחזיר {added, skipped} */
+function pushDedup(rows){ const sigs=new Set(TX.map(txSig)); let added=0,skipped=0;
+  rows.forEach(r=>{ const s=txSig(r); if(sigs.has(s)){skipped++;return;} sigs.add(s); TX.push(r); added++; if(!months.includes(r.bm))months.push(r.bm); });
+  months.sort(); return {added,skipped}; }
 function applyImportedBankRows(rows){
   const mset=[...new Set(rows.map(r=>r.bm))];
   const existing=TX.filter(t=>t.source==='עו״ש' && mset.includes(bmOf(t)));
   if(existing.length && confirm('נמצאו '+existing.length+' תנועות עו״ש קיימות בחודשים המיובאים. להחליף אותן? (מומלץ — מונע כפילות ומתקן ייבוא ישן שסיווג הכל כהכנסה)')){
     const ids=new Set(existing.map(t=>t.id));
     for(let i=TX.length-1;i>=0;i--) if(ids.has(TX[i].id)) TX.splice(i,1);
+    rows.forEach(r=>{ TX.push(r); if(!months.includes(r.bm))months.push(r.bm); });
+    months.sort(); return {added:rows.length,skipped:0};
   }
-  rows.forEach(r=>{ TX.push(r); if(!months.includes(r.bm))months.push(r.bm); });
-  months.sort();
+  return pushDedup(rows);   // ללא החלפה — מדלג על כפילויות מדויקות
 }
 function handleBankImport(file){ if(!file)return; const reader=new FileReader();
   reader.onload=e=>{ try{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
@@ -521,8 +530,8 @@ function handleBankImport(file){ if(!file)return; const reader=new FileReader();
       const flt=filterLockedRows(res.rows);
       if(!flt.allowed.length){ importMsg=`🔒 כל ${res.rows.length} התנועות שייכות לחודש נעול (${flt.blocked.map(heMonth).join(', ')}) — לא יובא דבר. פתח את הנעילה כדי לייבא.`; render(); return; }
       res.rows=flt.allowed;
-      applyImportedBankRows(res.rows); curMonth=fm||months[months.length-1];
-      importMsg=`✅ יובאו ${res.rows.length} תנועות עו״ש. ${res.auto} קוטלגו אוטומטית. שויכו לחודש ${heMonth(curMonth)}${fm?' (שיוך ידני)':' (אוטומטי, לפי תאריך)'}.${flt.blocked.length?` 🔒 דולגו תנועות לחודש נעול: ${flt.blocked.map(heMonth).join(', ')}.`:''}`;
+      const dd=applyImportedBankRows(res.rows); curMonth=fm||months[months.length-1];
+      importMsg=`✅ יובאו ${dd.added} תנועות עו״ש חדשות. ${res.auto} קוטלגו אוטומטית. שויכו לחודש ${heMonth(curMonth)}${fm?' (שיוך ידני)':' (אוטומטי, לפי תאריך)'}.${dd.skipped?` ♻️ ${dd.skipped} כפילויות זוהו ודולגו.`:''}${flt.blocked.length?` 🔒 דולגו תנועות לחודש נעול: ${flt.blocked.map(heMonth).join(', ')}.`:''}`;
       render();
     }catch(err){ importMsg='❌ שגיאה בקריאת הקובץ: '+err.message; render(); } };
   reader.readAsArrayBuffer(file);
@@ -589,7 +598,7 @@ function psCompute(p){ const R=x=>Math.round(x*100)/100; const Rt=PAYRATES_2026;
     niLow:R(niLow),niHigh:R(niHigh),ni:R(ni),hLow:R(hLow),hHigh:R(hHigh),health:R(health),
     pension:R(pension),study:R(study),pBase:R(pBase),taxGross:R(taxGross),cPoints:R(cPoints),c45a:R(c45a),
     credits:R(credits),tax:R(tax),deductions:R(deductions),net:R(net)}; }
-function togglePayslip(){ payslipOpen=!payslipOpen; render(); }
+function togglePsMonth(m){ psExpanded[m]=!psExpanded[m]; render(); }
 function handlePayslipFile(m,file){ if(!file)return; psGet(m).fileName=file.name; persist();
   toast='📎 צורף "'+file.name+'". האפליקציה לא קוראת תלוש אוטומטית (אופליין) — הזן את ערכי התלוש למטה והמנתח יחשב הכל מול חוק 2026.'; render(); }
 function streamPayslipNet(m){ if(guardLocked(m,'הזרמת נטו'))return; const p=psGet(m); const c=psCompute(p);
@@ -643,11 +652,9 @@ function payslipPanel(m){
     <span style="font-size:15px">${k.ok===null?'ℹ️':k.ok?'✅':'⚠️'}</span>
     <span style="flex:1"><b style="font-size:13px">${k.label}</b><br><span class="muted" style="font-size:12px">${k.detail}</span></span></div>`).join('');
   const retro = (m>='2026-01'&&m<='2026-03') ? `<div class="alert amber">🔔 <b>${heMonth(m)}:</b> בחודשים ינואר–מרץ 2026 מערכות השכר השתמשו במדרגות 2025 (חוק ריווח המדרגות אושר 31.3.2026 רטרואקטיבית). צפוי <b>עודף מס ~420 ₪</b> שנוכה ביתר ויוחזר בתלוש אפריל — לכן הפער במס/נטו צפוי ותקין.</div>` : '';
-  return `<div class="panel" style="margin-bottom:16px;border:2px solid var(--primary)">
-    <div class="row" style="justify-content:space-between"><h2 style="margin:0">🧾 מנתח תלוש שכר — ${heMonth(m)}</h2>
-      <a href="#" class="muted" onclick="togglePayslip();return false">סגור ✕</a></div>
-    <div class="note" style="margin-top:8px">המנתח מחשב כל רכיב לפי <b>חוק 2026</b> ומשווה ל"בפועל" מהתלוש. הזן את ערכי התלוש; פער מהותי (מעל ~5 ₪ או 1%) יסומן באדום.
-      ${p.fileName?` · 📎 ${p.fileName}`:''}</div>
+  return `<div class="panel" style="margin:0;border:none;padding:0">
+    <div class="note" style="margin-top:0">המנתח מחשב כל רכיב לפי <b>חוק 2026</b> ומשווה ל"בפועל" מהתלוש. הזן את ערכי התלוש; פער מהותי (מעל ~5 ₪ או 1%) יסומן באדום.
+      ${p.fileName?` · 📎 ${esc(p.fileName)}`:''}</div>
     <div class="panel" style="padding:12px;background:var(--bg);margin:8px 0">
       <b style="font-size:13px">⬆️ חילוץ אוטומטי מהתלוש</b>
       <div class="row" style="margin-top:6px">
@@ -704,9 +711,32 @@ function payslipPanel(m){
   </div>`;
 }
 function screenPayslip(){
-  return `<div class="row" style="justify-content:space-between"><div><h1>🧾 תלוש שכר</h1><p class="sub">ניתוח תלוש מול חוק 2026 — חילוץ אוטומטי מ-PDF/טקסט או הזנה ידנית</p></div>${monthNav()}</div>
+  // כל החודשים שיש להם תלוש + החודש הנבחר — רשימה אנכית, החדש למעלה
+  const keys=[...new Set([...Object.keys(PAYSLIPS), curMonth])].sort().reverse();
+  let totNet=0;
+  const rows=keys.map(m=>{ const p=psGet(m); const c=psCompute(p);
+    const hasAct=String(p.actNet).trim()!=='';
+    const net = hasAct? (parseFloat(p.actNet)||0) : c.net;
+    const hasData = p.base||p.global||p.ml202||p.ml266||hasAct;
+    if(hasData) totNet+=net;
+    const open=!!psExpanded[m], lk=isLocked(m);
+    return `<div class="panel" style="margin-bottom:10px;padding:0;overflow:hidden">
+      <div class="row" style="justify-content:space-between;padding:12px 14px;cursor:pointer;${open?'border-bottom:1px solid var(--border)':''}" onclick="togglePsMonth('${m}')">
+        <div class="row" style="gap:10px"><span style="font-size:16px;color:var(--primary)">${open?'▾':'▸'}</span>
+          <b style="font-size:15px">🧾 ${heMonth(m)}${lk?' 🔒':''}</b>
+          ${!hasData?'<span class="muted" style="font-size:12px">— אין נתונים, פתח להזנה</span>':''}</div>
+        <div class="row" style="gap:8px"><span class="muted" style="font-size:12px">${hasAct?'נטו בפועל':'נטו מחושב'}</span><b class="income" style="font-size:16px">${fmt(net)}</b></div>
+      </div>
+      ${open?`<div style="padding:14px">${payslipPanel(m)}</div>`:''}
+    </div>`;
+  }).join('');
+  return `<div class="row" style="justify-content:space-between"><div><h1>🧾 תלוש שכר</h1><p class="sub">כל החודשים ברשימה — לחץ על חודש לפתיחת הפירוט המלא (חישוב מול חוק 2026)</p></div>${monthNav()}</div>
     ${toast?`<div class="note" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857">${toast} <a href="#" onclick="toast='';render();return false" class="muted">סגור</a></div>`:''}
-    ${payslipPanel(curMonth)}`;
+    <div class="cards" style="grid-template-columns:1fr 1fr;margin-bottom:12px">
+      <div class="card" style="padding:12px"><div class="lbl">חודשי תלוש</div><div class="val" style="font-size:18px">${keys.filter(m=>{const q=psGet(m);return q.base||q.global||q.ml202||q.ml266||String(q.actNet).trim()!=='';}).length}</div></div>
+      <div class="card" style="padding:12px"><div class="lbl">סה"כ נטו (כל החודשים)</div><div class="val income" style="font-size:18px">${fmt(totNet)}</div></div>
+    </div>
+    ${rows}`;
 }
 /* חילוץ ערכי התלוש מטקסט מודבק — best effort לפי תוויות/קודים נפוצים */
 function nearNum(text, labelStart, afterIdx){
@@ -719,7 +749,7 @@ function nearNum(text, labelStart, afterIdx){
   return null;
 }
 function parsePayslipText(m,text){
-  if(!text||!text.trim()){ toast='אין טקסט — הדבק את תוכן התלוש קודם.'; payslipOpen=true; render(); return; }
+  if(!text||!text.trim()){ toast='אין טקסט — הדבק את תוכן התלוש קודם.'; psExpanded[m]=true; render(); return; }
   const p=psGet(m);
   const norm=text.replace(/[‎‏]/g,'').replace(/[ \t]+/g,' ');
   const fields=[
@@ -748,7 +778,7 @@ function parsePayslipText(m,text){
   }
   persist();
   toast = filled? `🔍 חולצו ${filled} שדות מהתלוש — ⚠️ בדוק ותקן כל שדה מול המקור לפני הסתמכות.` : 'לא זוהו שדות בטקסט. ודא שהדבקת טקסט מהתלוש (לא תמונה), או הזן ידנית.';
-  payslipOpen=true; render();
+  psExpanded[m]=true; render();
 }
 /* פענוח Windows-1255 (תלושי חילן מאחסנים עברית כך, ו-pdf.js מחזיר אותה כ-Latin1) */
 function deWin1255(s){ return String(s||'').replace(/[à-ú]/g,c=>String.fromCharCode(0x05D0+(c.charCodeAt(0)-0x00E0))); }
@@ -815,7 +845,7 @@ function parsePayslipPdfText(m,raw){
 function extractPayslipFields(m,text){
   if(guardLocked(m,'חילוץ התלוש'))return;
   const n=parsePayslipPdfText(m,text);
-  if(n>0){ toast=`✅ חולצו ${n} שדות מהתלוש — ⚠️ בדוק ותקן מול המקור.`; payslipOpen=true; render(); return; }
+  if(n>0){ toast=`✅ חולצו ${n} שדות מהתלוש — ⚠️ בדוק ותקן מול המקור.`; psExpanded[m]=true; render(); return; }
   parsePayslipText(m,text);
 }
 async function extractPdfText(arrayBuffer){
@@ -827,16 +857,16 @@ async function extractPdfText(arrayBuffer){
   return all;
 }
 function importPayslipPdf(m,file){ if(!file)return; if(guardLocked(m,'העלאת תלוש'))return; psGet(m).fileName=file.name;
-  if(/^image\//.test(file.type)){ toast='🖼️ תמונה אינה נתמכת לקריאה אוטומטית באפליקציה אופליין. ייצא את התלוש כ-PDF, או הדבק את הטקסט.'; payslipOpen=true; render(); return; }
+  if(/^image\//.test(file.type)){ toast='🖼️ תמונה אינה נתמכת לקריאה אוטומטית באפליקציה אופליין. ייצא את התלוש כ-PDF, או הדבק את הטקסט.'; psExpanded[m]=true; render(); return; }
   const reader=new FileReader();
   reader.onload=async e=>{ try{ const text=await extractPdfText(e.target.result); const dec=deWin1255(text||''); const chars=dec.trim().length;
       const box=document.getElementById('psPaste'); if(box) box.value=dec;
       const n=parsePayslipPdfText(m,text);
-      if(n>0){ toast=`✅ חולצו ${n} שדות מהתלוש (חילן) — בדוק ותקן מול המקור.`; payslipOpen=true; render(); }
+      if(n>0){ toast=`✅ חולצו ${n} שדות מהתלוש (חילן) — בדוק ותקן מול המקור.`; psExpanded[m]=true; render(); }
       else if(chars>40 && /[א-ת]/.test(dec)){ parsePayslipText(m,dec); }
-      else if(chars>0){ toast=`ℹ️ ה-PDF נקרא (${chars} תווים) אך לא זוהה כתלוש מוכר. הטקסט הוכנס לתיבה — הזן ידנית, או שלח לי את הפורמט ואכייל.`; payslipOpen=true; render(); }
-      else { toast='⚠️ ה-PDF נקרא אך לא נמצא בו טקסט — כנראה סרוק/תמונה. הדבק את הטקסט מהתלוש, או הזן ידנית.'; payslipOpen=true; render(); }
-    }catch(err){ toast='⚠️ שגיאה בקריאת ה-PDF: '+(err&&err.message?err.message:err)+'. נסה הדבקת טקסט או הזנה ידנית.'; payslipOpen=true; render(); } };
+      else if(chars>0){ toast=`ℹ️ ה-PDF נקרא (${chars} תווים) אך לא זוהה כתלוש מוכר. הטקסט הוכנס לתיבה — הזן ידנית, או שלח לי את הפורמט ואכייל.`; psExpanded[m]=true; render(); }
+      else { toast='⚠️ ה-PDF נקרא אך לא נמצא בו טקסט — כנראה סרוק/תמונה. הדבק את הטקסט מהתלוש, או הזן ידנית.'; psExpanded[m]=true; render(); }
+    }catch(err){ toast='⚠️ שגיאה בקריאת ה-PDF: '+(err&&err.message?err.message:err)+'. נסה הדבקת טקסט או הזנה ידנית.'; psExpanded[m]=true; render(); } };
   reader.readAsArrayBuffer(file);
 }
 /* ===== utilities ===== */
@@ -1022,7 +1052,10 @@ function screenTransactions(){
       ${card('balance','מאזן ('+scope+')',sumIn-sumEx,(sumIn-sumEx>=0?'income':'expense'),balBreak())}
       ${saveCard}
     </div>`;
-  const rows=list.map(t=>`<tr>
+  txShownIds=list.map(t=>t.id);
+  const allSel=list.length>0 && list.every(t=>txSel.has(t.id));
+  const rows=list.map(t=>`<tr${txSel.has(t.id)?' style="background:rgba(99,102,241,.08)"':''}>
+     <td style="text-align:center"><input type="checkbox" ${txSel.has(t.id)?'checked':''} onclick="toggleTxSel(${t.id})" style="width:16px;height:16px;cursor:pointer"></td>
      <td style="white-space:nowrap">${t.date}</td>
      <td>${srcBadge(t.source)}</td>
      <td>${esc(t.note||'')}${t.unote?`<div class="muted" style="font-size:11px">📝 ${esc(t.unote)}</div>`:''} <a href="#" onclick="editNote(${t.id});return false" class="muted" title="הוסף/ערוך הערה" style="font-size:12px;text-decoration:none">✎</a></td>
@@ -1047,8 +1080,14 @@ function screenTransactions(){
     <div class="pillrow" style="margin-top:-6px">
       <span class="muted">מקור:</span>${srcTags}
     </div>
+    <div class="pillrow" style="margin-top:-6px;align-items:center">
+      <button class="btn ghost" style="font-size:12px;padding:4px 10px" onclick="${allSel?'clearTxSel()':'selectAllShown()'}">${allSel?'☑️ נקה בחירה':'☐ בחר הכל'}</button>
+      ${txSel.size?`<span class="muted" style="font-size:12px">נבחרו ${txSel.size}</span>
+        <button class="btn" style="font-size:12px;padding:4px 10px;background:var(--expense);border-color:var(--expense)" onclick="delSelected()">🗑️ מחק נבחרים (${txSel.size})</button>`:''}
+      <button class="btn ghost help" data-help="מוחק את כל התנועות המוצגות לפי הסינון הפעיל (חודש/סוג/קטגוריה/מקור/חיפוש) — עם אישור ושחזור" style="font-size:12px;padding:4px 10px;color:var(--expense)" onclick="delAllShown()">🗑️ מחק הכל (${list.length})</button>
+    </div>
     <div class="panel" style="padding:0;overflow:auto;max-height:520px">
-      <table><thead><tr><th>תאריך</th><th>מקור</th><th>בית העסק / הערה</th><th>קטגוריה</th><th>חודש חיוב</th><th>סכום</th><th>פעולה</th></tr></thead><tbody>${rows||'<tr><td colspan=7 class=muted style="padding:24px;text-align:center">אין תנועות תואמות</td></tr>'}</tbody></table>
+      <table><thead><tr><th style="width:30px;text-align:center"><input type="checkbox" ${allSel?'checked':''} onclick="${allSel?'clearTxSel()':'selectAllShown()'}" style="width:16px;height:16px;cursor:pointer" title="בחר/נקה הכל"></th><th>תאריך</th><th>מקור</th><th>בית העסק / הערה</th><th>קטגוריה</th><th>חודש חיוב</th><th>סכום</th><th>פעולה</th></tr></thead><tbody>${rows||'<tr><td colspan=8 class=muted style="padding:24px;text-align:center">אין תנועות תואמות</td></tr>'}</tbody></table>
     </div>`;
 }
 
@@ -1344,6 +1383,22 @@ function delTxUndo(id){ const i=TX.findIndex(t=>t.id===id); if(i<0)return; const
   toast=`🗑️ נמחקה "${esc(tx.note||tx.cat||'תנועה')}" (${fmt(tx.amount)}). <a href="#" onclick="undoDelete();return false" style="color:var(--primary);font-weight:600">↩ שחזר</a>`; render(); }
 function undoDelete(){ if(!lastDeleted)return; const {tx,idx}=lastDeleted; TX.splice(Math.min(idx,TX.length),0,tx);
   if(!months.includes(bmOf(tx))){months.push(bmOf(tx));months.sort();} lastDeleted=null; toast='↩ השורה שוחזרה.'; render(); }
+/* ===== מחיקה מרובה (סעיף 32) ===== */
+function toggleTxSel(id){ id=+id; if(txSel.has(id))txSel.delete(id); else txSel.add(id); render(); }
+function selectAllShown(){ txShownIds.forEach(i=>txSel.add(i)); render(); }
+function clearTxSel(){ txSel.clear(); render(); }
+function delTxBatch(ids){ ids=ids.map(Number);
+  const items=[]; ids.forEach(id=>{ const t=TX.find(x=>x.id===id); if(t)items.push(t); });
+  const del=items.filter(t=>!isLocked(bmOf(t))); const locked=items.length-del.length;
+  if(!del.length){ toast=`🔒 כל הנבחרות בחודש נעול — לא נמחק דבר.`; render(); return; }
+  if(!confirm(`למחוק ${del.length} תנועות?${locked?` (${locked} בחודש נעול יידלגו)`:''}\nאפשר לשחזר מיד אחרי המחיקה.`)) return;
+  const delIds=new Set(del.map(t=>t.id)); lastBatch=del.slice();
+  for(let i=TX.length-1;i>=0;i--) if(delIds.has(TX[i].id)) TX.splice(i,1);
+  txSel.clear(); recomputeMonths();
+  toast=`🗑️ נמחקו ${del.length} תנועות.${locked?` 🔒 ${locked} דולגו (נעול).`:''} <a href="#" onclick="undoBatch();return false" style="color:var(--primary);font-weight:600">↩ שחזר</a>`; render(); }
+function delSelected(){ if(!txSel.size){ toast='לא נבחרו תנועות (סמן שורות קודם).'; render(); return; } delTxBatch([...txSel]); }
+function delAllShown(){ if(!txShownIds.length){ toast='אין תנועות מוצגות למחיקה.'; render(); return; } delTxBatch(txShownIds); }
+function undoBatch(){ if(!lastBatch)return; lastBatch.forEach(tx=>{ TX.push(tx); if(!months.includes(bmOf(tx)))months.push(bmOf(tx)); }); months.sort(); const n=lastBatch.length; lastBatch=null; toast=`↩ ${n} שורות שוחזרו.`; render(); }
 /* אקורדיון תקציב: פתח/סגור תת-קטגוריות של קטגוריה ראשית */
 function toggleBudgetCat(name){ budgetOpen[name]=!budgetOpen[name]; render(); }
 /* תקציב לתת-קטגוריה */
