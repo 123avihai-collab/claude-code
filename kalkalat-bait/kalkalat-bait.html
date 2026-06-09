@@ -286,6 +286,7 @@ let lastDeleted = null;     // {tx,idx} לשחזור מחיקה אחרונה (Un
 let budgetOpen = {};        // אקורדיון מסך התקציב: {קטגוריה: פתוח?}
 let payslipOpen = false;    // הצגת מנתח תלוש השכר במסך ההכנסות
 let PAYSLIPS = {};          // ניתוח תלוש לכל חודש: {YYYY-MM: {רכיבים + בפועל}}
+let LOCKED = {};            // נעילת חודש: {YYYY-MM: true} — חודש נעול חסום לעריכה/ייבוא עד פתיחה ידנית
 let toast = '';
 let importMsg = '';
 let importMonth = null;     // שיוך ידני של חודש בייבוא: null=ברירת מחדל (החודש הנוכחי) | 'auto' | 'YYYY-MM'
@@ -436,11 +437,14 @@ function handleImport(file){
       if(!res.rows.length) res=importBankStatement(wb);   // נפילה אוטומטית לזיהוי דף עו"ש
       if(!res.rows.length){ importMsg='⚠️ לא נמצאו עסקאות בקובץ. ודא שזה דוח כאל/מקס או דף עו״ש עם עמודות תאריך/תיאור/סכום.'; render(); return; }
       const fm=importForceMonth(); if(fm) res.rows.forEach(r=>{ r.bm=fm; });   // שיוך ידני גובר
+      const flt=filterLockedRows(res.rows);
+      if(!flt.allowed.length){ importMsg=`🔒 כל ${res.rows.length} העסקאות שייכות לחודש נעול (${flt.blocked.map(heMonth).join(', ')}) — לא יובא דבר. פתח את הנעילה כדי לייבא.`; render(); return; }
+      res.rows=flt.allowed;
       if(res.fmt==='bank') applyImportedBankRows(res.rows);
       else { res.rows.forEach(r=>{ TX.push(r); if(!months.includes(r.bm))months.push(r.bm); }); months.sort(); }
       curMonth=fm||months[months.length-1];
       const name={max:'מקס',cal:'כאל',generic:'כללי',bank:'עו״ש'}[res.fmt];
-      importMsg=`✅ יובאו ${res.rows.length} עסקאות (פורמט ${name}). ${res.auto} קוטלגו אוטומטית. שויכו לחודש ${heMonth(curMonth)}${fm?' (שיוך ידני)':' (אוטומטי)'}.`;
+      importMsg=`✅ יובאו ${res.rows.length} עסקאות (פורמט ${name}). ${res.auto} קוטלגו אוטומטית. שויכו לחודש ${heMonth(curMonth)}${fm?' (שיוך ידני)':' (אוטומטי)'}.${flt.blocked.length?` 🔒 דולגו עסקאות לחודש נעול: ${flt.blocked.map(heMonth).join(', ')}.`:''}`;
       render();
     }catch(err){ importMsg='❌ שגיאה בקריאת הקובץ: '+err.message; render(); }
   };
@@ -514,8 +518,11 @@ function handleBankImport(file){ if(!file)return; const reader=new FileReader();
       const res=importBankStatement(wb);
       if(!res.rows.length){ importMsg='⚠️ לא זוהו תנועות עו״ש. ודא שהקובץ הוא דף חשבון בנקאי עם עמודות תאריך, תיאור וסכום (או זכות/חובה).'; render(); return; }
       const fm=importForceMonth(); if(fm) res.rows.forEach(r=>{ r.bm=fm; });   // שיוך ידני גובר
+      const flt=filterLockedRows(res.rows);
+      if(!flt.allowed.length){ importMsg=`🔒 כל ${res.rows.length} התנועות שייכות לחודש נעול (${flt.blocked.map(heMonth).join(', ')}) — לא יובא דבר. פתח את הנעילה כדי לייבא.`; render(); return; }
+      res.rows=flt.allowed;
       applyImportedBankRows(res.rows); curMonth=fm||months[months.length-1];
-      importMsg=`✅ יובאו ${res.rows.length} תנועות עו״ש. ${res.auto} קוטלגו אוטומטית. שויכו לחודש ${heMonth(curMonth)}${fm?' (שיוך ידני)':' (אוטומטי, לפי תאריך)'}.`;
+      importMsg=`✅ יובאו ${res.rows.length} תנועות עו״ש. ${res.auto} קוטלגו אוטומטית. שויכו לחודש ${heMonth(curMonth)}${fm?' (שיוך ידני)':' (אוטומטי, לפי תאריך)'}.${flt.blocked.length?` 🔒 דולגו תנועות לחודש נעול: ${flt.blocked.map(heMonth).join(', ')}.`:''}`;
       render();
     }catch(err){ importMsg='❌ שגיאה בקריאת הקובץ: '+err.message; render(); } };
   reader.readAsArrayBuffer(file);
@@ -534,7 +541,7 @@ function psDefault(){ return {base:0,global:0,ml333:0,ml202:0,ml266:0,bonus:0,ot
   guHealth:0,guCar:0,guOther:0,impHealth:0,impCell:0,impCar:0,impMeals:0,impOther:0,
   points:2.25,pensionBase:0,studyBase:15712, actTax:'',actNI:'',actHealth:'',actNet:'', recHours:0,recRate:0, fileName:''}; }
 function psGet(m){ if(!PAYSLIPS[m])PAYSLIPS[m]=psDefault(); return PAYSLIPS[m]; }
-function psSet(m,f,v){ const p=psGet(m); p[f]= PS_NUM.includes(f)? (parseFloat(v)||0) : v; persist(); render(); }
+function psSet(m,f,v){ if(guardLocked(m,'עריכת התלוש'))return; const p=psGet(m); p[f]= PS_NUM.includes(f)? (parseFloat(v)||0) : v; persist(); render(); }
 function progTax(x){ let t=0,prev=0; for(const[cut,rate]of PAYRATES_2026.brackets){ if(x>cut){t+=(cut-prev)*rate;prev=cut;} else {t+=(x-prev)*rate;return t;} } return t; }
 function progTaxAnnual(x){ let t=0,prev=0; for(const[cut,rate]of PAYRATES_2026.annual){ if(x>cut){t+=(cut-prev)*rate;prev=cut;} else {t+=(x-prev)*rate;return t;} } return t; }
 /* מס מצטבר (שיטה B — הקובע לחילן): פורס את ההכנסה על השנה ומונע "ספייק" בחודשי מילואים/בונוס */
@@ -585,7 +592,7 @@ function psCompute(p){ const R=x=>Math.round(x*100)/100; const Rt=PAYRATES_2026;
 function togglePayslip(){ payslipOpen=!payslipOpen; render(); }
 function handlePayslipFile(m,file){ if(!file)return; psGet(m).fileName=file.name; persist();
   toast='📎 צורף "'+file.name+'". האפליקציה לא קוראת תלוש אוטומטית (אופליין) — הזן את ערכי התלוש למטה והמנתח יחשב הכל מול חוק 2026.'; render(); }
-function streamPayslipNet(m){ const p=psGet(m); const c=psCompute(p);
+function streamPayslipNet(m){ if(guardLocked(m,'הזרמת נטו'))return; const p=psGet(m); const c=psCompute(p);
   const has=String(p.actNet).trim()!==''; const amt= has?(parseFloat(p.actNet)||0):c.net;
   if(!amt){ toast='אין נטו לחישוב — מלא קודם את נתוני התלוש.'; render(); return; }
   const ex=TX.filter(t=>t.type==='income'&&t.source==='תלוש שכר'&&bmOf(t)===m);
@@ -747,6 +754,7 @@ function parsePayslipText(m,text){
 function deWin1255(s){ return String(s||'').replace(/[à-ú]/g,c=>String.fromCharCode(0x05D0+(c.charCodeAt(0)-0x00E0))); }
 /* פרסר ייעודי לתלוש חילן (עברית הפוכה Win1255 + מבנה קודים) — מחלץ כל סעיף בנפרד */
 function parsePayslipPdfText(m,raw){
+  if(isLocked(m)) return 0;   // חודש נעול — לא משנים נתונים
   const t=deWin1255(raw); if(!/[א-ת]/.test(t)) return 0;
   const rev=s=>s.split('').reverse().join(''), esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), N=s=>parseFloat(String(s).replace(/,/g,''))||0;
   const R=x=>Math.round(x*100)/100;
@@ -805,6 +813,7 @@ function parsePayslipPdfText(m,raw){
 }
 /* ניתוב חילוץ: קודם חילן (PDF/טקסט מקודד), אחרת הפרסר הכללי (טקסט מודבק נקי) */
 function extractPayslipFields(m,text){
+  if(guardLocked(m,'חילוץ התלוש'))return;
   const n=parsePayslipPdfText(m,text);
   if(n>0){ toast=`✅ חולצו ${n} שדות מהתלוש — ⚠️ בדוק ותקן מול המקור.`; payslipOpen=true; render(); return; }
   parsePayslipText(m,text);
@@ -817,7 +826,7 @@ async function extractPdfText(arrayBuffer){
   for(let i=1;i<=doc.numPages;i++){ const pg=await doc.getPage(i); const tc=await pg.getTextContent(); all+=tc.items.map(x=>x.str).join(' ')+'\n'; }
   return all;
 }
-function importPayslipPdf(m,file){ if(!file)return; psGet(m).fileName=file.name;
+function importPayslipPdf(m,file){ if(!file)return; if(guardLocked(m,'העלאת תלוש'))return; psGet(m).fileName=file.name;
   if(/^image\//.test(file.type)){ toast='🖼️ תמונה אינה נתמכת לקריאה אוטומטית באפליקציה אופליין. ייצא את התלוש כ-PDF, או הדבק את הטקסט.'; payslipOpen=true; render(); return; }
   const reader=new FileReader();
   reader.onload=async e=>{ try{ const text=await extractPdfText(e.target.result); const dec=deWin1255(text||''); const chars=dec.trim().length;
@@ -841,6 +850,25 @@ const NOW_MONTH = new Date().toISOString().slice(0,7);
 if(months.length===0) months.push(NOW_MONTH);   // מצב ריק (גרסה נקייה) — ברירת מחדל לחודש הנוכחי
 /* בנייה מחדש של מערך החודשים מתוך התנועות בפועל — מונע "חודשי רפאים" אחרי מחיקה/העברה */
 function recomputeMonths(){ const s=new Set(TX.map(t=>bmOf(t))); months.length=0; [...s].sort().forEach(m=>months.push(m)); if(months.length===0)months.push(NOW_MONTH); }
+/* ===== נעילת נתונים לפי חודש ===== */
+function isLocked(m){ return !!LOCKED[m]; }
+/* שער חסימה: אם החודש נעול — מציג הודעה ומחזיר true (כדי שהקורא יעצור) */
+function guardLocked(m, what){ if(!isLocked(m))return false;
+  toast=`🔒 ${heMonth(m)} נעול — ${what||'הפעולה'} חסומה. לעריכה, פתח קודם את הנעילה (כפתור 🔓 ליד שם החודש).`;
+  render(); return true; }
+function toggleLock(m){
+  if(isLocked(m)){
+    if(!confirm(`🔓 לפתוח את הנעילה של ${heMonth(m)}?\n\nאחרי הפתיחה יהיה אפשר שוב לערוך, לייבא ולחלץ נתונים לחודש זה.`)) return;
+    delete LOCKED[m]; toast=`🔓 ${heMonth(m)} נפתח לעריכה.`;
+  } else {
+    if(!confirm(`🔒 לנעול את ${heMonth(m)}?\n\nאחרי הנעילה: ייבוא Excel, חילוץ תלוש, עריכת שדות, הוספה/מחיקה/העברה של תנועות — כולם ייחסמו לחודש זה, עד שתפתח את הנעילה ידנית.\n\nנעל רק כשבדקת שהכול נכון.`)) return;
+    LOCKED[m]=true; toast=`🔒 ${heMonth(m)} ננעל. הנתונים מוגנים מפני שינוי בטעות.`;
+  }
+  persist(); render();
+}
+/* מסנן שורות-ייבוא לפי חודשים נעולים — מחזיר {allowed, blocked:[months]} */
+function filterLockedRows(rows){ const blocked=new Set(); const allowed=rows.filter(r=>{ if(isLocked(r.bm)){blocked.add(r.bm);return false;} return true; });
+  return {allowed, blocked:[...blocked]}; }
 let curMonth = months[months.length-1];
 let curScreen = 'dashboard';
 let txFilter = 'all';
@@ -890,10 +918,11 @@ function barChart(items,max){ // [{label,value,color?}]
 }
 
 /* ===== screens ===== */
-function monthNav(){ return `<div class="row help" style="direction:ltr" data-help="מעבר בין חודשים — חץ שמאל (‹) לחודש הבא, חץ ימין (›) לחודש הקודם">
+function monthNav(){ const lk=isLocked(curMonth); return `<div class="row help" style="direction:ltr;gap:6px" data-help="מעבר בין חודשים — חץ שמאל (‹) לחודש הבא, חץ ימין (›) לחודש הקודם. 🔒/🔓 נועל/פותח את החודש מפני שינוי בטעות">
   <button class="btn ghost" onclick="shiftMonth(1)" title="החודש הבא">‹</button>
-  <b style="min-width:120px;text-align:center">${heMonth(curMonth)}</b>
-  <button class="btn ghost" onclick="shiftMonth(-1)" title="החודש הקודם">›</button></div>`; }
+  <b style="min-width:120px;text-align:center">${heMonth(curMonth)}${lk?' 🔒':''}</b>
+  <button class="btn ghost" onclick="shiftMonth(-1)" title="החודש הקודם">›</button>
+  <button class="btn ${lk?'':'ghost'}" style="${lk?'background:#dc2626;border-color:#dc2626;color:#fff':''}" onclick="toggleLock(curMonth)" title="${lk?'החודש נעול — לחץ לפתיחה':'נעל את החודש כשסיימת ובדקת'}">${lk?'🔒 נעול':'🔓 נעל'}</button></div>`; }
 
 function screenDashboard(){
   const t=totals(curMonth); const sb=spendByCat(curMonth);
@@ -1310,6 +1339,7 @@ function setCatFilter(v){ catFilter=v; render(); }
 function setSort(s){ txSort=s; render(); }
 /* מחיקת שורת חיוב עם אפשרות שחזור (Undo) */
 function delTxUndo(id){ const i=TX.findIndex(t=>t.id===id); if(i<0)return; const tx=TX[i];
+  if(guardLocked(bmOf(tx),'מחיקת תנועה'))return;
   lastDeleted={tx,idx:i}; TX.splice(i,1); recomputeMonths();
   toast=`🗑️ נמחקה "${esc(tx.note||tx.cat||'תנועה')}" (${fmt(tx.amount)}). <a href="#" onclick="undoDelete();return false" style="color:var(--primary);font-weight:600">↩ שחזר</a>`; render(); }
 function undoDelete(){ if(!lastDeleted)return; const {tx,idx}=lastDeleted; TX.splice(Math.min(idx,TX.length),0,tx);
@@ -1328,7 +1358,10 @@ function applyMerchant(id){ const t=TX.find(x=>x.id===id); if(!t)return;
   TX.forEach(x=>{ if(x.type==='expense' && (x.note||'').trim()===key){ x.cat=t.cat; x.sub=t.sub||null; n++; } });
   toast=`✅ נשמר בזיכרון: "${esc(key)}" ← ${esc(t.cat)}${t.sub?' / '+esc(t.sub):''}. עודכנו ${n} עסקאות, ומעכשיו (גם בייבוא הבא) יקוטלגו אוטומטית.`; render(); }
 function memGet(note){ const m=MEMORY[(note||'').trim()]; if(!m)return null; return typeof m==='string'?{cat:m,sub:null}:m; }
-function moveBilling(id,ym){ const t=TX.find(x=>x.id===id); if(t){ t.bm=ym; toast=`התנועה "${esc(t.note)}" הועברה לחודש חיוב ${heMonth(ym)}.`; recomputeMonths(); if(!months.includes(ym)){months.push(ym);months.sort();} } render(); }
+function moveBilling(id,ym){ const t=TX.find(x=>x.id===id); if(!t)return;
+  if(isLocked(bmOf(t))){ guardLocked(bmOf(t),'העברת תנועה'); return; }
+  if(isLocked(ym)){ guardLocked(ym,'העברה לחודש'); return; }
+  { t.bm=ym; toast=`התנועה "${esc(t.note)}" הועברה לחודש חיוב ${heMonth(ym)}.`; recomputeMonths(); if(!months.includes(ym)){months.push(ym);months.sort();} } render(); }
 function nav(s){ curScreen=s; document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.screen===s)); render(); }
 /* ===== סידור תפריט הניווט בגרירה (long-press, מגע+עכבר) — נשמר ===== */
 const NAV_DEFAULT=['dashboard','transactions','payslip','budgets','forecast','annual','savings','settings'];
@@ -1366,6 +1399,7 @@ function setType(t){ mType=t; document.getElementById('mExpense').classList.togg
 function fillCats(){ document.getElementById('mCat').innerHTML=CATS.filter(c=>c.type===mType).map(c=>`<option>${c.name}</option>`).join(''); }
 function saveTx(){ const a=+document.getElementById('mAmount').value; if(!a){alert('הזן סכום');return;}
   const d=document.getElementById('mDate').value||curMonth+'-15'; const bm=monthOf(d);
+  if(isLocked(bm)){ alert(`🔒 ${heMonth(bm)} נעול — לא ניתן להוסיף תנועה. פתח קודם את הנעילה.`); return; }
   TX.push({id:Date.now(),type:mType,amount:a,cat:document.getElementById('mCat').value,sub:null,date:d,bm,note:document.getElementById('mNote').value,source:'עו״ש'});
   if(!months.includes(bm)){months.push(bm);months.sort();}
   closeModal(); document.getElementById('mAmount').value=''; document.getElementById('mNote').value=''; render(); }
@@ -1377,7 +1411,7 @@ function render(){ const fn=SCREENS[curScreen]||SCREENS.dashboard; if(!SCREENS[c
 
 /* ===== שמירה קבועה (localStorage) ===== */
 const STORE_KEY='kalkalat_bait_clean_v1';
-function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV})); }catch(e){} }
+function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV})); }catch(e){} }
 function loadSaved(){ try{
     const s=localStorage.getItem(STORE_KEY); if(!s)return false; const d=JSON.parse(s);
     TX.length=0; (d.TX||[]).forEach(t=>TX.push(t));
@@ -1387,7 +1421,7 @@ function loadSaved(){ try{
     if(d.ACCOUNTS){ ACCOUNTS=Object.assign({checking:0,savings:0,free:0,savingsOpening:0},d.ACCOUNTS);
       if(d.ACCOUNTS.savingsOpening===undefined && ACCOUNTS.savings)ACCOUNTS.savingsOpening=ACCOUNTS.savings; } // מיגרציה: יתרת חיסכון ידנית → יתרת פתיחה
     else if(d.SAVINGS&&d.SAVINGS.length){ ACCOUNTS.savingsOpening=d.SAVINGS.reduce((s,v)=>s+(+v.opening||0)+(d.ALLOC||[]).filter(a=>a.vehicle===v.name).reduce((x,a)=>x+a.amount,0),0); } // מיגרציה מנתוני חיסכון ישנים
-    if(d.PAYSLIPS)PAYSLIPS=d.PAYSLIPS; if(Array.isArray(d.NAV_ORDER))NAV_ORDER=d.NAV_ORDER;
+    if(d.PAYSLIPS)PAYSLIPS=d.PAYSLIPS; if(d.LOCKED)LOCKED=d.LOCKED; if(Array.isArray(d.NAV_ORDER))NAV_ORDER=d.NAV_ORDER;
     if(d.FORECAST_OVR)FORECAST_OVR=d.FORECAST_OVR; if(d.SAVE_PLAN)SAVE_PLAN=d.SAVE_PLAN;
     months.length=0; (d.months||[]).forEach(m=>months.push(m)); if(d.curMonth)curMonth=d.curMonth;
     catStructV = (d.catStructV!==undefined? d.catStructV : 0);
@@ -1401,7 +1435,7 @@ function snapshot(){ try{ const cur=localStorage.getItem(STORE_KEY); if(!cur)ret
 function getSnaps(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY+':snaps')||'[]'); }catch(e){ return []; } }
 function restoreSnapshot(i){ const s=getSnaps()[i]; if(!s)return; if(!confirm('לשחזר את הנתונים מנקודת הגיבוי? המצב הנוכחי יוחלף.'))return; try{ localStorage.setItem(STORE_KEY,s.d); }catch(e){} location.reload(); }
 function daysSinceBackup(){ const t=+localStorage.getItem(STORE_KEY+':lastdl')||0; return t? Math.floor((Date.now()-t)/86400000) : 999; }
-function backupData(){ const data={_v:1,_app:'kalkalat-bait',_date:new Date().toISOString(),TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV};
+function backupData(){ const data={_v:1,_app:'kalkalat-bait',_date:new Date().toISOString(),TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); const ts=new Date().toISOString().slice(0,10); a.download='גיבוי-כלכלת-בית-'+ts+'.json'; a.click();
   try{localStorage.setItem(STORE_KEY+':lastdl',Date.now());}catch(e){} render(); }
@@ -1414,7 +1448,7 @@ function restoreData(file){ if(!file)return; const rd=new FileReader();
       if(d.SUBCATS){Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); Object.assign(SUBCATS,d.SUBCATS);}
       if(d.BUDGETS)BUDGETS=d.BUDGETS; if(d.SUBBUDGETS)SUBBUDGETS=d.SUBBUDGETS; if(d.MEMORY)MEMORY=d.MEMORY;
       if(d.ACCOUNTS)ACCOUNTS=Object.assign({checking:0,savings:0,free:0},d.ACCOUNTS); if(d.FORECAST_OVR)FORECAST_OVR=d.FORECAST_OVR; if(d.SAVE_PLAN)SAVE_PLAN=d.SAVE_PLAN; if(Array.isArray(d.NAV_ORDER)){NAV_ORDER=d.NAV_ORDER; applyNavOrder();}
-      if(d.PAYSLIPS)PAYSLIPS=d.PAYSLIPS;
+      if(d.PAYSLIPS)PAYSLIPS=d.PAYSLIPS; if(d.LOCKED)LOCKED=d.LOCKED;
       if(d.months){months.length=0; d.months.forEach(m=>months.push(m));} if(d.curMonth)curMonth=d.curMonth;
       catStructV = (d.catStructV!==undefined? d.catStructV : 0);
       if(catStructV<CAT_STRUCT_VERSION){ applyCategoryStructureV2(); catStructV=CAT_STRUCT_VERSION; }
