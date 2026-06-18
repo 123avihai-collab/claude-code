@@ -1316,7 +1316,43 @@ function screenSettings(){
       </div>
       ${(()=>{ const ss=getSnaps(); if(!ss.length)return ''; return `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px"><div class="muted" style="font-size:12px;margin-bottom:6px">נקודות גיבוי אוטומטיות (בדפדפן):</div>`+
         ss.slice().reverse().map((s,ri)=>{ const i=ss.length-1-ri; const d=new Date(s.t); return `<div class="row" style="justify-content:space-between;font-size:13px;padding:3px 0"><span class="muted">${d.toLocaleString('he-IL')}</span><button class="btn ghost" style="padding:3px 10px;font-size:12px" onclick="restoreSnapshot(${i})">שחזר</button></div>`; }).join('')+`</div>`; })()}
-    </div>`;
+    </div>
+    ${cloudPanel()}`;
+}
+function cloudPanel(){
+  const cfg=sbConfigured(), li=sbLoggedIn();
+  const st=SB.status?`<div class="note" style="margin-top:8px;font-size:12px">${esc(SB.status)}</div>`:'';
+  if(!cfg){
+    return `<div class="panel" style="margin-top:20px"><h2>☁️ סנכרון בענן (אופציונלי)</h2>
+      <div class="note">סנכרון בין מכשירים ושיתוף עם בן/בת הזוג דרך <b>Supabase</b> (חינמי). אופליין נשאר ברירת מחדל — הסנכרון נכנס רק אחרי הזנת פרטים והתחברות.</div>
+      <p class="muted" style="font-size:12px;margin:8px 0 4px">1. פתח פרויקט ב‑supabase.com → Project Settings → API. 2. הדבק כאן את ה‑URL וה‑anon key. 3. הרץ את סקריפט ה‑SQL (מצורף ב‑README) פעם אחת.</p>
+      <label style="font-size:13px">Project URL</label><input id="sbUrl" placeholder="https://xxxx.supabase.co" value="${esc(SB.url)}" style="width:100%;margin-bottom:6px">
+      <label style="font-size:13px">anon public key</label><input id="sbKey" placeholder="eyJhbGciOi..." value="${esc(SB.key)}" style="width:100%;margin-bottom:8px">
+      <button class="btn" onclick="sbSetConfig(document.getElementById('sbUrl').value,document.getElementById('sbKey').value)">שמור פרטי חיבור</button>${st}</div>`;
+  }
+  if(!li){
+    return `<div class="panel" style="margin-top:20px"><h2>☁️ סנכרון בענן</h2>
+      <div class="note">מחובר לשרת. התחבר עם המייל שלך — יישלח אליך קוד התחברות.</div>
+      <label style="font-size:13px">אימייל</label><input id="sbEmail" type="email" placeholder="you@example.com" value="${esc(SB.email)}" style="width:100%;margin-bottom:8px">
+      <div class="pillrow"><button class="btn" ${SB.busy?'disabled':''} onclick="sbSendCode(document.getElementById('sbEmail').value)">📧 שלח קוד למייל</button></div>
+      <label style="font-size:13px;margin-top:8px;display:block">קוד מהמייל</label><input id="sbCode" inputmode="numeric" placeholder="6 ספרות" style="width:140px;margin-bottom:8px">
+      <div class="pillrow"><button class="btn" ${SB.busy?'disabled':''} onclick="sbVerify(document.getElementById('sbCode').value)">🔓 התחבר</button>
+        <button class="btn ghost" onclick="sbSetConfig('','')" style="color:var(--expense)">החלף שרת</button></div>${st}</div>`;
+  }
+  const last=SB.syncedAt?new Date(SB.syncedAt).toLocaleString('he-IL'):'—';
+  return `<div class="panel" style="margin-top:20px"><h2>☁️ סנכרון בענן</h2>
+    <div class="note" style="background:#ecfdf5;border-color:#a7f3d0;color:#047857">מחובר כ‑<b>${esc(SB.email)}</b>. ${SB.dirty?'יש שינויים שטרם סונכרנו.':'מסונכרן.'} סנכרון אחרון: ${last}</div>
+    <label class="row" style="gap:8px;font-size:13px;cursor:pointer;margin:8px 0"><input type="checkbox" ${SB.auto?'checked':''} onchange="sbToggleAuto(this.checked)" style="width:16px;height:16px"> סנכרון אוטומטי (בכניסה ואחרי שינוי)</label>
+    <div class="pillrow">
+      <button class="btn" ${SB.busy?'disabled':''} onclick="sbSync(false)">🔄 סנכרן עכשיו</button>
+      <button class="btn ghost" onclick="sbSignOut()">התנתק</button>
+    </div>
+    <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">
+      <div class="muted" style="font-size:12px;margin-bottom:4px">שיתוף עם בן/בת הזוג: שלח/י לו/ה את קוד השיתוף, ושיזין אותו כאן כדי לראות את אותם נתונים.</div>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><span style="font-size:12px">קוד השיתוף שלי:</span><code style="font-size:11px;background:var(--bg);padding:2px 6px;border-radius:6px;user-select:all">${esc(SB.hid||'—')}</code></div>
+      <div class="row" style="gap:6px;margin-top:6px"><input id="sbJoin" placeholder="הדבק קוד שיתוף להצטרפות" style="flex:1;min-width:160px;font-size:12px">
+        <button class="btn ghost" onclick="if(confirm('להצטרף למשק-בית המשותף? הנתונים המקומיים יוחלפו בנתוני השיתוף.'))sbJoinHousehold(document.getElementById('sbJoin').value)">הצטרף</button></div>
+    </div>${st}</div>`;
 }
 
 
@@ -1485,7 +1521,7 @@ function render(){ const fn=SCREENS[curScreen]||SCREENS.dashboard; if(!SCREENS[c
 
 /* ===== שמירה קבועה (localStorage) ===== */
 const STORE_KEY='kalkalat_bait_clean_v1';
-function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV})); snapshot(); }catch(e){} }
+function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV})); snapshot(); if(typeof sbMarkDirty==='function')sbMarkDirty(); }catch(e){} }
 function loadSaved(){ try{
     const s=localStorage.getItem(STORE_KEY); if(!s)return false; const d=JSON.parse(s);
     TX.length=0; (d.TX||[]).forEach(t=>TX.push(t));
@@ -1534,22 +1570,90 @@ function backupNow(){ const chk=document.getElementById('backupAuto'); if(chk){ 
 function snoozeBackup(){ const chk=document.getElementById('backupAuto'); if(chk){ try{localStorage.setItem(STORE_KEY+':autodl',chk.checked?'1':'0');}catch(e){} }
   try{localStorage.setItem(STORE_KEY+':snooze',Date.now());}catch(e){} closeBackupModal(); }
 function toggleAutoBackup(v){ try{localStorage.setItem(STORE_KEY+':autodl',v?'1':'0');}catch(e){} render(); }
+/* ייצוא/יישום מצב מלא — משותף לשחזור מקובץ ולסנכרון ענן */
+function exportState(){ return {TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV}; }
+function applyStateObject(d){
+  TX.length=0; (d.TX||[]).forEach(t=>TX.push(t));
+  if(d.CATS){CATS.length=0; d.CATS.forEach(c=>CATS.push(c));}
+  if(d.SUBCATS){Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); Object.assign(SUBCATS,d.SUBCATS);}
+  if(d.BUDGETS)BUDGETS=d.BUDGETS; if(d.SUBBUDGETS)SUBBUDGETS=d.SUBBUDGETS; if(d.MEMORY)MEMORY=d.MEMORY;
+  if(d.ACCOUNTS)ACCOUNTS=Object.assign({checking:0,savings:0,free:0},d.ACCOUNTS); if(d.FORECAST_OVR)FORECAST_OVR=d.FORECAST_OVR; if(d.SAVE_PLAN)SAVE_PLAN=d.SAVE_PLAN; if(Array.isArray(d.NAV_ORDER)){NAV_ORDER=d.NAV_ORDER; applyNavOrder();}
+  if(d.PAYSLIPS)PAYSLIPS=d.PAYSLIPS; if(d.LOCKED)LOCKED=d.LOCKED;
+  if(d.months){months.length=0; d.months.forEach(m=>months.push(m));} if(d.curMonth)curMonth=d.curMonth;
+  catStructV = (d.catStructV!==undefined? d.catStructV : 0);
+  if(catStructV<CAT_STRUCT_VERSION){ applyCategoryStructureV2(); catStructV=CAT_STRUCT_VERSION; }
+  persist();
+}
 function restoreData(file){ if(!file)return; const rd=new FileReader();
   rd.onload=()=>{ try{ const d=JSON.parse(rd.result);
       if(!d||(!d.TX&&!d._app)){alert('הקובץ אינו קובץ גיבוי תקין.');return;}
       if(!confirm('לשחזר נתונים מהקובץ? זה יחליף את הנתונים הנוכחיים בדפדפן.'))return;
-      TX.length=0; (d.TX||[]).forEach(t=>TX.push(t));
-      if(d.CATS){CATS.length=0; d.CATS.forEach(c=>CATS.push(c));}
-      if(d.SUBCATS){Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); Object.assign(SUBCATS,d.SUBCATS);}
-      if(d.BUDGETS)BUDGETS=d.BUDGETS; if(d.SUBBUDGETS)SUBBUDGETS=d.SUBBUDGETS; if(d.MEMORY)MEMORY=d.MEMORY;
-      if(d.ACCOUNTS)ACCOUNTS=Object.assign({checking:0,savings:0,free:0},d.ACCOUNTS); if(d.FORECAST_OVR)FORECAST_OVR=d.FORECAST_OVR; if(d.SAVE_PLAN)SAVE_PLAN=d.SAVE_PLAN; if(Array.isArray(d.NAV_ORDER)){NAV_ORDER=d.NAV_ORDER; applyNavOrder();}
-      if(d.PAYSLIPS)PAYSLIPS=d.PAYSLIPS; if(d.LOCKED)LOCKED=d.LOCKED;
-      if(d.months){months.length=0; d.months.forEach(m=>months.push(m));} if(d.curMonth)curMonth=d.curMonth;
-      catStructV = (d.catStructV!==undefined? d.catStructV : 0);
-      if(catStructV<CAT_STRUCT_VERSION){ applyCategoryStructureV2(); catStructV=CAT_STRUCT_VERSION; }
-      persist(); alert('הנתונים שוחזרו בהצלחה ('+TX.length+' עסקאות).'); render();
+      applyStateObject(d); alert('הנתונים שוחזרו בהצלחה ('+TX.length+' עסקאות).'); render();
     }catch(e){ alert('שגיאה בקריאת הקובץ: '+e.message); } };
   rd.readAsText(file); }
+
+/* ===== סנכרון ענן (Supabase) — לקוח fetch דק, offline-first, אופציונלי ===== */
+let SB={url:'',key:'',token:'',refresh:'',email:'',uid:'',hid:'',auto:false,syncedAt:0,dirty:false,busy:false,status:''};
+function sbLoad(){ try{ Object.assign(SB, JSON.parse(localStorage.getItem(STORE_KEY+':sb')||'{}')); }catch(e){} }
+function sbSave(){ try{ const {busy,status,...keep}=SB; localStorage.setItem(STORE_KEY+':sb', JSON.stringify(keep)); }catch(e){} }
+function sbConfigured(){ return !!(SB.url&&SB.key); }
+function sbLoggedIn(){ return !!(SB.token&&SB.email); }
+function sbSetConfig(url,key){ SB.url=String(url||'').trim().replace(/\/+$/,''); SB.key=String(key||'').trim(); sbSave(); render(); }
+function sbHeaders(auth){ const h={'apikey':SB.key,'Content-Type':'application/json'}; if(auth&&SB.token)h['Authorization']='Bearer '+SB.token; return h; }
+async function sbAuthFetch(path,opts){ opts=opts||{}; opts.headers=Object.assign(sbHeaders(true),opts.headers||{});
+  let r=await fetch(SB.url+path,opts);
+  if(r.status===401 && SB.refresh){ if(await sbRefresh()){ opts.headers=Object.assign(sbHeaders(true),opts.headers||{}); r=await fetch(SB.url+path,opts); } }
+  return r; }
+async function sbRefresh(){ try{ const r=await fetch(SB.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbHeaders(false),body:JSON.stringify({refresh_token:SB.refresh})});
+  if(!r.ok)return false; const j=await r.json(); SB.token=j.access_token; SB.refresh=j.refresh_token; sbSave(); return true; }catch(e){ return false; } }
+async function sbSendCode(email){ SB.busy=true; SB.status='שולח קוד…'; render();
+  try{ const r=await fetch(SB.url+'/auth/v1/otp',{method:'POST',headers:sbHeaders(false),body:JSON.stringify({email:String(email).trim(),create_user:true})});
+    SB.busy=false; if(!r.ok){ const t=await r.text(); SB.status='שגיאה בשליחת קוד: '+t.slice(0,120); render(); return false; }
+    SB.email=String(email).trim(); SB.status='נשלח קוד למייל — הזן אותו למטה.'; sbSave(); render(); return true;
+  }catch(e){ SB.busy=false; SB.status='אין חיבור לשרת: '+e.message; render(); return false; } }
+async function sbVerify(code){ SB.busy=true; SB.status='מאמת…'; render();
+  try{ const r=await fetch(SB.url+'/auth/v1/verify',{method:'POST',headers:sbHeaders(false),body:JSON.stringify({email:SB.email,token:String(code).trim(),type:'email'})});
+    const j=await r.json(); SB.busy=false;
+    if(!r.ok||!j.access_token){ SB.status='קוד שגוי או שפג תוקפו.'; render(); return false; }
+    SB.token=j.access_token; SB.refresh=j.refresh_token; SB.uid=(j.user&&j.user.id)||''; SB.status='מחובר ✓'; sbSave();
+    await sbEnsureHousehold(); await sbSync(true); render(); return true;
+  }catch(e){ SB.busy=false; SB.status='שגיאה: '+e.message; render(); return false; } }
+function sbSignOut(){ SB.token='';SB.refresh='';SB.uid='';SB.hid='';SB.syncedAt=0;SB.dirty=false;SB.status='התנתקת.'; sbSave(); render(); }
+async function sbEnsureHousehold(){
+  // יש כבר חברות? קח את משק-הבית; אחרת צור חדש
+  let r=await sbAuthFetch('/rest/v1/members?uid=eq.'+SB.uid+'&select=household',{method:'GET'});
+  if(r.ok){ const a=await r.json(); if(a.length){ SB.hid=a[0].household; sbSave(); return; } }
+  const hid=(crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+''+Math.random());
+  const now=new Date().toISOString();
+  // חובה: קודם שורת החברוּת (אחרת RLS חוסם את כתיבת app_state), ואז המצב
+  await sbAuthFetch('/rest/v1/members',{method:'POST',body:JSON.stringify({household:hid,uid:SB.uid})});
+  await sbAuthFetch('/rest/v1/app_state',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({household:hid,data:exportState(),updated_at:now})});
+  SB.hid=hid; SB.syncedAt=Date.parse(now); sbSave();
+}
+async function sbPull(){ const r=await sbAuthFetch('/rest/v1/app_state?household=eq.'+SB.hid+'&select=data,updated_at',{method:'GET'});
+  if(!r.ok) throw new Error('pull '+r.status); const a=await r.json(); return a[0]||null; }
+async function sbPush(){ const now=new Date().toISOString();
+  const r=await sbAuthFetch('/rest/v1/app_state',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({household:SB.hid,data:exportState(),updated_at:now})});
+  if(!r.ok) throw new Error('push '+r.status); SB.syncedAt=Date.parse(now); SB.dirty=false; sbSave(); }
+async function sbSync(silent){ if(!sbLoggedIn()||!SB.hid||SB.busy) return; SB.busy=true; if(!silent){SB.status='מסנכרן…';render();}
+  try{ const remote=await sbPull(); const rt=remote?Date.parse(remote.updated_at):0;
+    if(remote && rt>SB.syncedAt && SB.dirty){
+      SB.busy=false; const keepLocal=confirm('יש שינויים גם במכשיר הזה וגם בענן.\nאישור = לשמור את גרסת המכשיר הזה (תידרוס את הענן).\nביטול = למשוך את גרסת הענן (תידרוס כאן).');
+      SB.busy=true; if(keepLocal){ await sbPush(); SB.status='נדחף לענן (גרסת המכשיר).'; } else { applyStateObject(remote.data); SB.syncedAt=rt; SB.dirty=false; sbSave(); SB.status='נמשך מהענן.'; }
+    } else if(remote && rt>SB.syncedAt){
+      applyStateObject(remote.data); SB.syncedAt=rt; SB.dirty=false; sbSave(); SB.status='עודכן מהענן ✓';
+    } else { await sbPush(); SB.status='נשמר בענן ✓'; }
+    SB.busy=false; render();
+  }catch(e){ SB.busy=false; SB.status='סנכרון נכשל: '+e.message; render(); } }
+function sbMarkDirty(){ if(sbLoggedIn()){ SB.dirty=true; if(SB.auto) sbDebouncedSync(); } }
+let _sbTimer=null; function sbDebouncedSync(){ clearTimeout(_sbTimer); _sbTimer=setTimeout(()=>sbSync(true), 4000); }
+function sbToggleAuto(v){ SB.auto=!!v; sbSave(); if(SB.auto) sbSync(true); render(); }
+async function sbJoinHousehold(code){ code=String(code||'').trim(); if(!code){SB.status='הזן קוד שיתוף.';render();return;}
+  SB.busy=true; SB.status='מצטרף…'; render();
+  try{ const r=await sbAuthFetch('/rest/v1/members',{method:'POST',body:JSON.stringify({household:code,uid:SB.uid})});
+    SB.busy=false; if(!r.ok){ const t=await r.text(); SB.status='הצטרפות נכשלה: '+t.slice(0,120); render(); return; }
+    SB.hid=code; SB.syncedAt=0; SB.dirty=false; sbSave(); await sbSync(true); SB.status='הצטרפת למשק-הבית המשותף ✓'; render();
+  }catch(e){ SB.busy=false; SB.status='שגיאה: '+e.message; render(); } }
 
 /* אתחול נתונים: מקור, חודש חיוב, מזהה + שורות עו״ש לדוגמה */
 function initData(){
@@ -1584,8 +1688,10 @@ document.getElementById('helpChk').addEventListener('change',e=>document.body.cl
 document.addEventListener('click',e=>{ const p=document.getElementById('bmPop'); if(p&&p.classList.contains('show')&&!p.contains(e.target)) closeBmPop(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeBmPop(); closeModal(); closeBackupModal(); } });
 applyNavOrder(); initNavDnd(); snapshot(true);
+sbLoad();
 render();
 maybeAutoBackup();
+if(sbLoggedIn()&&SB.auto) sbSync(true);
 </script>
 </body>
 </html>
