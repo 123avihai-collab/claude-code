@@ -1607,10 +1607,11 @@ async function sbAuthCall(ep,body){ const r=await fetch('https://identitytoolkit
 async function sbLogin(email,pw){ email=String(email||'').trim(); pw=String(pw||'');
   if(!email||pw.length<6){ SB.status='הזן אימייל וסיסמה (לפחות 6 תווים).'; render(); return; }
   SB.busy=true; SB.status='מתחבר…'; render();
-  let j=await sbAuthCall('signInWithPassword',{email,password:pw,returnSecureToken:true});
-  if(j.err==='EMAIL_NOT_FOUND'){ SB.status='יוצר משתמש חדש…'; render(); j=await sbAuthCall('signUp',{email,password:pw,returnSecureToken:true}); }
+  // נסה קודם להירשם (משתמש חדש); אם כבר קיים — התחבר. (Firebase לא חושף "אימייל לא קיים")
+  let j=await sbAuthCall('signUp',{email,password:pw,returnSecureToken:true});
+  if(j.err && /EMAIL_EXISTS/.test(j.err)){ SB.status='מתחבר לחשבון קיים…'; render(); j=await sbAuthCall('signInWithPassword',{email,password:pw,returnSecureToken:true}); }
   SB.busy=false;
-  if(j.err){ const m={'INVALID_PASSWORD':'סיסמה שגויה.','INVALID_LOGIN_CREDENTIALS':'אימייל או סיסמה שגויים.','EMAIL_EXISTS':'האימייל כבר רשום — הזן את הסיסמה הנכונה.','WEAK_PASSWORD : Password should be at least 6 characters':'סיסמה קצרה מדי.'}[j.err]||('שגיאת התחברות: '+j.err); SB.status=m; render(); return; }
+  if(j.err){ const m={'INVALID_PASSWORD':'סיסמה שגויה לחשבון הקיים.','INVALID_LOGIN_CREDENTIALS':'סיסמה שגויה לחשבון הקיים.','WEAK_PASSWORD':'סיסמה חלשה מדי — לפחות 6 תווים.','OPERATION_NOT_ALLOWED':'התחברות אימייל/סיסמה אינה מופעלת ב-Firebase (הפעל ב-Authentication).','TOO_MANY_ATTEMPTS_TRY_LATER : Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.':'יותר מדי ניסיונות — נסה שוב בעוד כמה דקות.'}[j.err]||('שגיאת התחברות: '+j.err); SB.status=m; render(); return; }
   SB.token=j.idToken; SB.refresh=j.refreshToken; SB.uid=j.localId; SB.email=j.email||email; SB.status='מחובר ✓'; sbSave();
   try{ await sbEnsureHousehold(); await sbSync(true); }catch(e){ SB.status='התחברת, אך הסנכרון נכשל: '+e.message; } render(); }
 function sbSignOut(){ SB.token='';SB.refresh='';SB.uid='';SB.hid='';SB.syncedAt=0;SB.dirty=false;SB.status='התנתקת.'; sbSave(); render(); }
