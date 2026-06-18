@@ -51,40 +51,36 @@
 - תצוגת אגורות (2 ספרות), שמירה אוטומטית ב‑localStorage + גיבוי/שחזור JSON.
 - **בטיחות נתונים** — 5 נקודות שחזור מתגלגלות בדפדפן (כל ~30 דק'), תזכורת גיבוי
   בכניסה אם עברו 3 ימים, ואפשרות **גיבוי אוטומטי לקובץ** (הורדה אוטומטית בכניסה).
-- **☁️ סנכרון בענן (אופציונלי, Supabase)** — אופליין נשאר ברירת מחדל. אחרי הזנת
-  URL+anon key והתחברות בקוד למייל, כל ה‑state מסונכרן (push/pull, last-write-wins
-  עם זיהוי קונפליקט), עם **שיתוף משק‑בית** לבן/בת הזוג דרך קוד שיתוף. ראה הקמה למטה.
+- **☁️ סנכרון בענן (אופציונלי, Firebase)** — אופליין נשאר ברירת מחדל. אחרי הזנת
+  apiKey+projectId והתחברות באימייל+סיסמה, כל ה‑state מסונכרן ל‑Firestore (push/pull,
+  last-write-wins עם זיהוי קונפליקט), עם **שיתוף משק‑בית** לבן/בת הזוג דרך קוד שיתוף.
 
-## הקמת סנכרון ענן (Supabase) — חד-פעמי
-1. ב‑[supabase.com](https://supabase.com) צור פרויקט חינמי. ב‑**Project Settings → API**
-   העתק את ה‑**Project URL** ואת ה‑**anon public key**.
-2. ב‑**SQL Editor** הדבק והרץ פעם אחת:
-```sql
-create table if not exists public.app_state (
-  household uuid primary key,
-  data jsonb not null default '{}',
-  updated_at timestamptz not null default now()
-);
-create table if not exists public.members (
-  household uuid not null,
-  uid uuid not null references auth.users(id) on delete cascade,
-  primary key (household, uid)
-);
-alter table public.app_state enable row level security;
-alter table public.members  enable row level security;
-create policy members_sel on public.members for select using (uid = auth.uid());
-create policy members_ins on public.members for insert with check (uid = auth.uid());
-create policy members_del on public.members for delete using (uid = auth.uid());
-create policy state_sel on public.app_state for select
-  using (exists (select 1 from public.members m where m.household = app_state.household and m.uid = auth.uid()));
-create policy state_ins on public.app_state for insert
-  with check (exists (select 1 from public.members m where m.household = app_state.household and m.uid = auth.uid()));
-create policy state_upd on public.app_state for update
-  using (exists (select 1 from public.members m where m.household = app_state.household and m.uid = auth.uid()));
+## הקמת סנכרון ענן (Firebase) — חד-פעמי
+1. ב‑[console.firebase.google.com](https://console.firebase.google.com) → **Add project**.
+2. **Build → Authentication → Get started → Sign-in method → Email/Password → Enable**.
+3. **Build → Firestore Database → Create database** (Production mode). בלשונית **Rules**
+   הדבק והפעל:
 ```
-3. ב‑**Authentication → Providers → Email**: ודא ש‑Email מופעל (קוד OTP נשלח למייל).
-4. באפליקציה: **הגדרות → ☁️ סנכרון בענן** → הדבק URL+key → התחבר עם המייל והקוד.
-   לשיתוף: שלח לבן/בת הזוג את "קוד השיתוף" שמופיע, והם מזינים אותו אצלם.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /households/{hid} {
+      allow get, write: if request.auth != null;   // קוד-שיתוף אקראי ולא-ניתן-לניחוש
+    }
+    match /userHouseholds/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
+```
+4. **⚙️ Project settings → General → Your apps → Web (</>)** → רשום אפליקציה → העתק
+   מתוך `firebaseConfig` את **apiKey** ואת **projectId**.
+5. באפליקציה: **הגדרות → ☁️ סנכרון בענן** → הדבק apiKey+projectId → התחבר באימייל+סיסמה
+   (פעם ראשונה יוצרת משתמש). לשיתוף: שלח לבן/בת הזוג את "קוד השיתוף", והם מזינים אותו אצלם.
+
+> הערה: החוקים מתירים גישה למסמך משק-בית לכל משתמש מחובר שמכיר את מזהה משק-הבית
+> (UUID אקראי = קוד השיתוף). זה מודל "סוד-בלתי-ניתן-לניחוש". אפשר להחמיר בהמשך לרשימת
+> חברים מפורשת.
 
 ## מבנה הקטגוריות (הוצאות)
 דיור · ביטוחים · מנויים · אוכל · בריאות · ילדים · אורח חיים · בנייה רקפות —

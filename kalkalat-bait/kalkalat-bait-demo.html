@@ -1324,20 +1324,19 @@ function cloudPanel(){
   const st=SB.status?`<div class="note" style="margin-top:8px;font-size:12px">${esc(SB.status)}</div>`:'';
   if(!cfg){
     return `<div class="panel" style="margin-top:20px"><h2>☁️ סנכרון בענן (אופציונלי)</h2>
-      <div class="note">סנכרון בין מכשירים ושיתוף עם בן/בת הזוג דרך <b>Supabase</b> (חינמי). אופליין נשאר ברירת מחדל — הסנכרון נכנס רק אחרי הזנת פרטים והתחברות.</div>
-      <p class="muted" style="font-size:12px;margin:8px 0 4px">1. פתח פרויקט ב‑supabase.com → Project Settings → API. 2. הדבק כאן את ה‑URL וה‑anon key. 3. הרץ את סקריפט ה‑SQL (מצורף ב‑README) פעם אחת.</p>
-      <label style="font-size:13px">Project URL</label><input id="sbUrl" placeholder="https://xxxx.supabase.co" value="${esc(SB.url)}" style="width:100%;margin-bottom:6px">
-      <label style="font-size:13px">anon public key</label><input id="sbKey" placeholder="eyJhbGciOi..." value="${esc(SB.key)}" style="width:100%;margin-bottom:8px">
-      <button class="btn" onclick="sbSetConfig(document.getElementById('sbUrl').value,document.getElementById('sbKey').value)">שמור פרטי חיבור</button>${st}</div>`;
+      <div class="note">סנכרון בין מכשירים ושיתוף עם בן/בת הזוג דרך <b>Firebase</b> (חינמי). אופליין נשאר ברירת מחדל — הסנכרון נכנס רק אחרי הזנת פרטים והתחברות.</div>
+      <p class="muted" style="font-size:12px;margin:8px 0 4px">1. ב‑Firebase Console → הוסף אפליקציית Web → העתק מתוך firebaseConfig את <b>apiKey</b> ואת <b>projectId</b>. 2. הפעל Authentication → Email/Password. 3. צור Firestore והדבק את חוקי האבטחה (ב‑README).</p>
+      <label style="font-size:13px">apiKey</label><input id="sbKey" placeholder="AIzaSy..." value="${esc(SB.apiKey)}" style="width:100%;margin-bottom:6px">
+      <label style="font-size:13px">projectId</label><input id="sbProj" placeholder="my-project-id" value="${esc(SB.projectId)}" style="width:100%;margin-bottom:8px">
+      <button class="btn" onclick="sbSetConfig(document.getElementById('sbKey').value,document.getElementById('sbProj').value)">שמור פרטי חיבור</button>${st}</div>`;
   }
   if(!li){
     return `<div class="panel" style="margin-top:20px"><h2>☁️ סנכרון בענן</h2>
-      <div class="note">מחובר לשרת. התחבר עם המייל שלך — יישלח אליך קוד התחברות.</div>
-      <label style="font-size:13px">אימייל</label><input id="sbEmail" type="email" placeholder="you@example.com" value="${esc(SB.email)}" style="width:100%;margin-bottom:8px">
-      <div class="pillrow"><button class="btn" ${SB.busy?'disabled':''} onclick="sbSendCode(document.getElementById('sbEmail').value)">📧 שלח קוד למייל</button></div>
-      <label style="font-size:13px;margin-top:8px;display:block">קוד מהמייל</label><input id="sbCode" inputmode="numeric" placeholder="6 ספרות" style="width:140px;margin-bottom:8px">
-      <div class="pillrow"><button class="btn" ${SB.busy?'disabled':''} onclick="sbVerify(document.getElementById('sbCode').value)">🔓 התחבר</button>
-        <button class="btn ghost" onclick="sbSetConfig('','')" style="color:var(--expense)">החלף שרת</button></div>${st}</div>`;
+      <div class="note">מחובר ל‑Firebase (${esc(SB.projectId)}). התחבר עם אימייל וסיסמה — אם זו פעם ראשונה, ייווצר משתמש חדש אוטומטית.</div>
+      <label style="font-size:13px">אימייל</label><input id="sbEmail" type="email" placeholder="you@example.com" value="${esc(SB.email)}" style="width:100%;margin-bottom:6px">
+      <label style="font-size:13px">סיסמה (לפחות 6 תווים)</label><input id="sbPw" type="password" placeholder="••••••" style="width:100%;margin-bottom:8px">
+      <div class="pillrow"><button class="btn" ${SB.busy?'disabled':''} onclick="sbLogin(document.getElementById('sbEmail').value,document.getElementById('sbPw').value)">🔓 התחבר / הרשם</button>
+        <button class="btn ghost" onclick="sbSetConfig('','')" style="color:var(--expense)">החלף פרויקט</button></div>${st}</div>`;
   }
   const last=SB.syncedAt?new Date(SB.syncedAt).toLocaleString('he-IL'):'—';
   return `<div class="panel" style="margin-top:20px"><h2>☁️ סנכרון בענן</h2>
@@ -1592,55 +1591,55 @@ function restoreData(file){ if(!file)return; const rd=new FileReader();
     }catch(e){ alert('שגיאה בקריאת הקובץ: '+e.message); } };
   rd.readAsText(file); }
 
-/* ===== סנכרון ענן (Supabase) — לקוח fetch דק, offline-first, אופציונלי ===== */
-let SB={url:'',key:'',token:'',refresh:'',email:'',uid:'',hid:'',auto:false,syncedAt:0,dirty:false,busy:false,status:''};
+/* ===== סנכרון ענן (Firebase: Auth + Firestore) — לקוח fetch דק, offline-first, אופציונלי ===== */
+let SB={apiKey:'',projectId:'',token:'',refresh:'',email:'',uid:'',hid:'',auto:false,syncedAt:0,dirty:false,busy:false,status:''};
 function sbLoad(){ try{ Object.assign(SB, JSON.parse(localStorage.getItem(STORE_KEY+':sb')||'{}')); }catch(e){} }
 function sbSave(){ try{ const {busy,status,...keep}=SB; localStorage.setItem(STORE_KEY+':sb', JSON.stringify(keep)); }catch(e){} }
-function sbConfigured(){ return !!(SB.url&&SB.key); }
+function sbConfigured(){ return !!(SB.apiKey&&SB.projectId); }
 function sbLoggedIn(){ return !!(SB.token&&SB.email); }
-function sbSetConfig(url,key){ SB.url=String(url||'').trim().replace(/\/+$/,''); SB.key=String(key||'').trim(); sbSave(); render(); }
-function sbHeaders(auth){ const h={'apikey':SB.key,'Content-Type':'application/json'}; if(auth&&SB.token)h['Authorization']='Bearer '+SB.token; return h; }
-async function sbAuthFetch(path,opts){ opts=opts||{}; opts.headers=Object.assign(sbHeaders(true),opts.headers||{});
-  let r=await fetch(SB.url+path,opts);
-  if(r.status===401 && SB.refresh){ if(await sbRefresh()){ opts.headers=Object.assign(sbHeaders(true),opts.headers||{}); r=await fetch(SB.url+path,opts); } }
-  return r; }
-async function sbRefresh(){ try{ const r=await fetch(SB.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:sbHeaders(false),body:JSON.stringify({refresh_token:SB.refresh})});
-  if(!r.ok)return false; const j=await r.json(); SB.token=j.access_token; SB.refresh=j.refresh_token; sbSave(); return true; }catch(e){ return false; } }
-async function sbSendCode(email){ SB.busy=true; SB.status='שולח קוד…'; render();
-  try{ const r=await fetch(SB.url+'/auth/v1/otp',{method:'POST',headers:sbHeaders(false),body:JSON.stringify({email:String(email).trim(),create_user:true})});
-    SB.busy=false; if(!r.ok){ const t=await r.text(); SB.status='שגיאה בשליחת קוד: '+t.slice(0,120); render(); return false; }
-    SB.email=String(email).trim(); SB.status='נשלח קוד למייל — הזן אותו למטה.'; sbSave(); render(); return true;
-  }catch(e){ SB.busy=false; SB.status='אין חיבור לשרת: '+e.message; render(); return false; } }
-async function sbVerify(code){ SB.busy=true; SB.status='מאמת…'; render();
-  try{ const r=await fetch(SB.url+'/auth/v1/verify',{method:'POST',headers:sbHeaders(false),body:JSON.stringify({email:SB.email,token:String(code).trim(),type:'email'})});
-    const j=await r.json(); SB.busy=false;
-    if(!r.ok||!j.access_token){ SB.status='קוד שגוי או שפג תוקפו.'; render(); return false; }
-    SB.token=j.access_token; SB.refresh=j.refresh_token; SB.uid=(j.user&&j.user.id)||''; SB.status='מחובר ✓'; sbSave();
-    await sbEnsureHousehold(); await sbSync(true); render(); return true;
-  }catch(e){ SB.busy=false; SB.status='שגיאה: '+e.message; render(); return false; } }
+function sbSetConfig(apiKey,projectId){ SB.apiKey=String(apiKey||'').trim(); SB.projectId=String(projectId||'').trim().replace(/\/+$/,''); sbSave(); render(); }
+const FS_BASE=()=>'https://firestore.googleapis.com/v1/projects/'+SB.projectId+'/databases/(default)/documents';
+/* ---- Auth (Identity Toolkit REST) ---- */
+async function sbRefresh(){ try{ const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+SB.apiKey,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(SB.refresh)});
+  if(!r.ok)return false; const j=await r.json(); SB.token=j.id_token; SB.refresh=j.refresh_token; SB.uid=j.user_id||SB.uid; sbSave(); return true; }catch(e){ return false; } }
+async function sbAuthCall(ep,body){ const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:'+ep+'?key='+SB.apiKey,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({})); if(!r.ok) return {err:(j.error&&j.error.message)||('HTTP '+r.status)}; return j; }
+async function sbLogin(email,pw){ email=String(email||'').trim(); pw=String(pw||'');
+  if(!email||pw.length<6){ SB.status='הזן אימייל וסיסמה (לפחות 6 תווים).'; render(); return; }
+  SB.busy=true; SB.status='מתחבר…'; render();
+  let j=await sbAuthCall('signInWithPassword',{email,password:pw,returnSecureToken:true});
+  if(j.err==='EMAIL_NOT_FOUND'){ SB.status='יוצר משתמש חדש…'; render(); j=await sbAuthCall('signUp',{email,password:pw,returnSecureToken:true}); }
+  SB.busy=false;
+  if(j.err){ const m={'INVALID_PASSWORD':'סיסמה שגויה.','INVALID_LOGIN_CREDENTIALS':'אימייל או סיסמה שגויים.','EMAIL_EXISTS':'האימייל כבר רשום — הזן את הסיסמה הנכונה.','WEAK_PASSWORD : Password should be at least 6 characters':'סיסמה קצרה מדי.'}[j.err]||('שגיאת התחברות: '+j.err); SB.status=m; render(); return; }
+  SB.token=j.idToken; SB.refresh=j.refreshToken; SB.uid=j.localId; SB.email=j.email||email; SB.status='מחובר ✓'; sbSave();
+  try{ await sbEnsureHousehold(); await sbSync(true); }catch(e){ SB.status='התחברת, אך הסנכרון נכשל: '+e.message; } render(); }
 function sbSignOut(){ SB.token='';SB.refresh='';SB.uid='';SB.hid='';SB.syncedAt=0;SB.dirty=false;SB.status='התנתקת.'; sbSave(); render(); }
+/* ---- Firestore REST ---- */
+async function sbFetch(path,opts){ opts=opts||{}; opts.headers=Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+SB.token},opts.headers||{});
+  let r=await fetch(FS_BASE()+path,opts);
+  if(r.status===401 && SB.refresh){ if(await sbRefresh()){ opts.headers['Authorization']='Bearer '+SB.token; r=await fetch(FS_BASE()+path,opts); } }
+  return r; }
+function fsDoc(state){ return {fields:{ data:{stringValue:JSON.stringify(state)}, updatedAt:{timestampValue:new Date().toISOString()} }}; }
+function fsParse(j){ const f=(j&&j.fields)||{}; const data=(f.data&&f.data.stringValue)?JSON.parse(f.data.stringValue):null; const up=(f.updatedAt&&f.updatedAt.timestampValue)?Date.parse(f.updatedAt.timestampValue):0; return {data,updatedAt:up}; }
 async function sbEnsureHousehold(){
-  // יש כבר חברות? קח את משק-הבית; אחרת צור חדש
-  let r=await sbAuthFetch('/rest/v1/members?uid=eq.'+SB.uid+'&select=household',{method:'GET'});
-  if(r.ok){ const a=await r.json(); if(a.length){ SB.hid=a[0].household; sbSave(); return; } }
-  const hid=(crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+''+Math.random());
+  // מצביע משתמש→משק-בית; אם אין — צור משק-בית חדש ושמור מצביע
+  let r=await sbFetch('/userHouseholds/'+SB.uid,{method:'GET'});
+  if(r.ok){ const j=await r.json(); const hid=j.fields&&j.fields.hid&&j.fields.hid.stringValue; if(hid){ SB.hid=hid; sbSave(); return; } }
+  const hid=(self.crypto&&crypto.randomUUID)?crypto.randomUUID():('h'+Date.now()+Math.floor(Math.random()*1e6));
   const now=new Date().toISOString();
-  // חובה: קודם שורת החברוּת (אחרת RLS חוסם את כתיבת app_state), ואז המצב
-  await sbAuthFetch('/rest/v1/members',{method:'POST',body:JSON.stringify({household:hid,uid:SB.uid})});
-  await sbAuthFetch('/rest/v1/app_state',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({household:hid,data:exportState(),updated_at:now})});
+  await sbFetch('/households/'+hid,{method:'PATCH',body:JSON.stringify(fsDoc(exportState()))});
+  await sbFetch('/userHouseholds/'+SB.uid,{method:'PATCH',body:JSON.stringify({fields:{hid:{stringValue:hid}}})});
   SB.hid=hid; SB.syncedAt=Date.parse(now); sbSave();
 }
-async function sbPull(){ const r=await sbAuthFetch('/rest/v1/app_state?household=eq.'+SB.hid+'&select=data,updated_at',{method:'GET'});
-  if(!r.ok) throw new Error('pull '+r.status); const a=await r.json(); return a[0]||null; }
-async function sbPush(){ const now=new Date().toISOString();
-  const r=await sbAuthFetch('/rest/v1/app_state',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({household:SB.hid,data:exportState(),updated_at:now})});
-  if(!r.ok) throw new Error('push '+r.status); SB.syncedAt=Date.parse(now); SB.dirty=false; sbSave(); }
+async function sbPull(){ const r=await sbFetch('/households/'+SB.hid,{method:'GET'}); if(r.status===404) return null; if(!r.ok) throw new Error('pull '+r.status); return fsParse(await r.json()); }
+async function sbPush(){ const r=await sbFetch('/households/'+SB.hid,{method:'PATCH',body:JSON.stringify(fsDoc(exportState()))});
+  if(!r.ok) throw new Error('push '+r.status); SB.syncedAt=Date.now(); SB.dirty=false; sbSave(); }
 async function sbSync(silent){ if(!sbLoggedIn()||!SB.hid||SB.busy) return; SB.busy=true; if(!silent){SB.status='מסנכרן…';render();}
-  try{ const remote=await sbPull(); const rt=remote?Date.parse(remote.updated_at):0;
-    if(remote && rt>SB.syncedAt && SB.dirty){
+  try{ const remote=await sbPull(); const rt=remote?remote.updatedAt:0;
+    if(remote && remote.data && rt>SB.syncedAt && SB.dirty){
       SB.busy=false; const keepLocal=confirm('יש שינויים גם במכשיר הזה וגם בענן.\nאישור = לשמור את גרסת המכשיר הזה (תידרוס את הענן).\nביטול = למשוך את גרסת הענן (תידרוס כאן).');
       SB.busy=true; if(keepLocal){ await sbPush(); SB.status='נדחף לענן (גרסת המכשיר).'; } else { applyStateObject(remote.data); SB.syncedAt=rt; SB.dirty=false; sbSave(); SB.status='נמשך מהענן.'; }
-    } else if(remote && rt>SB.syncedAt){
+    } else if(remote && remote.data && rt>SB.syncedAt){
       applyStateObject(remote.data); SB.syncedAt=rt; SB.dirty=false; sbSave(); SB.status='עודכן מהענן ✓';
     } else { await sbPush(); SB.status='נשמר בענן ✓'; }
     SB.busy=false; render();
@@ -1650,10 +1649,11 @@ let _sbTimer=null; function sbDebouncedSync(){ clearTimeout(_sbTimer); _sbTimer=
 function sbToggleAuto(v){ SB.auto=!!v; sbSave(); if(SB.auto) sbSync(true); render(); }
 async function sbJoinHousehold(code){ code=String(code||'').trim(); if(!code){SB.status='הזן קוד שיתוף.';render();return;}
   SB.busy=true; SB.status='מצטרף…'; render();
-  try{ const r=await sbAuthFetch('/rest/v1/members',{method:'POST',body:JSON.stringify({household:code,uid:SB.uid})});
-    SB.busy=false; if(!r.ok){ const t=await r.text(); SB.status='הצטרפות נכשלה: '+t.slice(0,120); render(); return; }
+  try{ const r=await sbFetch('/userHouseholds/'+SB.uid,{method:'PATCH',body:JSON.stringify({fields:{hid:{stringValue:code}}})});
+    SB.busy=false; if(!r.ok){ SB.status='הצטרפות נכשלה: HTTP '+r.status; render(); return; }
     SB.hid=code; SB.syncedAt=0; SB.dirty=false; sbSave(); await sbSync(true); SB.status='הצטרפת למשק-הבית המשותף ✓'; render();
   }catch(e){ SB.busy=false; SB.status='שגיאה: '+e.message; render(); } }
+
 
 /* אתחול נתונים: מקור, חודש חיוב, מזהה + שורות עו״ש לדוגמה */
 function initData(){
