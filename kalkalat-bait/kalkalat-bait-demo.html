@@ -102,6 +102,29 @@
     .bm-pop.sheet .bm-pop-list{max-height:55vh;resize:none}
     .bm-pop.sheet .bm-opt{padding:13px 16px;font-size:16px}
   }
+  /* ===== נייד: תפריט תחתון + טבלאות נגללות + יעדי-מגע גדולים ===== */
+  @media(max-width:640px){
+    .layout{flex-direction:column}
+    .sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;height:auto;flex-direction:row;
+      gap:0;padding:4px 2px;border-inline-start:none;border-top:1px solid var(--border);
+      box-shadow:0 -2px 12px rgba(0,0,0,.08);z-index:45;justify-content:space-around}
+    .sidebar .brand,.sidebar .nav-spacer,.sidebar .help-toggle{display:none}
+    .nav-item{flex:1;flex-direction:column;gap:2px;min-width:0;padding:7px 2px;font-size:20px;border-radius:10px;justify-content:center}
+    .nav-item span.t{display:none}
+    .nav-item.active{background:none;color:var(--primary)}
+    .nav-item.active span.t{display:block;font-size:10px;font-weight:700}
+    main{padding:14px 12px 78px;max-width:100%}
+    h1{font-size:21px} .sub{margin-bottom:14px}
+    .panel{padding:14px;border-radius:14px}
+    .card{padding:14px} .card .val{font-size:20px}
+    /* טבלאות — גלילה אופקית חלקה במקום לשבור את רוחב הדף */
+    main table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;font-size:13px}
+    th,td{padding:7px 6px}
+    /* מניעת זום אוטומטי ב-iOS + יעדי-מגע נוחים */
+    input,select,textarea{font-size:16px}
+    button.btn,.tag{padding:11px 14px}
+    .sumcard{min-width:130px}
+  }
 </style>
 </head>
 <body>
