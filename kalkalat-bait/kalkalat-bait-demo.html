@@ -302,7 +302,7 @@ function applyCategoryStructureV2(){
   CATS.length=0; _expCats().forEach(c=>CATS.push(c));
   (income.length?income:INCOME_CATS.map(c=>({...c}))).forEach(c=>CATS.push(c));
   Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); const ns=_subcatsOf(); for(const k in ns)SUBCATS[k]=ns[k];
-  BUDGETS={}; SUBBUDGETS=_subBudgetsOf();
+  BUDGETS={}; BUDGETS_M={}; SUBBUDGETS=_subBudgetsOf();
 }
 /* אתחול ברירת מחדל למבנה החדש (התקנה נקייה) */
 (function(){ CATS.length=0; _expCats().forEach(c=>CATS.push(c)); INCOME_CATS.forEach(c=>CATS.push({...c})); })();
@@ -315,12 +315,20 @@ function catBadge(name){ if(!name)return '<span class="muted" style="font-size:1
   return `<span class="catbadge" style="background:rgba(${r},${g},${b},.15);color:rgb(${Math.round(r*.55)},${Math.round(g*.55)},${Math.round(b*.55)});border:1px solid rgba(${r},${g},${b},.4)">${esc(name)}</span>`; }
 /* תקציב ראשי ידני (ריק — הקטגוריות עובדות לפי תת-קטגוריות) */
 let BUDGETS = {};
+let BUDGETS_M = {};   // דריסת תקציב חודשית ברמת קטגוריה ראשית: {'YYYY-MM': {cat: amount}}
 /* תקציב לפי תת-קטגוריה: {קטגוריה: {תת-קטגוריה: סכום}} — מאותחל מהיעדים החודשיים */
 let SUBBUDGETS = _subBudgetsOf();
 function subBudgetTotal(cat){ const o=SUBBUDGETS[cat]||{}; return Object.keys(o).reduce((a,k)=>a+(+o[k]||0),0); }
 function hasSubBudget(cat){ return subBudgetTotal(cat)>0; }
-/* תקציב אפקטיבי לקטגוריה ראשית: סכום תתי-הקטגוריות אם הוגדרו, אחרת הסכום הידני */
-function catBudget(cat){ return hasSubBudget(cat) ? subBudgetTotal(cat) : (+BUDGETS[cat]||0); }
+/* תקציב אפקטיבי לקטגוריה לחודש m: דריסה חודשית גוברת; אחרת סכום תתי-קטגוריות; אחרת בסיס */
+function budgetForMonth(cat, m){
+  const o = BUDGETS_M[m];
+  if(o && o[cat]!==undefined) return +o[cat]||0;
+  return hasSubBudget(cat) ? subBudgetTotal(cat) : (+BUDGETS[cat]||0);
+}
+/* תאימות לאחור: קריאה ללא חודש → curMonth */
+function catBudget(cat, m){ return budgetForMonth(cat, m || curMonth); }
+function hasMonthBudget(cat, m){ const o=BUDGETS_M[m]; return !!(o && o[cat]!==undefined); }
 /* זיכרון נלמד: בית עסק -> קטגוריה */
 let MEMORY = {};
 let srcFilter = 'all';
@@ -1151,10 +1159,22 @@ function screenBudgets(){
     const b=catBudget(c.name), spent=sb[c.name]||0, r=b?spent/b:0, rem=b-spent;
     const col=spent>b?'#dc2626':'#16a34a';   // ירוק עד עמידה מדויקת, אדום רק בחריגה
     const open=!!budgetOpen[c.name];
-    // תקציב הראשי: אוטומטי (סכום תת-הקטגוריות) או ידני
-    const mainInput = usesSub
-      ? `<span class="row help" data-help="מחושב אוטומטית מסכום תקציבי תת-הקטגוריות — לא ניתן לעריכה ידנית"><span class="bud-lbl">תקציב</span><b>${fmt(b)}</b><span class="muted" style="font-size:11px">(מחושב מתת-הקטגוריות)</span></span>`
-      : `<span class="row"><span class="bud-lbl">תקציב</span><input type="number" value="${BUDGETS[c.name]||''}" placeholder="הזן" style="width:100px" onchange="setBudget('${c.name}',this.value)"><span class="muted">₪</span></span>`;
+    // תקציב הראשי: ערך אפקטיבי לחודש הנבחר + בורר scope (קבוע/מהחודש והלאה/רק לחודש זה)
+    const eff = catBudget(c.name, curMonth);
+    const hasOvr = hasMonthBudget(c.name, curMonth);
+    const scopeSel = `<select onchange="setBudget('${c.name}', this.previousElementSibling.value, this.value, curMonth)" style="font-size:12px" title="היכן להחיל את התקציב">
+        <option value="base">קבוע</option>
+        <option value="forward">מהחודש והלאה</option>
+        <option value="month">רק לחודש זה</option>
+      </select>`;
+    const mainInput = `<span class="row" style="gap:6px;align-items:center">
+        <span class="bud-lbl">תקציב (${heMonth(curMonth)})</span>
+        <input type="number" value="${eff||''}" placeholder="הזן" style="width:100px"
+               onchange="setBudget('${c.name}', this.value, this.nextElementSibling.value, curMonth)">
+        ${scopeSel}
+        ${hasOvr ? `<span class="muted" style="font-size:11px;white-space:nowrap">• מותאם לחודש זה <a href="#" onclick="event.preventDefault();clearMonthBudget('${c.name}',curMonth)">↺ אפס</a></span>`
+                 : (usesSub ? `<span class="muted" style="font-size:11px;white-space:nowrap">(בסיס מתת-הקטגוריות)</span>` : '')}
+      </span>`;
     // שורת תקציב / נוצל / יתרה לקטגוריה
     const line = `<div class="bud-line">
         <span><span class="bud-lbl">נוצל</span><b class="expense">${fmt(spent)}</b></span>
@@ -1224,13 +1244,14 @@ function screenForecast(){
   const rows=yms.map(ym=>{
     const hasData=txOfMonth(ym).length>0;   // "בפועל" רק אם יש תנועות אמיתיות בחודש (לא רק רישום ב-months)
     const ov=FORECAST_OVR[ym]||{};
+    const mBudget=CATS.filter(c=>c.type==='expense').reduce((a,c)=>a+catBudget(c.name, ym),0);   // תקציב לפי החודש (כולל דריסות חודשיות)
     let income,expense,status;
     if(hasData){ const t=totals(ym); income=t.income; expense=t.expense; status='actual'; }   // בפועל תמיד גובר
-    else { income=(ov.income!=null?ov.income:projInc); expense=(ov.expense!=null?ov.expense:budgetTotal); status='plan'; }
+    else { income=(ov.income!=null?ov.income:projInc); expense=(ov.expense!=null?ov.expense:mBudget); status='plan'; }
     const bal=income-expense, transfer=+SAVE_PLAN[ym]||0;
     cum+=transfer; yIn+=income; yEx+=expense; yTransfer+=transfer; if(bal<0)deficit++;
     const incCell = hasData? `<b class="income">${fmt(income)}</b>` : `<input type="number" value="${ov.income!=null?ov.income:''}" placeholder="${Math.round(projInc)}" style="width:88px;font-size:12px" onchange="setOvr('${ym}','income',this.value)">`;
-    const expCell = hasData? `<b class="expense">${fmt(expense)}</b>` : `<input type="number" value="${ov.expense!=null?ov.expense:''}" placeholder="${Math.round(budgetTotal)}" style="width:88px;font-size:12px" onchange="setOvr('${ym}','expense',this.value)">`;
+    const expCell = hasData? `<b class="expense">${fmt(expense)}</b>` : `<input type="number" value="${ov.expense!=null?ov.expense:''}" placeholder="${Math.round(mBudget)}" style="width:88px;font-size:12px" onchange="setOvr('${ym}','expense',this.value)">`;
     const badge = hasData? `<span style="font-size:11px;background:rgba(22,163,74,.13);color:#15803d;padding:2px 7px;border-radius:20px">✓ בפועל</span>` : `<span style="font-size:11px;background:rgba(37,99,235,.12);color:#1d4ed8;padding:2px 7px;border-radius:20px">◷ תכנון</span>`;
     return `<tr style="${hasData?'':'background:rgba(37,99,235,.035)'}">
       <td style="white-space:nowrap">${heMonth(ym).split(' ')[0]}${ym===NOW_MONTH?' <span style="color:var(--primary)">•</span>':''}</td>
@@ -1422,19 +1443,51 @@ function screenSavings(){
 function addMonths(ym,n){ let [y,m]=ym.split('-').map(Number); m+=n; while(m>12){m-=12;y++;} while(m<1){m+=12;y--;} return y+'-'+String(m).padStart(2,'0'); }
 function shiftMonth(n){ curMonth=addMonths(curMonth,n); render(); }
 function setFilter(f){ txFilter=f; render(); }
-function setBudget(n,v){ v=+v; if(v>0)BUDGETS[n]=v; else delete BUDGETS[n]; render(); }
+// scope: 'base' (קבוע, ברירת מחדל) | 'forward' (מהחודש והלאה) | 'month' (רק לחודש זה)
+function setBudget(n, v, scope, m){
+  v=+v; m=m||curMonth; scope=scope||'base';
+  if(scope==='base'){
+    if(v>0) BUDGETS[n]=v; else delete BUDGETS[n];
+  } else if(scope==='month'){
+    if(isLocked(m)){ guardLocked(m,'עריכת תקציב'); return; }
+    setMonthBudget(n,m,v);
+  } else if(scope==='forward'){
+    const fwd = months.filter(k=>k>=m); if(!fwd.includes(m)) fwd.push(m);
+    let blocked=false;
+    fwd.forEach(k=>{ if(isLocked(k)){blocked=true;return;} setMonthBudget(n,k,v); });
+    if(blocked) toast='חלק מהחודשים נעולים ולא עודכנו';
+  }
+  persist(); render();
+}
+function setMonthBudget(n, m, v){
+  if(!BUDGETS_M[m]) BUDGETS_M[m]={};
+  if(v>0) BUDGETS_M[m][n]=v; else delete BUDGETS_M[m][n];
+  if(BUDGETS_M[m] && Object.keys(BUDGETS_M[m]).length===0) delete BUDGETS_M[m];
+}
+function clearMonthBudget(n, m){
+  m=m||curMonth;
+  if(isLocked(m)){ guardLocked(m,'איפוס תקציב חודשי'); return; }
+  setMonthBudget(n,m,0); persist(); render();
+}
 /* ===== עריכת קטגוריות ===== */
 function renameCat(oldName,type,newName){ newName=(newName||'').trim(); if(!newName||newName===oldName)return;
   if(CATS.some(x=>x.name===newName&&x.type===type)){toast='קטגוריה בשם זה כבר קיימת';render();return;}
   const c=CATS.find(x=>x.name===oldName&&x.type===type); if(!c)return; c.name=newName;
   if(SUBCATS[oldName]){SUBCATS[newName]=SUBCATS[oldName];delete SUBCATS[oldName];}
   if(BUDGETS[oldName]!==undefined){BUDGETS[newName]=BUDGETS[oldName];delete BUDGETS[oldName];}
+  Object.keys(BUDGETS_M).forEach(m=>{
+    if(BUDGETS_M[m][oldName]!==undefined){ BUDGETS_M[m][newName]=BUDGETS_M[m][oldName]; delete BUDGETS_M[m][oldName]; }
+  });
   if(SUBBUDGETS[oldName]){SUBBUDGETS[newName]=SUBBUDGETS[oldName];delete SUBBUDGETS[oldName];}
   TX.forEach(t=>{if(t.cat===oldName)t.cat=newName;}); render(); }
 function recolorCat(name,color){ const c=CATS.find(x=>x.name===name); if(c)c.color=color; render(); }
 function delCat(name,type){ if(!confirm('למחוק את הקטגוריה "'+name+'"? עסקאות שלה יישארו ללא קטגוריה.'))return;
   const i=CATS.findIndex(x=>x.name===name&&x.type===type); if(i>=0)CATS.splice(i,1);
   delete SUBCATS[name]; delete BUDGETS[name]; delete SUBBUDGETS[name];
+  Object.keys(BUDGETS_M).forEach(m=>{
+    delete BUDGETS_M[m][name];
+    if(Object.keys(BUDGETS_M[m]).length===0) delete BUDGETS_M[m];
+  });
   TX.forEach(t=>{if(t.cat===name){t.cat=null;t.sub=null;}}); render(); }
 function addCat(type){ const el=document.getElementById('newCatName'); const name=(el.value||'').trim(); if(!name)return;
   if(CATS.some(x=>x.name===name&&x.type===type)){toast='קטגוריה בשם זה כבר קיימת';render();return;}
@@ -1551,13 +1604,13 @@ function render(){ const fn=SCREENS[curScreen]||SCREENS.dashboard; if(!SCREENS[c
 
 /* ===== שמירה קבועה (localStorage) ===== */
 const STORE_KEY='kalkalat_bait_v1';
-function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV})); snapshot(); if(typeof sbMarkDirty==='function')sbMarkDirty(); }catch(e){} }
+function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({TX,CATS,SUBCATS,BUDGETS,BUDGETS_M,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV})); snapshot(); if(typeof sbMarkDirty==='function')sbMarkDirty(); }catch(e){} }
 function loadSaved(){ try{
     const s=localStorage.getItem(STORE_KEY); if(!s)return false; const d=JSON.parse(s);
     TX.length=0; (d.TX||[]).forEach(t=>TX.push(t));
     CATS.length=0; (d.CATS||[]).forEach(c=>CATS.push(c));
     Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); Object.assign(SUBCATS, d.SUBCATS||{});
-    BUDGETS=d.BUDGETS||{}; SUBBUDGETS=d.SUBBUDGETS||{}; MEMORY=d.MEMORY||{};
+    BUDGETS=d.BUDGETS||{}; BUDGETS_M=d.BUDGETS_M||{}; SUBBUDGETS=d.SUBBUDGETS||{}; MEMORY=d.MEMORY||{};
     if(d.ACCOUNTS){ ACCOUNTS=Object.assign({checking:0,savings:0,free:0,savingsOpening:0},d.ACCOUNTS);
       if(d.ACCOUNTS.savingsOpening===undefined && ACCOUNTS.savings)ACCOUNTS.savingsOpening=ACCOUNTS.savings; } // מיגרציה: יתרת חיסכון ידנית → יתרת פתיחה
     else if(d.SAVINGS&&d.SAVINGS.length){ ACCOUNTS.savingsOpening=d.SAVINGS.reduce((s,v)=>s+(+v.opening||0)+(d.ALLOC||[]).filter(a=>a.vehicle===v.name).reduce((x,a)=>x+a.amount,0),0); } // מיגרציה מנתוני חיסכון ישנים
@@ -1576,7 +1629,7 @@ function snapshot(force){ try{ const cur=localStorage.getItem(STORE_KEY); if(!cu
 function getSnaps(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY+':snaps')||'[]'); }catch(e){ return []; } }
 function restoreSnapshot(i){ const s=getSnaps()[i]; if(!s)return; if(!confirm('לשחזר את הנתונים מנקודת הגיבוי? המצב הנוכחי יוחלף.'))return; try{ localStorage.setItem(STORE_KEY,s.d); }catch(e){} location.reload(); }
 function daysSinceBackup(){ const t=+localStorage.getItem(STORE_KEY+':lastdl')||0; return t? Math.floor((Date.now()-t)/86400000) : 999; }
-function backupData(){ const data={_v:1,_app:'kalkalat-bait',_date:new Date().toISOString(),TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV};
+function backupData(){ const data={_v:1,_app:'kalkalat-bait',_date:new Date().toISOString(),TX,CATS,SUBCATS,BUDGETS,BUDGETS_M,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); const ts=new Date().toISOString().slice(0,10); a.download='גיבוי-כלכלת-בית-'+ts+'.json'; a.click();
   try{localStorage.setItem(STORE_KEY+':lastdl',Date.now());}catch(e){} render(); }
@@ -1601,12 +1654,12 @@ function snoozeBackup(){ const chk=document.getElementById('backupAuto'); if(chk
   try{localStorage.setItem(STORE_KEY+':snooze',Date.now());}catch(e){} closeBackupModal(); }
 function toggleAutoBackup(v){ try{localStorage.setItem(STORE_KEY+':autodl',v?'1':'0');}catch(e){} render(); }
 /* ייצוא/יישום מצב מלא — משותף לשחזור מקובץ ולסנכרון ענן */
-function exportState(){ return {TX,CATS,SUBCATS,BUDGETS,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV}; }
+function exportState(){ return {TX,CATS,SUBCATS,BUDGETS,BUDGETS_M,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,NAV_ORDER,months,curMonth,catStructV}; }
 function applyStateObject(d){
   TX.length=0; (d.TX||[]).forEach(t=>TX.push(t));
   if(d.CATS){CATS.length=0; d.CATS.forEach(c=>CATS.push(c));}
   if(d.SUBCATS){Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); Object.assign(SUBCATS,d.SUBCATS);}
-  if(d.BUDGETS)BUDGETS=d.BUDGETS; if(d.SUBBUDGETS)SUBBUDGETS=d.SUBBUDGETS; if(d.MEMORY)MEMORY=d.MEMORY;
+  if(d.BUDGETS)BUDGETS=d.BUDGETS; if(d.BUDGETS_M)BUDGETS_M=d.BUDGETS_M; if(d.SUBBUDGETS)SUBBUDGETS=d.SUBBUDGETS; if(d.MEMORY)MEMORY=d.MEMORY;
   if(d.ACCOUNTS)ACCOUNTS=Object.assign({checking:0,savings:0,free:0},d.ACCOUNTS); if(d.FORECAST_OVR)FORECAST_OVR=d.FORECAST_OVR; if(d.SAVE_PLAN)SAVE_PLAN=d.SAVE_PLAN; if(Array.isArray(d.NAV_ORDER)){NAV_ORDER=d.NAV_ORDER; applyNavOrder();}
   if(d.PAYSLIPS)PAYSLIPS=d.PAYSLIPS; if(d.LOCKED)LOCKED=d.LOCKED;
   if(d.months){months.length=0; d.months.forEach(m=>months.push(m));} if(d.curMonth)curMonth=d.curMonth;
