@@ -116,7 +116,7 @@
     .sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;height:auto;flex-direction:row;
       gap:0;padding:4px 2px;border-inline-start:none;border-top:1px solid var(--border);
       box-shadow:0 -2px 12px rgba(0,0,0,.08);z-index:45;justify-content:space-around}
-    .sidebar .brand,.sidebar .nav-spacer,.sidebar .help-toggle{display:none}
+    .sidebar .brand,.sidebar .nav-spacer,.sidebar .help-toggle,.sidebar #appVer{display:none}
     .nav-item{flex:1;flex-direction:column;gap:2px;min-width:0;padding:7px 2px;font-size:20px;border-radius:10px;justify-content:center}
     .nav-item span.t{display:none}
     .nav-item.active{background:none;color:var(--primary)}
@@ -149,6 +149,7 @@
     <button class="nav-item help" data-screen="settings" data-help="ניהול קטגוריות וייבוא דוחות אשראי מ-Excel">⚙️ <span class="t">הגדרות</span></button>
     <div class="nav-spacer"></div>
     <label class="help-toggle"><input type="checkbox" id="helpChk"> מצב הסבר 💡</label>
+    <div id="appVer" class="muted" style="font-size:11px;text-align:center;margin-top:6px;direction:ltr"></div>
   </nav>
   <main id="main"></main>
 </div>
@@ -302,7 +303,7 @@ function applyCategoryStructureV2(){
   CATS.length=0; _expCats().forEach(c=>CATS.push(c));
   (income.length?income:INCOME_CATS.map(c=>({...c}))).forEach(c=>CATS.push(c));
   Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); const ns=_subcatsOf(); for(const k in ns)SUBCATS[k]=ns[k];
-  BUDGETS={}; BUDGETS_M={}; SUBBUDGETS=_subBudgetsOf();
+  BUDGETS={}; BUDGETS_M={}; SUBBUDGETS=_subBudgetsOf(); SUBBUDGETS_M={};
 }
 /* אתחול ברירת מחדל למבנה החדש (התקנה נקייה) */
 (function(){ CATS.length=0; _expCats().forEach(c=>CATS.push(c)); INCOME_CATS.forEach(c=>CATS.push({...c})); })();
@@ -318,13 +319,29 @@ let BUDGETS = {};
 let BUDGETS_M = {};   // דריסת תקציב חודשית ברמת קטגוריה ראשית: {'YYYY-MM': {cat: amount}}
 /* תקציב לפי תת-קטגוריה: {קטגוריה: {תת-קטגוריה: סכום}} — מאותחל מהיעדים החודשיים */
 let SUBBUDGETS = _subBudgetsOf();
+let SUBBUDGETS_M = {};   // דריסת תקציב תת-קטגוריה חודשית: {'YYYY-MM': {cat: {sub: amount}}}
 function subBudgetTotal(cat){ const o=SUBBUDGETS[cat]||{}; return Object.keys(o).reduce((a,k)=>a+(+o[k]||0),0); }
 function hasSubBudget(cat){ return subBudgetTotal(cat)>0; }
-/* תקציב אפקטיבי לקטגוריה לחודש m: דריסה חודשית גוברת; אחרת סכום תתי-קטגוריות; אחרת בסיס */
+/* תקציב תת-קטגוריה אפקטיבי לחודש: דריסה חודשית גוברת על הבסיס */
+function subBudgetForMonth(cat, sub, m){
+  const mo=SUBBUDGETS_M[m];
+  if(mo && mo[cat] && mo[cat][sub]!==undefined) return +mo[cat][sub]||0;
+  return +((SUBBUDGETS[cat]||{})[sub])||0;
+}
+function hasMonthSubBudget(cat, sub, m){ const mo=SUBBUDGETS_M[m]; return !!(mo && mo[cat] && mo[cat][sub]!==undefined); }
+/* סכום תתי-הקטגוריות לחודש (כולל דריסות חודשיות) */
+function subTotalForMonth(cat, m){
+  const keys=new Set(Object.keys(SUBBUDGETS[cat]||{}));
+  (SUBCATS[cat]||[]).forEach(s=>keys.add(s));
+  const mo=SUBBUDGETS_M[m]; if(mo&&mo[cat]) Object.keys(mo[cat]).forEach(s=>keys.add(s));
+  let t=0; keys.forEach(s=>t+=subBudgetForMonth(cat,s,m)); return t;
+}
+function hasSubBudgetM(cat, m){ return subTotalForMonth(cat,m)>0 || subBudgetTotal(cat)>0; }
+/* תקציב אפקטיבי לקטגוריה לחודש m: דריסה ראשית גוברת; אחרת סכום תתי-קטגוריות לחודש; אחרת בסיס */
 function budgetForMonth(cat, m){
   const o = BUDGETS_M[m];
   if(o && o[cat]!==undefined) return +o[cat]||0;
-  return hasSubBudget(cat) ? subBudgetTotal(cat) : (+BUDGETS[cat]||0);
+  return hasSubBudgetM(cat,m) ? subTotalForMonth(cat,m) : (+BUDGETS[cat]||0);
 }
 /* תאימות לאחור: קריאה ללא חודש → curMonth */
 function catBudget(cat, m){ return budgetForMonth(cat, m || curMonth); }
@@ -1182,13 +1199,20 @@ function screenBudgets(){
         ${b?`<span class="muted" style="font-size:12px">${Math.round(r*100)}% מהתקציב</span>`:'<span class="muted" style="font-size:12px">לא הוגדר תקציב</span>'}
       </div>
       ${b?`<div class="bar" style="margin-top:6px"><i style="width:${Math.min(r*100,100)}%;background:${col}"></i></div>`:''}`;
-    // שורות תת-קטגוריה: שם · תקציב · נוצל · יתרה · פס
+    // שורות תת-קטגוריה: שם · תקציב (לחודש הנבחר + בורר scope) · נוצל · יתרה · פס
     const subRows = subs.map(s=>{
-        const sbud=(SUBBUDGETS[c.name]||{})[s]||0, ssp=subSpend[s]||0, sr=sbud?ssp/sbud:0, srem=sbud-ssp;
+        const sbud=subBudgetForMonth(c.name,s,curMonth), ssp=subSpend[s]||0, sr=sbud?ssp/sbud:0, srem=sbud-ssp;
         const scol=ssp>sbud?'#dc2626':'#16a34a';
+        const sOvr=hasMonthSubBudget(c.name,s,curMonth);
         return `<div class="subbud-row">
-          <span style="flex:1;min-width:120px;font-weight:600">${s}</span>
-          <span><span class="bud-lbl">תקציב</span><input type="number" value="${sbud||''}" placeholder="—" style="width:78px;font-size:13px" onchange="setSubBudget('${c.name}','${s}',this.value)"></span>
+          <span style="flex:1;min-width:120px;font-weight:600">${esc(s)}</span>
+          <span class="row" style="gap:4px;align-items:center"><span class="bud-lbl">תקציב</span>
+            <input type="number" value="${sbud||''}" placeholder="—" style="width:78px;font-size:13px" onchange="setSubBudget('${c.name}','${s}',this.value,this.parentElement.querySelector('select').value,curMonth)">
+            <select onchange="setSubBudget('${c.name}','${s}',this.parentElement.querySelector('input').value,this.value,curMonth)" style="font-size:11px" title="היכן להחיל">
+              <option value="month">לחודש זה</option><option value="forward">מהחודש והלאה</option><option value="base">קבוע</option>
+            </select>
+            ${sOvr?`<a href="#" onclick="event.preventDefault();clearMonthSubBudget('${c.name}','${s}',curMonth)" class="muted" style="font-size:11px" title="אפס דריסה חודשית">↺</a>`:''}
+          </span>
           <span style="min-width:96px"><span class="bud-lbl">נוצל</span><b>${fmt(ssp)}</b></span>
           <span style="min-width:96px"><span class="bud-lbl">${srem>=0?'יתרה':'חריגה'}</span><b style="color:${sbud?(srem>=0?'#16a34a':'#dc2626'):'var(--muted)'}">${sbud?fmt(Math.abs(srem)):'—'}</b></span>
           ${sbud?`<div class="bar" style="flex:1;min-width:60px"><i style="width:${Math.min(sr*100,100)}%;background:${scol}"></i></div>`:'<span class="muted" style="flex:1;min-width:60px;font-size:11px">ללא תקציב</span>'}
@@ -1398,7 +1422,8 @@ function screenSettings(){
       ${(()=>{ const ss=getSnaps(); if(!ss.length)return ''; return `<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px"><div class="muted" style="font-size:12px;margin-bottom:6px">נקודות גיבוי אוטומטיות (בדפדפן):</div>`+
         ss.slice().reverse().map((s,ri)=>{ const i=ss.length-1-ri; const d=new Date(s.t); return `<div class="row" style="justify-content:space-between;font-size:13px;padding:3px 0"><span class="muted">${d.toLocaleString('he-IL')}</span><button class="btn ghost" style="padding:3px 10px;font-size:12px" onclick="restoreSnapshot(${i})">שחזר</button></div>`; }).join('')+`</div>`; })()}
     </div>
-    ${cloudPanel()}`;
+    ${cloudPanel()}
+    <div class="muted" style="font-size:12px;text-align:center;margin-top:16px">גרסה: <b>${APP_VERSION}</b></div>`;
 }
 function cloudPanel(){
   const cfg=sbConfigured(), li=sbLoggedIn();
@@ -1551,11 +1576,13 @@ function renameCat(oldName,type,newName){ newName=(newName||'').trim(); if(!newN
     if(BUDGETS_M[m][oldName]!==undefined){ BUDGETS_M[m][newName]=BUDGETS_M[m][oldName]; delete BUDGETS_M[m][oldName]; }
   });
   if(SUBBUDGETS[oldName]){SUBBUDGETS[newName]=SUBBUDGETS[oldName];delete SUBBUDGETS[oldName];}
+  Object.keys(SUBBUDGETS_M).forEach(mm=>{ if(SUBBUDGETS_M[mm][oldName]){ SUBBUDGETS_M[mm][newName]=SUBBUDGETS_M[mm][oldName]; delete SUBBUDGETS_M[mm][oldName]; } });
   TX.forEach(t=>{if(t.cat===oldName)t.cat=newName;}); render(); }
 function recolorCat(name,color){ const c=CATS.find(x=>x.name===name); if(c)c.color=color; render(); }
 function delCat(name,type){ if(!confirm('למחוק את הקטגוריה "'+name+'"? עסקאות שלה יישארו ללא קטגוריה.'))return;
   const i=CATS.findIndex(x=>x.name===name&&x.type===type); if(i>=0)CATS.splice(i,1);
   delete SUBCATS[name]; delete BUDGETS[name]; delete SUBBUDGETS[name];
+  Object.keys(SUBBUDGETS_M).forEach(mm=>{ delete SUBBUDGETS_M[mm][name]; if(!Object.keys(SUBBUDGETS_M[mm]).length)delete SUBBUDGETS_M[mm]; });
   Object.keys(BUDGETS_M).forEach(m=>{
     delete BUDGETS_M[m][name];
     if(Object.keys(BUDGETS_M[m]).length===0) delete BUDGETS_M[m];
@@ -1609,9 +1636,35 @@ function undoBatch(){ if(!lastBatch)return; lastBatch.forEach(tx=>{ TX.push(tx);
 /* אקורדיון תקציב: פתח/סגור תת-קטגוריות של קטגוריה ראשית */
 function toggleBudgetCat(name){ budgetOpen[name]=!budgetOpen[name]; render(); }
 /* תקציב לתת-קטגוריה */
-function setSubBudget(cat,sub,v){ v=+v; if(!SUBBUDGETS[cat])SUBBUDGETS[cat]={};
-  if(v>0)SUBBUDGETS[cat][sub]=v; else delete SUBBUDGETS[cat][sub];
-  if(SUBBUDGETS[cat]&&Object.keys(SUBBUDGETS[cat]).length===0)delete SUBBUDGETS[cat]; render(); }
+// scope: 'month' (ברירת מחדל — רק החודש) | 'forward' (מהחודש והלאה) | 'base' (קבוע לכל החודשים)
+function setSubBudget(cat, sub, v, scope, m){
+  v=+v; m=m||curMonth; scope=scope||'month';
+  if(scope==='base'){
+    if(!SUBBUDGETS[cat])SUBBUDGETS[cat]={};
+    if(v>0)SUBBUDGETS[cat][sub]=v; else delete SUBBUDGETS[cat][sub];
+    if(SUBBUDGETS[cat]&&Object.keys(SUBBUDGETS[cat]).length===0)delete SUBBUDGETS[cat];
+  } else if(scope==='month'){
+    if(isLocked(m)){ guardLocked(m,'עריכת תקציב'); return; }
+    setMonthSubBudget(cat,sub,m,v);
+  } else if(scope==='forward'){
+    const fwd=months.filter(k=>k>=m); if(!fwd.includes(m))fwd.push(m);
+    let blocked=false; fwd.forEach(k=>{ if(isLocked(k)){blocked=true;return;} setMonthSubBudget(cat,sub,k,v); });
+    if(blocked) toast='חלק מהחודשים נעולים ולא עודכנו';
+  }
+  persist(); render();
+}
+function setMonthSubBudget(cat, sub, m, v){
+  if(!SUBBUDGETS_M[m])SUBBUDGETS_M[m]={};
+  if(!SUBBUDGETS_M[m][cat])SUBBUDGETS_M[m][cat]={};
+  if(v>0)SUBBUDGETS_M[m][cat][sub]=v; else delete SUBBUDGETS_M[m][cat][sub];
+  if(!Object.keys(SUBBUDGETS_M[m][cat]).length)delete SUBBUDGETS_M[m][cat];
+  if(!Object.keys(SUBBUDGETS_M[m]).length)delete SUBBUDGETS_M[m];
+}
+function clearMonthSubBudget(cat, sub, m){
+  m=m||curMonth;
+  if(isLocked(m)){ guardLocked(m,'איפוס תקציב חודשי'); return; }
+  setMonthSubBudget(cat,sub,m,0); persist(); render();
+}
 function changeCat(id,val){ const t=TX.find(x=>x.id===id); if(t){ t.cat=val||null; t.sub=null; } render(); }
 function changeSub(id,val){ const t=TX.find(x=>x.id===id); if(t){ t.sub=val||null; } render(); }
 function applyMerchant(id){ const t=TX.find(x=>x.id===id); if(!t)return;
@@ -1676,13 +1729,13 @@ function render(){ const fn=SCREENS[curScreen]||SCREENS.dashboard; if(!SCREENS[c
 
 /* ===== שמירה קבועה (localStorage) ===== */
 const STORE_KEY='kalkalat_bait_clean_v1';
-function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({TX,CATS,SUBCATS,BUDGETS,BUDGETS_M,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,WEALTH,NAV_ORDER,months,curMonth,catStructV})); snapshot(); if(typeof sbMarkDirty==='function')sbMarkDirty(); }catch(e){} }
+function persist(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify({TX,CATS,SUBCATS,BUDGETS,BUDGETS_M,SUBBUDGETS,SUBBUDGETS_M,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,WEALTH,NAV_ORDER,months,curMonth,catStructV})); snapshot(); if(typeof sbMarkDirty==='function')sbMarkDirty(); }catch(e){} }
 function loadSaved(){ try{
     const s=localStorage.getItem(STORE_KEY); if(!s)return false; const d=JSON.parse(s);
     TX.length=0; (d.TX||[]).forEach(t=>TX.push(t));
     CATS.length=0; (d.CATS||[]).forEach(c=>CATS.push(c));
     Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); Object.assign(SUBCATS, d.SUBCATS||{});
-    BUDGETS=d.BUDGETS||{}; BUDGETS_M=d.BUDGETS_M||{}; SUBBUDGETS=d.SUBBUDGETS||{}; MEMORY=d.MEMORY||{};
+    BUDGETS=d.BUDGETS||{}; BUDGETS_M=d.BUDGETS_M||{}; SUBBUDGETS=d.SUBBUDGETS||{}; SUBBUDGETS_M=d.SUBBUDGETS_M||{}; MEMORY=d.MEMORY||{};
     if(d.ACCOUNTS){ ACCOUNTS=Object.assign({checking:0,savings:0,free:0,savingsOpening:0},d.ACCOUNTS);
       if(d.ACCOUNTS.savingsOpening===undefined && ACCOUNTS.savings)ACCOUNTS.savingsOpening=ACCOUNTS.savings; } // מיגרציה: יתרת חיסכון ידנית → יתרת פתיחה
     else if(d.SAVINGS&&d.SAVINGS.length){ ACCOUNTS.savingsOpening=d.SAVINGS.reduce((s,v)=>s+(+v.opening||0)+(d.ALLOC||[]).filter(a=>a.vehicle===v.name).reduce((x,a)=>x+a.amount,0),0); } // מיגרציה מנתוני חיסכון ישנים
@@ -1701,7 +1754,7 @@ function snapshot(force){ try{ const cur=localStorage.getItem(STORE_KEY); if(!cu
 function getSnaps(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY+':snaps')||'[]'); }catch(e){ return []; } }
 function restoreSnapshot(i){ const s=getSnaps()[i]; if(!s)return; if(!confirm('לשחזר את הנתונים מנקודת הגיבוי? המצב הנוכחי יוחלף.'))return; try{ localStorage.setItem(STORE_KEY,s.d); }catch(e){} location.reload(); }
 function daysSinceBackup(){ const t=+localStorage.getItem(STORE_KEY+':lastdl')||0; return t? Math.floor((Date.now()-t)/86400000) : 999; }
-function backupData(){ const data={_v:1,_app:'kalkalat-bait',_date:new Date().toISOString(),TX,CATS,SUBCATS,BUDGETS,BUDGETS_M,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,WEALTH,NAV_ORDER,months,curMonth,catStructV};
+function backupData(){ const data={_v:1,_app:'kalkalat-bait',_date:new Date().toISOString(),TX,CATS,SUBCATS,BUDGETS,BUDGETS_M,SUBBUDGETS,SUBBUDGETS_M,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,WEALTH,NAV_ORDER,months,curMonth,catStructV};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); const ts=new Date().toISOString().slice(0,10); a.download='גיבוי-כלכלת-בית-'+ts+'.json'; a.click();
   try{localStorage.setItem(STORE_KEY+':lastdl',Date.now());}catch(e){} render(); }
@@ -1726,12 +1779,12 @@ function snoozeBackup(){ const chk=document.getElementById('backupAuto'); if(chk
   try{localStorage.setItem(STORE_KEY+':snooze',Date.now());}catch(e){} closeBackupModal(); }
 function toggleAutoBackup(v){ try{localStorage.setItem(STORE_KEY+':autodl',v?'1':'0');}catch(e){} render(); }
 /* ייצוא/יישום מצב מלא — משותף לשחזור מקובץ ולסנכרון ענן */
-function exportState(){ return {TX,CATS,SUBCATS,BUDGETS,BUDGETS_M,SUBBUDGETS,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,WEALTH,NAV_ORDER,months,curMonth,catStructV}; }
+function exportState(){ return {TX,CATS,SUBCATS,BUDGETS,BUDGETS_M,SUBBUDGETS,SUBBUDGETS_M,MEMORY,PAYSLIPS,LOCKED,ACCOUNTS,FORECAST_OVR,SAVE_PLAN,WEALTH,NAV_ORDER,months,curMonth,catStructV}; }
 function applyStateObject(d){
   TX.length=0; (d.TX||[]).forEach(t=>TX.push(t));
   if(d.CATS){CATS.length=0; d.CATS.forEach(c=>CATS.push(c));}
   if(d.SUBCATS){Object.keys(SUBCATS).forEach(k=>delete SUBCATS[k]); Object.assign(SUBCATS,d.SUBCATS);}
-  if(d.BUDGETS)BUDGETS=d.BUDGETS; if(d.BUDGETS_M)BUDGETS_M=d.BUDGETS_M; if(d.SUBBUDGETS)SUBBUDGETS=d.SUBBUDGETS; if(d.MEMORY)MEMORY=d.MEMORY;
+  if(d.BUDGETS)BUDGETS=d.BUDGETS; if(d.BUDGETS_M)BUDGETS_M=d.BUDGETS_M; if(d.SUBBUDGETS)SUBBUDGETS=d.SUBBUDGETS; if(d.SUBBUDGETS_M)SUBBUDGETS_M=d.SUBBUDGETS_M; if(d.MEMORY)MEMORY=d.MEMORY;
   if(d.ACCOUNTS)ACCOUNTS=Object.assign({checking:0,savings:0,free:0},d.ACCOUNTS); if(d.FORECAST_OVR)FORECAST_OVR=d.FORECAST_OVR; if(d.SAVE_PLAN)SAVE_PLAN=d.SAVE_PLAN; if(d.WEALTH)WEALTH=d.WEALTH; if(Array.isArray(d.NAV_ORDER)){NAV_ORDER=d.NAV_ORDER; applyNavOrder();}
   if(d.PAYSLIPS)PAYSLIPS=d.PAYSLIPS; if(d.LOCKED)LOCKED=d.LOCKED;
   if(d.months){months.length=0; d.months.forEach(m=>months.push(m));} if(d.curMonth)curMonth=d.curMonth;
@@ -1846,7 +1899,9 @@ document.addEventListener('click',e=>{ const p=document.getElementById('bmPop');
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeBmPop(); closeModal(); closeBackupModal(); } });
 /* ===== התקנה כאפליקציה (PWA): אייקון + manifest מוטמעים ===== */
 const APP_ICON='data:image/png;base64,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';
+const APP_VERSION='2026-06-27 · v8';   // ⬅️ מספר גרסה — מתעדכן בכל שינוי
 function setupPWA(){ try{
+  const av=document.getElementById('appVer'); if(av) av.textContent=APP_VERSION;
   const ai=document.getElementById('appleIcon'); if(ai) ai.href=APP_ICON;
   const man={name:'כלכלת בית',short_name:'כלכלת בית',lang:'he',dir:'rtl',start_url:'.',scope:'.',display:'standalone',orientation:'portrait',background_color:'#f8fafc',theme_color:'#2563eb',
     icons:[{src:APP_ICON,sizes:'512x512',type:'image/png',purpose:'any'},{src:APP_ICON,sizes:'512x512',type:'image/png',purpose:'maskable'}]};
