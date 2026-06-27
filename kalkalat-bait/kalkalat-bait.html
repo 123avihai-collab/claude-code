@@ -1162,15 +1162,15 @@ function screenBudgets(){
     // תקציב הראשי: ערך אפקטיבי לחודש הנבחר + בורר scope (קבוע/מהחודש והלאה/רק לחודש זה)
     const eff = catBudget(c.name, curMonth);
     const hasOvr = hasMonthBudget(c.name, curMonth);
-    const scopeSel = `<select onchange="setBudget('${c.name}', this.previousElementSibling.value, this.value, curMonth)" style="font-size:12px" title="היכן להחיל את התקציב">
-        <option value="base">קבוע</option>
-        <option value="forward">מהחודש והלאה</option>
+    const scopeSel = `<span class="bud-lbl">החל על:</span><select onchange="setBudget('${c.name}', this.parentElement.querySelector('input').value, this.value, curMonth)" style="font-size:12px" title="היכן להחיל את שינוי התקציב">
         <option value="month">רק לחודש זה</option>
+        <option value="forward">מהחודש והלאה</option>
+        <option value="base">קבוע (כל החודשים)</option>
       </select>`;
     const mainInput = `<span class="row" style="gap:6px;align-items:center">
         <span class="bud-lbl">תקציב (${heMonth(curMonth)})</span>
         <input type="number" value="${eff||''}" placeholder="הזן" style="width:100px"
-               onchange="setBudget('${c.name}', this.value, this.nextElementSibling.value, curMonth)">
+               onchange="setBudget('${c.name}', this.value, this.parentElement.querySelector('select').value, curMonth)">
         ${scopeSel}
         ${hasOvr ? `<span class="muted" style="font-size:11px;white-space:nowrap">• מותאם לחודש זה <a href="#" onclick="event.preventDefault();clearMonthBudget('${c.name}',curMonth)">↺ אפס</a></span>`
                  : (usesSub ? `<span class="muted" style="font-size:11px;white-space:nowrap">(בסיס מתת-הקטגוריות)</span>` : '')}
